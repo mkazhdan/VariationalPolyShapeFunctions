@@ -1,0 +1,2 @@
+# VariationalPolyShapeFunctions
+Variational Polygonal/Polyhedral Shape Functions

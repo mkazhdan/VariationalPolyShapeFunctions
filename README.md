@@ -12,7 +12,7 @@
 <hr>
 This software supports finite-elements-type calculations over polygonal and polyhedral meshes. Supported applications include:
 <UL>
-<LI>Simulation of deformable solids in 2D and 3D,</LI>
+<LI>Simulation of deformable solids (with linear elasticity) in 2D and 3D,</LI>
 <LI>Solution of the Franke test in 2D and 3D,</LI>
 <LI>Calculation of Geodesics in Heat on polygonal meshes, and</LI>
 <LI>Gradient domain processing of signals on polygonal meshes.</LI>
@@ -40,7 +40,7 @@ This software supports finite-elements-type calculations over polygonal and poly
 <details>
 <summary>
 <font size="+1"><b>DeformableSolids2D/DeformableSolids3D</b></font>:
-Supports the simulation of deformable solids in 2D and 3D using linear elasticity. The executable will launch an interactive viewer that provides a visualization of the deforming solid. The solid can deform either through the action of gravity or by applying a prescribed linear transformation and having the solid evolve towards its rest state. (In 2D, the applications supports selecting and dragging of individual vertices.)<BR>
+Supports the simulation of deformable solids in 2D and 3D using linear elasticity. The executable launches an interactive viewer that provides a visualization of the deforming solid. The solid can deform either through the action of gravity or by applying a prescribed linear transformation and having the solid evolve towards its rest state. (In 2D, the applications supports selecting and dragging of individual vertices.)<BR>
 Hit [SPACE] to start the simulation or "+" to advance one time-step.
 </summary>
 <dt><b>--in</b> &lt;<i>input polygonal/polyhedral mesh</i>&gt;</dt>
@@ -58,7 +58,7 @@ The default values spcify the identity transformation.
 <dd> If enabled, this flag specifies that the values on the <i>y</i>-axis (resp. <i>yz</i>-plane) should be locked during the course of the animation.
 </dd>
 
-<dt>[<b>--gravity</b> &lt;<i>gravity</i>&gt;]</dt>
+<dt>[<b>--gravity</b> &lt;<i>gravitational force</i>&gt;]</dt>
 <dd> This floating point value describes the force of gravity acting on the solid. (Note that without the <b>--lock</b> parameter, using a non-zero value for gravity will have the solid fall off the screen.)<BR>
 The default value for this parameter is -500,000,000.
 </dd>
@@ -68,7 +68,7 @@ The default value for this parameter is -500,000,000.
 </dd>
 
 <dt>[<b>--vCycles</b> &lt;<i>number of v-cycles per animation step</i>&gt;]</dt>
-<dd> If a multigrid solver is used, ths integer value specifies the number of v-cycles to be formed at each step of the animation.<BR>
+<dd> If a multigrid solver is used, ths integer value specifies the number of v-cycles to be performed at each step of the animation.<BR>
 The default value for this parameter is 1.
 </dd>
 
@@ -88,7 +88,7 @@ The default value for this parameter is 5.
 <details>
 <summary>
 <font size="+1"><b>FrankeTest2D/FrankeTest3D</b></font>:
-Supports the evaluation of solver quality by solving a Poisson equation over the unit square/cube, with boundary values fixed to the analytic values of the Franke test function. The functions takes in geometry, and outputs the RMS of the solution (compared to the analytic solution.
+Supports the evaluation of function space quality by solving a Poisson equation over the unit square/cube, with boundary values fixed to the analytic values of the Franke test function. The executable takes in geometry, and outputs the RMS of the solution (compared to the analytic solution).
 </summary>
 <dt><b>--in</b> &lt;<i>input polygonal/polyhedral mesh</i>&gt;</dt>
 <dd> This string specifies the the name of the mesh.<br>
@@ -101,8 +101,8 @@ For 3D simulations, the input polyhedral mesh is assumed to be in <a HREF="https
 </dd>
 
 <dt>[<b>--vCycles</b> &lt;<i>number of v-cycles per animation step</i>&gt;]</dt>
-<dd> If a multigrid solver is used, ths integer value specifies the number of v-cycles to be formed at each step of the animation.<BR>
-The default value for this parameter is 1.
+<dd> If a multigrid solver is used, ths integer value specifies the number of v-cycles to be performed at each step of the animation.<BR>
+The default value for this parameter is 3.
 </dd>
 
 <dt>[<b>--gsIters</b> &lt;<i>number of Gauss-Seidel iterations per level</i>&gt;]</dt>
@@ -122,7 +122,7 @@ The default value for this parameter is 5.
 <summary>
 <font size="+1"><b>GeodesicsInHeat</b></font>:
 Supports the interactive visualization of single-source geodesics on the surface of polygonal mesh using the <A HREF="https://www.cs.cmu.edu/~kmcrane/Projects/HeatMethod/">heat method</A>.<BR>
-In the interactive viewer the source can be set by holding the [SHIFT] key down and clicking/dragging with either mouse button.
+Left-clicking while holding down the [SHIFT] key selects the source.
 </summary>
 <dt><b>--in</b> &lt;<i>input polygonal mesh</i>&gt;</dt>
 <dd> This string specifies the the name of the mesh.<br>
@@ -139,7 +139,7 @@ The default value for this parameter is 1e-3.
 </dd>
 
 <dt>[<b>--vCycles</b> &lt;<i>number of v-cycles per animation step</i>&gt;]</dt>
-<dd> If a multigrid solver is used, ths integer value specifies the number of v-cycles to be formed at each step of the animation.<BR>
+<dd> If a multigrid solver is used, ths integer value specifies the number of v-cycles to be performed at each step of the animation.<BR>
 The default value for this parameter is 1.
 </dd>
 
@@ -167,7 +167,7 @@ Supports the gradient domain smoothing and sharpening of surface geometry by sol
 The polygonal mesh is assumed to be in <a href="http://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, giving the set of vertices with the x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i> and the set of polygons encoded by a list of vertex indices.
 </dd>
 
-<dt><b>--out</b> &lt;<i>output polygonal mesh</i>&gt;</dt>
+<dt><b>[--out</b> &lt;<i>output polygonal mesh</i>&gt;]</dt>
 <dd> This string specifies the the name of the output (processed) polygonal mesh.<br>
 The polygonal mesh is assumed to be in <a href="http://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, giving the set of vertices with the x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i> and the set of polygons encoded by a list of vertex indices.
 </dd>
@@ -179,7 +179,7 @@ The default value for this parameter is 1e-5.
 
 </dd><dt>[<b>--gScale</B> &lt;<i>gradient dampening/amplification factor</i>&gt;]</dt>
 <dd> This floating point value specifies the scale that is to be appled to the gradients.<BR>
-The default value for this parameter is 1.
+The default value for this parameter is 1, specifying unmodified output.
 </dd>
 
 </dd><dt>[<b>--mg</B>]</dt>
@@ -187,7 +187,7 @@ The default value for this parameter is 1.
 </dd>
 
 <dt>[<b>--vCycles</b> &lt;<i>number of v-cycles per animation step</i>&gt;]</dt>
-<dd> If a multigrid solver is used, ths integer value specifies the number of v-cycles to be formed at each step of the animation.<BR>
+<dd> If a multigrid solver is used, ths integer value specifies the number of v-cycles to be performed at each step of the animation.<BR>
 The default value for this parameter is 3.
 </dd>
 
@@ -216,9 +216,9 @@ For testing purposes, a number of <A HREF="http://www.cs.jhu.edu/~misha/Code/Var
 <summary>
 <font size="+1"><b>Linear Elasticity in 2D</b></font>
 </summary>
-To run this executable you must specify the input polygonal mesh as well as specify the time of deformation. For example, to see the deformation of the unit square, tessellated by a Voronoi diagram, deforming under the action of gravity, with the vertices on the left side locked, and using a direct solver to advance time-steps, execute:
+To run this executable you must specify the input polygonal mesh. For example, to see the deformation of the unit square, tessellated by a Voronoi diagram, deforming under the action of gravity, with the vertices on the left side locked, and using a direct solver to advance time-steps, execute:
 <blockquote><code>% Bin/*/DeformableSolids2D --in ../VPSF.Data/square.voronoi.3.ply --lock</code></blockquote>
-To see the deformation of the unit square, tessellated using concave polygons, evolving to its rest state after an initial anisotropic scaled is applied, using a hierrchical solver to advance time-steps, execute:
+To see the deformation of the unit square, tessellated using concave polygons, evolving to its rest state after an initial anisotropic scaling is applied, using a hierarchical solver to advance time-steps, execute:
 <blockquote><code>% Bin/*/DeformableSolids2D --in ../VPSF.Data/square.concave.3.ply --gravity 0 --xForm 2 0  0 0.5 --mg</code></blockquote>
 You can toggle the animtation by hitting [SPACE] and you can step through the animation by hitting "+".<BR>
 You can also interact with the animation by left-clicking to drag a vertex.
@@ -230,12 +230,12 @@ You can also interact with the animation by left-clicking to drag a vertex.
 <summary>
 <font size="+1"><b>Linear Elasticity in 3D</b></font>
 </summary>
-To run this executable you must specify the input polyhedral mesh as well as specify the time of deformation. For example, to see the deformation of a unit cube, tessellated by a Voronoi diagram, deforming under the action of gravity, with the vertices on the left side locked, and using a direct solver to advance time-steps, execute:
+To run this executable you must specify the input polyhedral mesh. For example, to see the deformation of a unit cube, tessellated by a Voronoi diagram, deforming under the action of gravity, with the vertices on the left side locked, and using a direct solver to advance time-steps, execute:
 <blockquote><code>% Bin/*/DeformableSolids3D --in ../VPSF.Data/cube.voronoi.3.ovm --lock</code></blockquote>
-To see the deformation of the unit cube, tessellated using truncated cells, evolving to its rest state after an initial anisotropic scaled is applied, using a hierrchical solver to advance time-steps, execute:
+To see the deformation of the unit cube, tessellated using truncated cells, evolving to its rest state after an initial anisotropic scaling is applied, using a hierarchical solver to advance time-steps, execute:
 <blockquote><code>% Bin/*/DeformableSolids3D --in ../VPSF.Data/cube.truncated.3.ovm --gravity 0 --xForm 2 0 0  0 1 0  0 0 0.5 --mg</code></blockquote>
 You can toggle the animtation by hitting [SPACE] and you can step through the animation by hitting "+".<BR>
-You can pan by by dragging with the left mouse button and holding down the [CTRL] key.<BR>
+You can pan by by dragging with the left mouse button while holding down the [CTRL] key.<BR>
 You can rotate by dragging with the left mouse button.<BR>
 You can also rotate by using the "q", "w" , "a", "z", "s", and "x" keys.
 </details>
@@ -248,8 +248,8 @@ You can also rotate by using the "q", "w" , "a", "z", "s", and "x" keys.
 </summary>
 To run this executable you must specify the input polygonal mesh. For example, to run  the test on the unit square tessellated by a Voronoi diagram and using a direct solver, execute:
 <blockquote><code>% Bin/*/FrankeTest2D --in ../VPSF.Data/square.voronoi.3.ply </code></blockquote>
-To run the test on the unit square tessellated using concave polygons and using a hierarchical solver with three v-cycles, execute:
-<blockquote><code>% Bin/*/FrankeTest2D --in ../VPSF.Data/square.concave.3.ovm --mg --vCycles 3</code></blockquote>
+To run the test on the unit square tessellated using concave polygons and using a hierarchical solver, execute:
+<blockquote><code>% Bin/*/FrankeTest2D --in ../VPSF.Data/square.concave.3.ply --mg</code></blockquote>
 </details>
 </dl>
 
@@ -260,8 +260,8 @@ To run the test on the unit square tessellated using concave polygons and using 
 </summary>
 To run this executable you must specify the input polyhedral mesh. For example, to run  the test on the unit cube, tessellated by a Voronoi diagram, and using a direct solver, execute:
 <blockquote><code>% Bin/*/FrankeTest3D --in ../VPSF.Data/cube.voronoi.3.ovm </code></blockquote>
-To run the test on the unit cube, tessellated using truncated cells, and using a hierarchical solver with three v-cycles, execute:
-<blockquote><code>% Bin/*/FrankeTest3D --in ../VPSF.Data/cube.truncated.3.ovm --mg --vCycles 3</code></blockquote>
+To run the test on the unit cube, tessellated using truncated cells, and using a hierarchical solver, execute:
+<blockquote><code>% Bin/*/FrankeTest3D --in ../VPSF.Data/cube.truncated.3.ovm --mg</code></blockquote>
 </details>
 </dl>
 

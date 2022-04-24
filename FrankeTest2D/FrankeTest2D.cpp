@@ -44,7 +44,7 @@ DAMAGE.
 static const unsigned int Dim = 2;
 
 Misha::CmdLineParameter< std::string > Input( "in" );
-Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , CoarseNodeDimension( "coarseDim" , 1 ) , VCycles( "vCycles" , 1 ) , GSIterations( "gsIters" , 5 );
+Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , CoarseNodeDimension( "coarseDim" , 1 ) , VCycles( "vCycles" , 3 ) , GSIterations( "gsIters" , 5 );
 Misha::CmdLineReadable Verbose( "verbose" ) , Multigrid( "mg" ) , FullVerbose( "fullVerbose" ) , Debug( "debug" );
 Misha::CmdLineReadable* params[] = { &Input , &Degree , &Verbose , &CoarseNodeDimension , &Multigrid , &VCycles , &GSIterations , &FullVerbose , &Debug , NULL };
 

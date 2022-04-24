@@ -275,8 +275,8 @@ To run this executable you must specify the input polygonal mesh. For example, t
 <blockquote><code>% Bin/*/GeodesicsInHeat --in ../VPSF.Data/armadillo.ply</code></blockquote>
 To visualize single-source geodesics on the model of the Fanblade, using a hierarchical solver, execute:
 <blockquote><code>% Bin/*/GeodesicsInHeat --in ../VPSF.Data/fanblade.ply --mg</code></blockquote>
-You can specify the geodesic source by left-clicking while holding down the [SHIFT] key..<BR>
-You can pan by by dragging with the left mouse button and holding down the [CTRL] key.<BR>
+You can specify the geodesic source by left-clicking while holding down the [SHIFT] key.<BR>
+You can pan by by dragging with the left mouse button while holding down the [CTRL] key.<BR>
 You can rotate by dragging with the left mouse button.<BR>
 You can also rotate by using the "q", "w" , "a", "z", "s", and "x" keys.
 </details>
@@ -289,6 +289,8 @@ You can also rotate by using the "q", "w" , "a", "z", "s", and "x" keys.
 </summary>
 To run this executable you must specify the input and output polygonal meshes as well as the gradient interpolation weight and the gradient dampening/amplification scale. For example, to smooth the Bunny model using a direct solver, execute:
 <blockquote><code>% Bin/*/GradientDomainProcessing --in ../VPSF.Data/bunny.ply --gScale 0 --out bunny.smooth.ply</code></blockquote>
+For more aggressive smoothing, you can increase the gradient interpolation weight:
+<blockquote><code>% Bin/*/GradientDomainProcessing --in ../VPSF.Data/bunny.ply --gScale 0 --out bunny.smooth.ply --gWeight 1e-3</code></blockquote>
 To sharpen the Armadillo Man model using a hierarchical solver, execute:
 <blockquote><code>% Bin/*/GradientDomainProcessing --in ../VPSF.Data/armadillo.ply --gScale 2 --out armadillo.sharp.ply --mg</code></blockquote>
 </details>

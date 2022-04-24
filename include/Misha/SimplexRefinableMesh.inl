@@ -162,7 +162,6 @@ template< unsigned int Dim , unsigned int Degree >
 template< bool PoU , typename SimplexRefinableCellType >
 void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool verbose )
 {
-	if( !PoU ) WARN_ONCE( "Not enforcing partition of unity" );
 	_prolongationAndNodeMap.resize( finestDim+1 );
 
 	struct PEntry
@@ -245,7 +244,6 @@ template< unsigned int Dim , unsigned int Degree >
 template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose )
 {
-	if( !PoU ) WARN_ONCE( "Not enforcing partition of unity" );
 	WARN_ONCE( "Enforcing linear precision" );
 
 	_prolongationAndNodeMap.resize( finestDim+1 );

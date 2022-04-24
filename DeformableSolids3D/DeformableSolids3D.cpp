@@ -42,8 +42,8 @@ Misha::CmdLineParameter< std::string > Input( "in" );
 Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , Width( "width" , 512 ) , Height( "height" , 512 ) , RefinementResolution( "refine" , 8 ) , CoarseNodeDimension( "coarseDim" , 1 ) , VCycles( "vCycles" , 1 ) , GSIterations( "gsIters" , 5 );
 Misha::CmdLineParameterArray< float , Dim * Dim > AffineTransform( "xForm" );
 Misha::CmdLineParameter< float > Gravity( "gravity" , -5e8f ) , TimeStep( "timeStep" );
-Misha::CmdLineReadable Multigrid( "mg" ) , Lock( "lock" ) , LinearPrecision( "linear" );
-Misha::CmdLineReadable* params[] = { &Input , &Width , &Height , &Degree , &AffineTransform , &Lock , &Gravity , &TimeStep , &RefinementResolution , &CoarseNodeDimension , &VCycles , &GSIterations , &Multigrid , &LinearPrecision , NULL };
+Misha::CmdLineReadable Multigrid( "mg" ) , Lock( "lock" ) , NoLinearPrecision( "noLinear" );
+Misha::CmdLineReadable* params[] = { &Input , &Width , &Height , &Degree , &AffineTransform , &Lock , &Gravity , &TimeStep , &RefinementResolution , &CoarseNodeDimension , &VCycles , &GSIterations , &Multigrid , &NoLinearPrecision , NULL };
 
 void ShowUsage( const char* ex )
 {
@@ -60,7 +60,7 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <v-cycles>=%d]\n" , VCycles.name.c_str() , VCycles.value );
 	printf( "\t[--%s <Gauss-Seidel iterations>=%d]\n" , GSIterations.name.c_str() , GSIterations.value );
 	printf( "\t[--%s]\n" , Multigrid.name.c_str() );
-	printf( "\t[--%s]\n" , LinearPrecision.name.c_str() );
+	printf( "\t[--%s]\n" , NoLinearPrecision.name.c_str() );
 	printf( "\t[--%s]\n" , Lock.name.c_str() );
 }
 
@@ -74,7 +74,7 @@ void Execute( const std::vector< Point< double , Dim > > &vertices , const std::
 		DeformablePolyhedralMeshVisualization< Degree , true > v;
 		v.vCycles = VCycles.value;
 		v.gsIters = GSIterations.value;
-		v.init( vertices , polygons , polyhedra , lockedVertices , xForm , width , height , Gravity.value , refinementResolution , CoarseNodeDimension.value , LinearPrecision.set );
+		v.init( vertices , polygons , polyhedra , lockedVertices , xForm , width , height , Gravity.value , refinementResolution , CoarseNodeDimension.value , !NoLinearPrecision.set );
 		if( TimeStep.set ) v.setTimeStep( TimeStep.value );
 
 		Misha::Viewable< DeformablePolyhedralMeshVisualization< Degree , true > >::Viewer::Run( &v , 0 , NULL , windowName );
@@ -83,7 +83,7 @@ void Execute( const std::vector< Point< double , Dim > > &vertices , const std::
 	{
 		sprintf( windowName , "Deformable Polyhedral Mesh Viewer (Degree=%d, direct)" , Degree );
 		DeformablePolyhedralMeshVisualization< Degree , false > v;
-		v.init( vertices , polygons , polyhedra , lockedVertices , xForm , width , height , Gravity.value , refinementResolution , CoarseNodeDimension.value , LinearPrecision.set );
+		v.init( vertices , polygons , polyhedra , lockedVertices , xForm , width , height , Gravity.value , refinementResolution , CoarseNodeDimension.value , !NoLinearPrecision.set );
 		if( TimeStep.set ) v.setTimeStep( TimeStep.value );
 
 		Misha::Viewable< DeformablePolyhedralMeshVisualization< Degree , false > >::Viewer::Run( &v , 0 , NULL , windowName );

@@ -1,4 +1,4 @@
-<center><h2>Gradient Domain Texture Processing (Version 3.00)</h2></center>
+<center><h2>Variational Polygonal/Polyhedral Shape Functions (Version 1.00)</h2></center>
 <center>
 <a href="#LINKS">links</a>
 <a href="#EXECUTABLES">executables</a>
@@ -8,29 +8,27 @@
 <a href="#SUPPORT">support</a>
 </center>
 <hr>
-This software supports gradient-domain signal processing within a texture atlas. Supported applications include:
+This software supports finite-elements-type calculations over polygonal and polyhedral meshes. Supported applications include:
 <UL>
-<LI>(localized) texture smoothing and sharpening,</LI>
-<LI>vector-field visualization akin to line-integral convolution,</LI>
-<LI>computation of single-source geodesics, and</LI>
-<LI>simulation of reaction-diffusion following the Gray-Scott model.</LI>
+<LI>Simulation of deformable solids in 2D and 3D,</LI>
+<LI>Solution of the Franke test in 2D and 3D,</LI>
+<LI>Calculation of Geodesics in Heat on polygonal meshes, and</LI>
+<LI>Gradient domain processing of signals on polygonal meshes.</LI>
 </UL>
 <hr>
 <a name="LINKS"><b>LINKS</b></a><br>
 <ul>
 <b>Papers:</b>
-<a href="http://www.cs.jhu.edu/~misha/MyPapers/SIG18.pdf">[Prada, Kazhdan, Chuang, and Hoppe, 2018]</a>,
-<a href="https://en.wikipedia.org/wiki/Line_integral_convolution">[Cabral and Leedom, 1993]</a>,
+<a href="http://www.cs.jhu.edu/~misha/MyPapers/SIG22.pdf">[Bunge, Herholz, Sorkine-Hornung, Botsch, and Kazhdan, 2022]</a>,
 <a href="https://www.cs.cmu.edu/~kmcrane/Projects/HeatMethod/">[Crane, Weischedel, and Wardetzky, 2013]</a>
 <br>
 <b>Executables: </b>
-<a href="http://www.cs.jhu.edu/~misha/Code/TextureSignalProcessing/TSP.x64.zip">Win64</a><br>
+<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/VPSF.x64.zip">Win64</a><br>
 <b>Source Code:</b>
-<a href="http://www.cs.jhu.edu/~misha/Code/TextureSignalProcessing/TSP.Source.zip">ZIP</a> <a href="https://github.com/mkazhdan/TextureSignalProcessing">GitHub</a><br>
+<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/VPSF.Source.zip">ZIP</a> <a href="https://github.com/mkazhdan/VariationalPolyShapeFunctions">GitHub</a><br>
 <B>Data:</B>
-<A HREF="http://www.cs.jhu.edu/~misha/Code/TextureSignalProcessing/TSP.Data.zip">ZIP</A><br>
+<A HREF="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/VPSF.Data.zip">ZIP</A><br>
 <b>Older Versions:</b>
-<a href="http://www.cs.jhu.edu/~misha/Code/TextureSignalProcessing/Version2.00/">V2</a>, <a href="http://www.cs.jhu.edu/~misha/Code/TextureSignalProcessing/Version1.00/">V1</a>
 </ul>
 <hr>
 <a name="EXECUTABLES"><b>EXECUTABLES</b></a><br>
@@ -39,24 +37,27 @@ This software supports gradient-domain signal processing within a texture atlas.
 <dl>
 <details>
 <summary>
-<font size="+1"><b>TextureFiltering</b></font>:
-Supports the (localized) smoothing and sharpening of a texture by solving a screened Poisson equation which gives the signal whose values match the input and whose gradients match the modulated gradients of the input. If no output texture is specified, the executable will launch an interactive viewer that supports local "painting" of gradient modulation values and prescription of a global interpolation weight.<BR>
-In the interactive viewer the modulation can be set globally by dragging the slider on the top left.<BR>
-The modulation can be set locally by holding the [SHIFT] key down and either dragging with the left mouse button (to smooth) or the right mouse button (to sharpen).
+<font size="+1"><b>DeformableSolids2D/DeformableSolids3D</b></font>:
+Supports the simulation of deformable solids in 2D and 3D using linear elasticity. The executable will launch an interactive viewer that provides a visualization of the deforming solid. The solid can deform either through the action of gravity or by applying a prescribed linear transformation and having the solid evolve towards its rest state. (In 2D, the applications supports selecting and dragging of individual vertices.)<BR>
+Hit [SPACE] to start the simulation solver or hit "+" to advance one time-step.
 </summary>
-<dt><b>--in</b> &lt;<i>input mesh and texture names</i>&gt;</dt>
-<dd> These two strings specify the the names of the mesh and the texture image.<br>
-The input mesh is assumed to be in <a href="http://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, giving the set of vertices with the x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i> the set of polygons encoded by two lists. The first gives the indices of the vertices in the polygon (integers). The second gives the texture coordinates at each polygon corner (pairs of floats).<br>
-The input texture is assumed to be an image if the file extension is <I>png</I>, <I>jpg</I>, or <I>jpeg</I>, and a normal map if the extension is <I>normap</I>.
+<dt><b>--in</b> &lt;<i>input polygonal/polyhedral mesh</i>&gt;</dt>
+<dd> This string specifies the the name of the mesh.<br>
+For 2D simulations, the input polygonal mesh is assumed to be in <a href="http://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, giving the set of vertices with the x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i> and the set of polygons encoded by a list of vertex indices.<br>
+For 3D simulations, the input polyhedral mesh is assumed to be in <a HREF="https://www.graphics.rwth-aachen.de/software/openvolumemesh/">OVM</a> format.
 </dd>
 
-<dt>[<b>--out</b> &lt;<i>output texture</i>&gt;]</dt>
-<dd> This string is the name of the file to which the processed texture will be written.</B>
+<dt>[<b>--xForm</b> &lt;<i>linear transform</i>&gt;]</dt>
+<dd> This 2x2 (resp. 3x3) set of floating point values describes the entries of the linear transformation initially applied to the solid.</B>
 </dd>
 
-<dt>[<b>--outVCycles</b> &lt;<i>output v-cycles</i>&gt;]</dt>
-<dd> This integer specifies the number of v-cycles to use if the processed texture is output to a file and a direct solver is not used.</B>
-The default value for this parameter is 6.
+</dd><dt>[<b>--lock</B>]</dt>
+<dd> If enabled, this flag specifies that the values on the <i>y-axis (resp. <i>yz</i>-plane) should be locked during the course of the animation.
+</dd>
+
+<dt>[<b>--gravity</b> &lt;<i>gravity</i>&gt;]</dt>
+<dd> This floating point value describes the force of gravity acting on the solid. (Note that without the <b>--lock</b> parameter, using a non-zero value for gravity will have the solid fall off the screen.)</B>
+The default value for this parameter is -500,000,000.
 </dd>
 
 <dt>[<b>--interpolation</b> &lt;<i>interpolation weight</i>&gt;]</dt>
@@ -64,17 +65,18 @@ The default value for this parameter is 6.
 The default value for this parameter is 1000.
 </dd>
 
-<dt>[<b>--modulation</b> &lt;<i>gradient modulation</i>&gt;]</dt>
-<dd> This floating point values gives the (uniform) gradient modulation.<BR>
+</dd><dt>[<b>--mg</B>]</dt>
+<dd> If enabled, this flag specifies that a multigrid solver should be used (instead of the default sparse Cholesky solver).
+</dd>
+
+<dt>[<b>--vCycles</b> &lt;<i>number of v-cycles per animation step</i>&gt;]</dt>
+<dd> If a multigrid solver is used, ths integer value specifies the number of v-cycles to be formed at each step of the animation.</B>
 The default value for this parameter is 1.
 </dd>
 
-</dd><dt>[<b>--useDirectSolver</B>]</dt>
-<dd> If enabled, this flag specifies that a direct solver should be used (instead of the default multigrid solver).
-</dd>
-
-</dd><dt>[<b>--jitter</B>]</dt>
-<dd> If enabled, this flag specifies that the texture coordinates should be jittered slightly. (This is used to avoid singular situations when mesh vertices fall directly on edges in the texture grid. In such a situation, the executable will issue a warning <B>"Zero row at index ..."</B>.)
+<dt>[<b>--gsIters</b> &lt;<i>number of Gauss-Seidel iterations per level</i>&gt;]</dt>
+<dd> If a multigrid solver is used, ths integer value specifies the number of Gauss-Seidel iterations to be done within each level of the v-cycle.</B>
+The default value for this parameter is 5.
 </dd>
 
 </details>

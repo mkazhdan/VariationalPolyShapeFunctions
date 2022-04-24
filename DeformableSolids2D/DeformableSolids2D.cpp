@@ -42,8 +42,8 @@ Misha::CmdLineParameter< std::string > Input( "in" );
 Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , Width( "width" , 512 ) , Height( "height" , 512 ) , CoarseNodeDimension( "coarseDim" , 1 ) , RefinementResolution( "refine" , 8 ) , VCycles( "vCycles" , 1 ) , GSIterations( "gsIters" , 5 );
 Misha::CmdLineParameterArray< float , Dim * Dim > AffineTransform( "xForm" );
 Misha::CmdLineParameter< float > Gravity( "gravity" , -5e8f ) , TimeStep( "timeStep" );
-Misha::CmdLineReadable Multigrid( "mg" ) , Lock( "lock" );
-Misha::CmdLineReadable* params[] = { &Input , &Width , &Height , &Degree , &AffineTransform , &Lock , &Gravity , &TimeStep , &RefinementResolution , &CoarseNodeDimension , &VCycles , &GSIterations , &Multigrid , NULL };
+Misha::CmdLineReadable Multigrid( "mg" ) , Lock( "lock" ) , NoHelp( "noHelp" );
+Misha::CmdLineReadable* params[] = { &Input , &Width , &Height , &Degree , &AffineTransform , &Lock , &Gravity , &TimeStep , &RefinementResolution , &CoarseNodeDimension , &VCycles , &GSIterations , &Multigrid , &NoHelp , NULL };
 
 void ShowUsage( const char* ex )
 {
@@ -53,7 +53,7 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <screen height>=%d]\n" , Height.name.c_str() , Height.value );
 	printf( "\t[--%s <fem degree>=%d]\n" , Degree.name.c_str() , Degree.value );
 	printf( "\t[--%s <refinement resolution>=%d]\n" , RefinementResolution.name.c_str() , RefinementResolution.value );
-	printf( "\t[--%s < xForm(0,0) , xForm(1,0) , xForm(0,1) , xForm(1,1) >=%f %f %f %f]\n" , AffineTransform.name.c_str() , 1. , 0. , 0. , 1. );
+	printf( "\t[--%s <xForm(0,0) , xForm(1,0) , xForm(0,1) , xForm(1,1) >=%f %f %f %f]\n" , AffineTransform.name.c_str() , 1. , 0. , 0. , 1. );
 	printf( "\t[--%s <acceleration=%f>]\n" , Gravity.name.c_str() , Gravity.value );
 	printf( "\t[--%s <time-step>]\n" , TimeStep.name.c_str() );
 	printf( "\t[--%s <coarse node dimensions>=%d]\n" , CoarseNodeDimension.name.c_str() , CoarseNodeDimension.value );
@@ -61,6 +61,7 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <Gauss-Seidel iterations>=%d]\n" , GSIterations.name.c_str() , GSIterations.value );
 	printf( "\t[--%s]\n" , Multigrid.name.c_str() );
 	printf( "\t[--%s]\n" , Lock.name.c_str() );
+	printf( "\t[--%s]\n" , NoHelp.name.c_str() );
 }
 
 template< unsigned int Degree , unsigned int RefinementLevels >
@@ -100,6 +101,15 @@ int main( int argc , char* argv[] )
 		ShowUsage( argv[0] );
 		return EXIT_FAILURE;
 	}
+
+	if( !NoHelp.set )
+	{
+		printf( "+------------------------------------+\n" );
+		printf( "| Interface Controls:                |\n" );
+		printf( "|    [Left Mouse]: select vertex     |\n" );
+		printf( "+------------------------------------+\n" );
+	}
+
 
 	SquareMatrix< double , Dim > xForm = SquareMatrix< double , Dim >::Identity();
 	if( AffineTransform.set ) for( int i=0 ; i<Dim ; i++ ) for( int j=0 ; j<Dim ; j++ )  xForm(i,j) = AffineTransform.values[j*Dim+i];

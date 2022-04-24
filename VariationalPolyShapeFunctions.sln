@@ -1,0 +1,172 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31313.79
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeformableSolids2D", "DeformableSolids2D\DeformableSolids2D.vcxproj", "{858A279B-BA48-4713-8C88-7A7B214133AF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B5899B32-FAC2-477E-99AA-86736B97F2FC} = {B5899B32-FAC2-477E-99AA-86736B97F2FC}
+		{0BE55595-4080-4265-82AF-51108EC956B2} = {0BE55595-4080-4265-82AF-51108EC956B2}
+		{D3D173AB-D306-4179-BEC4-95CE1B14E647} = {D3D173AB-D306-4179-BEC4-95CE1B14E647}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeformableSolids3D", "DeformableSolids3D\DeformableSolids3D.vcxproj", "{F1020FCC-F5D7-447B-A759-C2317568BED9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FrankeTest3D", "FrankeTest3D\FrankeTest3D.vcxproj", "{49D69C8D-B3E1-45EF-AEBD-2C0739F8841D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FrankeTest2D", "FrankeTest2D\FrankeTest2D.vcxproj", "{8DBD2F17-A726-435C-A188-E96271BB2443}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GeodesicsInHeat", "GeodesicsInHeat\GeodesicsInHeat.vcxproj", "{BA13730E-4F3B-4F23-A49C-C06BCA870B79}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Misha", "Misha", "{9FB6E9D2-5D4A-4347-98C3-68B59038E20D}"
+	ProjectSection(SolutionItems) = preProject
+		include\Misha\Algebra.h = include\Misha\Algebra.h
+		include\Misha\Array.h = include\Misha\Array.h
+		include\Misha\BMP.h = include\Misha\BMP.h
+		include\Misha\BMP.inl = include\Misha\BMP.inl
+		include\Misha\Camera.h = include\Misha\Camera.h
+		include\Misha\CmdLineParser.h = include\Misha\CmdLineParser.h
+		include\Misha\CmdLineParser.inl = include\Misha\CmdLineParser.inl
+		include\Misha\DeformableSolid.h = include\Misha\DeformableSolid.h
+		include\Misha\Exceptions.h = include\Misha\Exceptions.h
+		include\Misha\Geometry.h = include\Misha\Geometry.h
+		include\Misha\Geometry.inl = include\Misha\Geometry.inl
+		include\Misha\Image.h = include\Misha\Image.h
+		include\Misha\JPEG.h = include\Misha\JPEG.h
+		include\Misha\JPEG.inl = include\Misha\JPEG.inl
+		include\Misha\LCQO.h = include\Misha\LCQO.h
+		include\Misha\Meshes.h = include\Misha\Meshes.h
+		include\Misha\MGSolver.h = include\Misha\MGSolver.h
+		include\Misha\Miscellany.h = include\Misha\Miscellany.h
+		include\Misha\PBM.h = include\Misha\PBM.h
+		include\Misha\PBM.inl = include\Misha\PBM.inl
+		include\Misha\Ply.h = include\Misha\Ply.h
+		include\Misha\Ply.inl = include\Misha\Ply.inl
+		include\Misha\PlyFile.h = include\Misha\PlyFile.h
+		include\Misha\PlyFile.inl = include\Misha\PlyFile.inl
+		include\Misha\PlyVertexData.h = include\Misha\PlyVertexData.h
+		include\Misha\PlyVertexData.inl = include\Misha\PlyVertexData.inl
+		include\Misha\PNG.h = include\Misha\PNG.h
+		include\Misha\PNG.inl = include\Misha\PNG.inl
+		include\Misha\Poly34.h = include\Misha\Poly34.h
+		include\Misha\Poly34.inl = include\Misha\Poly34.inl
+		include\Misha\Polygon.h = include\Misha\Polygon.h
+		include\Misha\PolygonMesh.h = include\Misha\PolygonMesh.h
+		include\Misha\Polyhedron.h = include\Misha\Polyhedron.h
+		include\Misha\PolyhedronMesh.h = include\Misha\PolyhedronMesh.h
+		include\Misha\polynomial.h = include\Misha\polynomial.h
+		include\Misha\polynomial.inl = include\Misha\polynomial.inl
+		include\Misha\RightTriangleQuadrature.h = include\Misha\RightTriangleQuadrature.h
+		include\Misha\SimplexBasis.h = include\Misha\SimplexBasis.h
+		include\Misha\SimplexBasis.inl = include\Misha\SimplexBasis.inl
+		include\Misha\SimplexMesh.h = include\Misha\SimplexMesh.h
+		include\Misha\SimplexMesh.inl = include\Misha\SimplexMesh.inl
+		include\Misha\SimplexRefinableBasis.h = include\Misha\SimplexRefinableBasis.h
+		include\Misha\SimplexRefinableBasis.inl = include\Misha\SimplexRefinableBasis.inl
+		include\Misha\SimplexRefinableMesh.h = include\Misha\SimplexRefinableMesh.h
+		include\Misha\SimplexRefinableMesh.inl = include\Misha\SimplexRefinableMesh.inl
+		include\Misha\SolidSimplexBasis.h = include\Misha\SolidSimplexBasis.h
+		include\Misha\SolidSimplexBasis.inl = include\Misha\SolidSimplexBasis.inl
+		include\Misha\SolidSimplexMesh.h = include\Misha\SolidSimplexMesh.h
+		include\Misha\SolidSimplexMesh.inl = include\Misha\SolidSimplexMesh.inl
+		include\Misha\SolidSimplexMeshElements.h = include\Misha\SolidSimplexMeshElements.h
+		include\Misha\SolidSimplexRefinableMesh.h = include\Misha\SolidSimplexRefinableMesh.h
+		include\Misha\SolidSimplexRefinableMesh.inl = include\Misha\SolidSimplexRefinableMesh.inl
+		include\Misha\Spectrum.h = include\Misha\Spectrum.h
+		include\Misha\Timer.h = include\Misha\Timer.h
+		include\Misha\Visualization.h = include\Misha\Visualization.h
+		include\Misha\Visualization3D.h = include\Misha\Visualization3D.h
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ZLIB", "ZLIB\ZLIB.vcxproj", "{D3D173AB-D306-4179-BEC4-95CE1B14E647}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JPEG", "JPEG\JPEG.vcxproj", "{0BE55595-4080-4265-82AF-51108EC956B2}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PNG", "PNG\PNG.vcxproj", "{B5899B32-FAC2-477E-99AA-86736B97F2FC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GradientDomainProcessing", "GradientDomainProcessing\GradientDomainProcessing.vcxproj", "{F8FED96C-5661-42E0-B871-4C74B7938847}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{858A279B-BA48-4713-8C88-7A7B214133AF}.Debug|x64.ActiveCfg = Release|x64
+		{858A279B-BA48-4713-8C88-7A7B214133AF}.Debug|x64.Build.0 = Release|x64
+		{858A279B-BA48-4713-8C88-7A7B214133AF}.Debug|x86.ActiveCfg = Release|x64
+		{858A279B-BA48-4713-8C88-7A7B214133AF}.Debug|x86.Build.0 = Release|x64
+		{858A279B-BA48-4713-8C88-7A7B214133AF}.Release|x64.ActiveCfg = Release|x64
+		{858A279B-BA48-4713-8C88-7A7B214133AF}.Release|x64.Build.0 = Release|x64
+		{858A279B-BA48-4713-8C88-7A7B214133AF}.Release|x86.ActiveCfg = Release|x64
+		{F1020FCC-F5D7-447B-A759-C2317568BED9}.Debug|x64.ActiveCfg = Release|x64
+		{F1020FCC-F5D7-447B-A759-C2317568BED9}.Debug|x64.Build.0 = Release|x64
+		{F1020FCC-F5D7-447B-A759-C2317568BED9}.Debug|x86.ActiveCfg = Release|Win32
+		{F1020FCC-F5D7-447B-A759-C2317568BED9}.Debug|x86.Build.0 = Release|Win32
+		{F1020FCC-F5D7-447B-A759-C2317568BED9}.Release|x64.ActiveCfg = Release|x64
+		{F1020FCC-F5D7-447B-A759-C2317568BED9}.Release|x64.Build.0 = Release|x64
+		{F1020FCC-F5D7-447B-A759-C2317568BED9}.Release|x86.ActiveCfg = Release|Win32
+		{F1020FCC-F5D7-447B-A759-C2317568BED9}.Release|x86.Build.0 = Release|Win32
+		{49D69C8D-B3E1-45EF-AEBD-2C0739F8841D}.Debug|x64.ActiveCfg = Release|x64
+		{49D69C8D-B3E1-45EF-AEBD-2C0739F8841D}.Debug|x64.Build.0 = Release|x64
+		{49D69C8D-B3E1-45EF-AEBD-2C0739F8841D}.Debug|x86.ActiveCfg = Release|Win32
+		{49D69C8D-B3E1-45EF-AEBD-2C0739F8841D}.Debug|x86.Build.0 = Release|Win32
+		{49D69C8D-B3E1-45EF-AEBD-2C0739F8841D}.Release|x64.ActiveCfg = Release|x64
+		{49D69C8D-B3E1-45EF-AEBD-2C0739F8841D}.Release|x64.Build.0 = Release|x64
+		{49D69C8D-B3E1-45EF-AEBD-2C0739F8841D}.Release|x86.ActiveCfg = Release|Win32
+		{49D69C8D-B3E1-45EF-AEBD-2C0739F8841D}.Release|x86.Build.0 = Release|Win32
+		{8DBD2F17-A726-435C-A188-E96271BB2443}.Debug|x64.ActiveCfg = Release|x64
+		{8DBD2F17-A726-435C-A188-E96271BB2443}.Debug|x64.Build.0 = Release|x64
+		{8DBD2F17-A726-435C-A188-E96271BB2443}.Debug|x86.ActiveCfg = Release|Win32
+		{8DBD2F17-A726-435C-A188-E96271BB2443}.Debug|x86.Build.0 = Release|Win32
+		{8DBD2F17-A726-435C-A188-E96271BB2443}.Release|x64.ActiveCfg = Release|x64
+		{8DBD2F17-A726-435C-A188-E96271BB2443}.Release|x64.Build.0 = Release|x64
+		{8DBD2F17-A726-435C-A188-E96271BB2443}.Release|x86.ActiveCfg = Release|Win32
+		{8DBD2F17-A726-435C-A188-E96271BB2443}.Release|x86.Build.0 = Release|Win32
+		{BA13730E-4F3B-4F23-A49C-C06BCA870B79}.Debug|x64.ActiveCfg = Release|x64
+		{BA13730E-4F3B-4F23-A49C-C06BCA870B79}.Debug|x64.Build.0 = Release|x64
+		{BA13730E-4F3B-4F23-A49C-C06BCA870B79}.Debug|x86.ActiveCfg = Release|Win32
+		{BA13730E-4F3B-4F23-A49C-C06BCA870B79}.Debug|x86.Build.0 = Release|Win32
+		{BA13730E-4F3B-4F23-A49C-C06BCA870B79}.Release|x64.ActiveCfg = Release|x64
+		{BA13730E-4F3B-4F23-A49C-C06BCA870B79}.Release|x64.Build.0 = Release|x64
+		{BA13730E-4F3B-4F23-A49C-C06BCA870B79}.Release|x86.ActiveCfg = Release|Win32
+		{BA13730E-4F3B-4F23-A49C-C06BCA870B79}.Release|x86.Build.0 = Release|Win32
+		{D3D173AB-D306-4179-BEC4-95CE1B14E647}.Debug|x64.ActiveCfg = Release|x64
+		{D3D173AB-D306-4179-BEC4-95CE1B14E647}.Debug|x64.Build.0 = Release|x64
+		{D3D173AB-D306-4179-BEC4-95CE1B14E647}.Debug|x86.ActiveCfg = Release|x64
+		{D3D173AB-D306-4179-BEC4-95CE1B14E647}.Debug|x86.Build.0 = Release|x64
+		{D3D173AB-D306-4179-BEC4-95CE1B14E647}.Release|x64.ActiveCfg = Release|x64
+		{D3D173AB-D306-4179-BEC4-95CE1B14E647}.Release|x64.Build.0 = Release|x64
+		{D3D173AB-D306-4179-BEC4-95CE1B14E647}.Release|x86.ActiveCfg = Release|x64
+		{0BE55595-4080-4265-82AF-51108EC956B2}.Debug|x64.ActiveCfg = Release|x64
+		{0BE55595-4080-4265-82AF-51108EC956B2}.Debug|x64.Build.0 = Release|x64
+		{0BE55595-4080-4265-82AF-51108EC956B2}.Debug|x86.ActiveCfg = Release|x64
+		{0BE55595-4080-4265-82AF-51108EC956B2}.Debug|x86.Build.0 = Release|x64
+		{0BE55595-4080-4265-82AF-51108EC956B2}.Release|x64.ActiveCfg = Release|x64
+		{0BE55595-4080-4265-82AF-51108EC956B2}.Release|x64.Build.0 = Release|x64
+		{0BE55595-4080-4265-82AF-51108EC956B2}.Release|x86.ActiveCfg = Release|x64
+		{B5899B32-FAC2-477E-99AA-86736B97F2FC}.Debug|x64.ActiveCfg = Release|x64
+		{B5899B32-FAC2-477E-99AA-86736B97F2FC}.Debug|x64.Build.0 = Release|x64
+		{B5899B32-FAC2-477E-99AA-86736B97F2FC}.Debug|x86.ActiveCfg = Release|x64
+		{B5899B32-FAC2-477E-99AA-86736B97F2FC}.Debug|x86.Build.0 = Release|x64
+		{B5899B32-FAC2-477E-99AA-86736B97F2FC}.Release|x64.ActiveCfg = Release|x64
+		{B5899B32-FAC2-477E-99AA-86736B97F2FC}.Release|x64.Build.0 = Release|x64
+		{B5899B32-FAC2-477E-99AA-86736B97F2FC}.Release|x86.ActiveCfg = Release|x64
+		{F8FED96C-5661-42E0-B871-4C74B7938847}.Debug|x64.ActiveCfg = Release|x64
+		{F8FED96C-5661-42E0-B871-4C74B7938847}.Debug|x64.Build.0 = Release|x64
+		{F8FED96C-5661-42E0-B871-4C74B7938847}.Debug|x86.ActiveCfg = Release|Win32
+		{F8FED96C-5661-42E0-B871-4C74B7938847}.Debug|x86.Build.0 = Release|Win32
+		{F8FED96C-5661-42E0-B871-4C74B7938847}.Release|x64.ActiveCfg = Release|x64
+		{F8FED96C-5661-42E0-B871-4C74B7938847}.Release|x64.Build.0 = Release|x64
+		{F8FED96C-5661-42E0-B871-4C74B7938847}.Release|x86.ActiveCfg = Release|Win32
+		{F8FED96C-5661-42E0-B871-4C74B7938847}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {422356BD-F8C1-4B8B-83FB-3781469B6D55}
+	EndGlobalSection
+EndGlobal

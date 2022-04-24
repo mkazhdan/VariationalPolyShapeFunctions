@@ -1,0 +1,164 @@
+/*
+Copyright (c) 2022, Michael Kazhdan
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of
+conditions and the following disclaimer. Redistributions in binary form must reproduce
+the above copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the distribution. 
+
+Neither the name of the Johns Hopkins University nor the names of its contributors
+may be used to endorse or promote products derived from this software without specific
+prior written permission. 
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO THE IMPLIED WARRANTIES 
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <map>
+#include <set>
+#include <omp.h>
+#include "Misha/CmdLineParser.h"
+#include "Misha/PlyVertexData.h"
+#include "Misha/Miscellany.h"
+#include "GeodesicsInHeat.inl"
+
+const unsigned int ManifoldDimension = 2;
+
+Misha::CmdLineParameter< std::string > In( "in" );
+Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , CoarseNodeDimension( "coarseDim" , 1 ) , Width( "width" , 512 ) , Height( "height" , 512 ) , SubdivisionIterations( "sub" , 0 );
+Misha::CmdLineParameter< double > TimeStep( "time" , 1.e-3 ) , StiffnessRegularizer( "sRegularizer" , 1e-8 );
+Misha::CmdLineReadable Multigrid( "mg" ) , Verbose( "verbose" );
+Misha::CmdLineReadable* params[] = { &In , &Degree , &TimeStep , &Verbose , &CoarseNodeDimension , &Multigrid , &Width , &Height , &SubdivisionIterations , &StiffnessRegularizer , NULL };
+
+void ShowUsage( const char* ex )
+{
+	printf( "Usage %s:\n" , ex );
+	printf( "\t --%s <input mesh>\n" , In.name.c_str() );
+	printf( "\t[--%s <element degree>=%d]\n" , Degree.name.c_str() , Degree.value );
+	printf( "\t[--%s <coarse node dimensions>=%d]\n" , CoarseNodeDimension.name.c_str() , CoarseNodeDimension.value );
+	printf( "\t[--%s <diffusion time step>=%e]\n" , TimeStep.name.c_str() , TimeStep.value );
+	printf( "\t[--%s <stiffness regularizer>=%e]\n" , StiffnessRegularizer.name.c_str() , StiffnessRegularizer.value );
+	printf( "\t[--%s <subdivision iterations>=%d]\n" , SubdivisionIterations.name.c_str() , SubdivisionIterations.value );
+	printf( "\t[--%s <window width>=%d]\n" , Width.name.c_str() , Width.value );
+	printf( "\t[--%s <window height>=%d]\n" , Height.name.c_str() , Height.value );
+	printf( "\t[--%s]\n" , Multigrid.name.c_str() );
+	printf( "\t[--%s]\n" , Verbose.name.c_str() );
+}
+
+template< unsigned int Degree >
+void Execute( std::vector< Point3D< double > > &vertices , const std::vector< std::vector< unsigned int > > &polygons )
+{
+	if( Multigrid.set )
+	{
+		GeodesicsInHeatVisualization< Degree , true > v( vertices , polygons , CoarseNodeDimension.value , TimeStep.value , StiffnessRegularizer.value , SubdivisionIterations.value , Width.value , Height.value );
+
+		char windowName[1024];
+		sprintf( windowName , "Geodesics in heat (Degree=%d, multigrid solver)" , Degree );
+		Misha::Viewable< GeodesicsInHeatVisualization< Degree , true > >::Viewer::Run( &v , 0 , NULL , windowName );
+	}
+	else
+	{
+		GeodesicsInHeatVisualization< Degree , false > v( vertices , polygons , CoarseNodeDimension.value , TimeStep.value , StiffnessRegularizer.value , SubdivisionIterations.value , Width.value , Height.value );
+
+		char windowName[1024];
+		sprintf( windowName , "Geodesics in heat (Degree=%d, direct solver)" , Degree );
+		Misha::Viewable< GeodesicsInHeatVisualization< Degree , false > >::Viewer::Run( &v , 0 , NULL , windowName );
+	}
+}
+
+int main( int argc , char* argv[] )
+{
+#if 1
+	{
+		static const unsigned int RES = 128;
+		typedef VertexFactory::Factory< double , VertexFactory::PositionFactory< double , 3 > , VertexFactory::TextureFactory< double , 2 > > Factory;
+		typedef typename Factory::VertexType Vertex;
+
+		std::vector< Vertex > vertices( (RES+1) * (RES-1) + 2 );
+		std::vector< TriangleIndex > triangles;
+		triangles.reserve( RES * ( (RES-2) + 2*RES ) );
+
+		auto VertexIndex = []( unsigned int i , unsigned int j , unsigned int r )
+		{
+			unsigned int off = 0;
+//			i %= r;
+			if( j==0 ) return off;
+			off++;
+			j--;
+			if( j<(r-1) ) return j*(r+1)+i + off;
+			off += (r-1)*(r+1);
+			j -= (r-1);
+			if( j==0 ) return off;
+			else ERROR_OUT( "Row index out of bounds" );
+			return (unsigned int)-1;
+		};
+
+		// Add the vertices
+		for( unsigned int j=0 ; j<=RES ; j++ ) for( unsigned int i=0 ; i<=RES ; i++ )
+		{
+			double u = (double)i/RES , v = (double)j/RES;
+			double theta = u * 2. * M_PI  , phi = v * M_PI;
+			unsigned int idx = VertexIndex(i,j,RES);
+			vertices[idx].get<0>() = Point< double , 3 >( cos(theta)*sin(phi) , cos(phi) , sin(theta)*sin(phi) );
+			vertices[idx].get<1>() = Point< double , 2 >(u,v);
+		}
+
+		for( unsigned int j=0 ; j<RES ; j++ )
+		{
+			if( j==0 )          for( unsigned int i=0 ; i<RES ; i++ ) triangles.push_back( TriangleIndex( VertexIndex(i,j,RES) , VertexIndex(i+1,j+1,RES) , VertexIndex(i,j+1,RES) ) );
+			else if( j==RES-1 ) for( unsigned int i=0 ; i<RES ; i++ ) triangles.push_back( TriangleIndex( VertexIndex(i,j+1,RES) , VertexIndex(i,j,RES) , VertexIndex(i+1,j,RES) ) );
+			else for( unsigned int i=0 ; i<RES ; i++ )
+			{
+				triangles.push_back( TriangleIndex( VertexIndex(i,j,RES) , VertexIndex(i+1,j,RES) , VertexIndex(i,j+1,RES) ) );
+				triangles.push_back( TriangleIndex( VertexIndex(i+1,j+1,RES) , VertexIndex(i,j+1,RES) , VertexIndex(i+1,j,RES) ) );
+			}
+		}
+
+
+		Factory factory;
+		PLY::WriteTriangles< Factory >( "sphere.ply" , factory , vertices , triangles , PLY_BINARY_NATIVE );
+	}
+#endif
+	typedef VertexFactory::PositionFactory< double , 3 > Factory;
+	typedef typename Factory::VertexType Vertex;
+
+	Misha::CmdLineParse( argc-1 , argv+1 , params );
+	if( !In.set )
+	{
+		ShowUsage( argv[0] );
+		return EXIT_FAILURE;
+	}
+
+	std::vector< std::vector< unsigned int > > polygons;
+	std::vector< Vertex > vertices;
+
+	Factory factory;
+	int file_type;
+	PLY::ReadPolygons< Factory >( In.value , factory , vertices , polygons , NULL , file_type );
+	if( Verbose.set ) std::cout << "Vertices / Polygons: " << vertices.size() << " / " << polygons.size() << std::endl;
+
+
+	switch( Degree.value )
+	{
+		case 1: Execute< 1 >( vertices , polygons ) ; break;
+		case 2: Execute< 2 >( vertices , polygons ) ; break;
+		case 3: Execute< 3 >( vertices , polygons ) ; break;
+		default: ERROR_OUT( "Only degrees 1, 2, and 3 supported" );
+	}
+
+	return EXIT_SUCCESS;
+}

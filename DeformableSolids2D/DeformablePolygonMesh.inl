@@ -167,6 +167,8 @@ protected:
 	typedef MultiIndex< EdgeSamples , unsigned int , false > VertexIndex;
 	std::vector< VertexIndex > _vertices;
 
+	typename DeformableSolidType::AdvanceStats _aStats;
+
 	int _youngsModulusLine , _poissonRatioLine , _timeStepLine , _timeLine , _meshSizeLine , _selectedVertex , _energyLine , _gravityLine , _advanceLine;
 	double _time;
 	SolidSimplexRefinableCellMeshType _solidSimplexRefinableCellMesh;
@@ -539,8 +541,8 @@ void DeformablePolygonMeshVisualization< Degree , RefinementLevels , Hierarchica
 template< unsigned int Degree , unsigned int RefinementLevels , bool Hierarchical >
 void DeformablePolygonMeshVisualization< Degree , RefinementLevels , Hierarchical >::advance( void )
 {
-	typename DeformableSolidType::AdvanceStats aStats = _deformableSolid->advance();
-	sprintf( info[_advanceLine] , "Update / Solve time: %.2f / %.2f" , aStats.updateTime , aStats.solveTime );
+	_deformableSolid->advance( _aStats );
+	sprintf( info[_advanceLine] , "Update / Solve time: %.2f / %.2f" , _aStats.updateTime , _aStats.solveTime );
 	_time += _deformableSolid->timeStep();
 	glutPostRedisplay();
 }

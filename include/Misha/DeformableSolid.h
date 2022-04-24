@@ -64,7 +64,8 @@ struct DeformableSolid
 	template< typename PositionFunctor , typename VelocityFunctor >
 	void setGeometricState( const PositionFunctor &pFunctor , const VelocityFunctor &vFunctor );
 
-	AdvanceStats advance( void );
+	void advance( void );
+	void advance( AdvanceStats &aStats );
 
 	void lock( const std::vector< bool > &lockedVertices );
 
@@ -225,9 +226,15 @@ void DeformableSolid< Dim , Degree , SolidMesh , Hierarchical >::_updateSystem( 
 }
 
 template< unsigned int Dim , unsigned int Degree , typename SolidMesh , bool Hierarchical >
-typename DeformableSolid< Dim , Degree , SolidMesh , Hierarchical >::AdvanceStats DeformableSolid< Dim , Degree , SolidMesh , Hierarchical >::advance( void )
+void DeformableSolid< Dim , Degree , SolidMesh , Hierarchical >::advance( void )
 {
 	AdvanceStats aStats;
+	advance( aStats );
+}
+
+template< unsigned int Dim , unsigned int Degree , typename SolidMesh , bool Hierarchical >
+void DeformableSolid< Dim , Degree , SolidMesh , Hierarchical >::advance( AdvanceStats &aStats )
+{
 	if( _systemNeedsUpdate )
 	{
 		Miscellany::Timer timer;
@@ -245,7 +252,6 @@ typename DeformableSolid< Dim , Degree , SolidMesh , Hierarchical >::AdvanceStat
 	aStats.solveTime = timer.elapsed();
 	if( _timeStep ) _v = ( x - _x ) / _timeStep;
 	_x = x;
-	return aStats;
 }
 
 template< unsigned int Dim , unsigned int Degree , typename SolidMesh , bool Hierarchical >

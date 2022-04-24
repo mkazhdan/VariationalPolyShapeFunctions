@@ -100,6 +100,8 @@ protected:
 	std::vector< Point< double , Dim > > _restVertices;
 	std::function< Point< double , Dim > ( unsigned int ) > _vertexPositionFunction , _fullVertexPositionFunction;
 
+	typename DeformableSolidType::AdvanceStats _aStats;
+
 	int _youngsModulusLine , _poissonRatioLine , _timeStepLine , _timeLine , _meshSizeLine , _selectedVertex , _energyLine , _gravityLine , _advanceLine;
 	double _time;
 	SolidSimplexRefinableCellMeshType _solidSimplexRefinableCellMesh;
@@ -474,8 +476,8 @@ void DeformablePolyhedralMeshVisualization< Degree , Hierarchical >::idle( void 
 template< unsigned int Degree , bool Hierarchical >
 void DeformablePolyhedralMeshVisualization< Degree , Hierarchical >::advance( void )
 {
-	typename DeformableSolidType::AdvanceStats aStats = _deformableSolid->advance();
-	sprintf( info[_advanceLine] , "Update / Solve time: %.2f / %.2f" , aStats.updateTime , aStats.solveTime );
+	_deformableSolid->advance( _aStats );
+	sprintf( info[_advanceLine] , "Update / Solve time: %.2f / %.2f" , _aStats.updateTime , _aStats.solveTime );
 	_time += _deformableSolid->timeStep();
 	glutPostRedisplay();
 }

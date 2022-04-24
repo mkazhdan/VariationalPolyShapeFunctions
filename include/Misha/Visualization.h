@@ -177,7 +177,7 @@ namespace Misha
 		void MotionFunc       ( int x , int y );
 		void PassiveMotionFunc( int x , int y );
 
-#if 1
+#if 0
 #pragma message( "[WARNING] Disabling exit" )
 		static void           ExitCallBack( DerivedViewableType*   , const char* ){                  ; }
 		static void           QuitCallBack( DerivedViewableType* v , const char* ){ v->quitFunction(); }
@@ -272,7 +272,6 @@ namespace Misha
 		glutCreateWindow( windowName );
 
 		if( glewInit()!=GLEW_OK ) ERROR_OUT( "glewInit failed" );
-
 		glutIdleFunc         ( Idle );
 		glutDisplayFunc      ( Display );
 		glutReshapeFunc      ( Reshape );

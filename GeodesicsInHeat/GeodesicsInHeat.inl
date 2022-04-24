@@ -330,11 +330,7 @@ protected:
 	SimplexRefinableMesh _simplexRefinableCellMesh;
 	std::vector< std::vector< unsigned int > > _polygons;
 	std::vector< Point3D< double > > _fullVertices , _polygonNormals;
-#ifdef HAS_SIMPLEX_NODE_INDEX
 	std::vector< unsigned int > _vertexToFineNode , _triangleToPolygon;
-#else // !HAS_SIMPLEX_NODE_INDEX
-	std::vector< unsigned int > _vertexToFineNode , _localToGlobalFineNode , _triangleToPolygon;
-#endif // HAS_SIMPLEX_NODE_INDEX
 	Point< Polynomial::Polynomial< Dim , Degree-1 , double > , 2 > _dElements[ SimplexElements< Dim , Degree >::NodeNum ];
 
 	SolverType *_diffusionSolver , *_geodesicSolver;
@@ -551,9 +547,7 @@ GeodesicsInHeatVisualization< Degree , Hierarchical >::GeodesicsInHeatVisualizat
 
 	if constexpr( Hierarchical ) _simplexRefinableCellMesh = _polygonMesh.template hierarchicalSimplexRefinableCellMesh< Degree >( fullVertexPositionFunction , eWeights , coarseNodeDim , false , false , 0 , true );
 	else                         _simplexRefinableCellMesh = _polygonMesh.template             simplexRefinableCellMesh< Degree >( fullVertexPositionFunction , eWeights , coarseNodeDim , false , false , 0 , true );
-#ifdef HAS_SIMPLEX_NODE_INDEX
 	_simplexRefinableCellMesh.hashSimplexMeshLocalToGlobalNodeIndex();
-#endif // HAS_SIMPLEX_NODE_INDEX
 
 	_simplexRefinableCellMesh.makeUnitVolume();
 
@@ -568,11 +562,6 @@ GeodesicsInHeatVisualization< Degree , Hierarchical >::GeodesicsInHeatVisualizat
 	}
 
 	static const unsigned int NodeNum = SimplexElements< Dim , Degree >::NodeNum;
-#ifdef HAS_SIMPLEX_NODE_INDEX
-#else // !HAS_SIMPLEX_NODE_INDEX
-	_localToGlobalFineNode.resize( simplexMesh.simplices()*NodeNum );
-	for( unsigned int s=0 ; s<simplexMesh.simplices() ; s++ ) for( unsigned int n=0 ; n<NodeNum ; n++ ) _localToGlobalFineNode[ s*NodeNum + n ] = simplexMesh.nodeIndex(s,n);
-#endif // HAS_SIMPLEX_NODE_INDEX
 
 	_triangleToPolygon.resize( simplexMesh.simplices() );
 	for( unsigned int p=0 , t=0 ; p<polygons.size() ; p++ ) for( unsigned int i=0 ; i<polygons[p].size() ; i++ ,t++ ) _triangleToPolygon[t] = p;
@@ -757,11 +746,7 @@ void GeodesicsInHeatVisualization< Degree , Hierarchical >::_setGeodesicB( void 
 		double area = sqrt( g.determinant() )/2.;
 
 		unsigned nodeIndices[NodeNum];
-#ifdef HAS_SIMPLEX_NODE_INDEX
 		for( unsigned int n=0 ; n<NodeNum ; n++ ) nodeIndices[n] = simplexMesh.nodeIndex(s,n);
-#else // !HAS_SIMPLEX_NODE_INDEX
-		for( unsigned int n=0 ; n<NodeNum ; n++ ) nodeIndices[n] = _localToGlobalFineNode[ s*NodeNum + n ];
-#endif // HAS_SIMPLEX_NODE_INDEX
 
 		// Get the differential
 		for( unsigned int i=0 ; i<Samples ; i++ )
@@ -879,7 +864,7 @@ void GeodesicsInHeatVisualization< Degree , Hierarchical >::idle( void )
 template< unsigned int Degree , bool Hierarchical >
 void GeodesicsInHeatVisualization< Degree , Hierarchical >::mouseFunc( int button , int state , int x , int y )
 {
-	if( button==GLUT_LEFT_BUTTON && state==GLUT_DOWN && ( glutGetModifiers() & GLUT_ACTIVE_CTRL ) )
+	if( button==GLUT_LEFT_BUTTON && state==GLUT_DOWN && ( glutGetModifiers() & GLUT_ACTIVE_SHIFT ) )
 	{
 		_sourceVertex = -1;
 		Point3D< double > p;
@@ -893,9 +878,9 @@ void GeodesicsInHeatVisualization< Degree , Hierarchical >::mouseFunc( int butto
 			}
 		}
 		_setSource();
+		glutPostRedisplay();
 	}
-
-	Misha::Viewable3D< GeodesicsInHeatVisualization< Degree , Hierarchical > >::mouseFunc( button , state , x , y );
+	else Misha::Viewable3D< GeodesicsInHeatVisualization< Degree , Hierarchical > >::mouseFunc( button , state , x , y );
 }
 
 

@@ -110,7 +110,6 @@ int main( int argc , char* argv[] )
 		printf( "+------------------------------------+\n" );
 	}
 
-
 	SquareMatrix< double , Dim > xForm = SquareMatrix< double , Dim >::Identity();
 	if( AffineTransform.set ) for( int i=0 ; i<Dim ; i++ ) for( int j=0 ; j<Dim ; j++ )  xForm(i,j) = AffineTransform.values[j*Dim+i];
 	std::vector< Point< double , Dim > > vertices;
@@ -133,11 +132,11 @@ int main( int argc , char* argv[] )
 
 	switch( Degree.value )
 	{
-	case 1: Execute< 1 , RefinementLevels >( argc , argv , vertices , polygons , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value ) ; break;
-	case 2: Execute< 2 , RefinementLevels >( argc , argv , vertices , polygons , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value ) ; break;
-	case 3: Execute< 3 , RefinementLevels >( argc , argv , vertices , polygons , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value ) ; break;
-	case 4: Execute< 4 , RefinementLevels >( argc , argv , vertices , polygons , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value ) ; break;
-	default: ERROR_OUT( "Only degrees 1, 2, 3, or 4 supported" );
+		case 1: Execute< 1 , RefinementLevels >( argc , argv , vertices , polygons , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value ) ; break;
+		case 2: Execute< 2 , RefinementLevels >( argc , argv , vertices , polygons , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value ) ; break;
+		case 3: Execute< 3 , RefinementLevels >( argc , argv , vertices , polygons , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value ) ; break;
+		case 4: Execute< 4 , RefinementLevels >( argc , argv , vertices , polygons , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value ) ; break;
+		default: ERROR_OUT( "Only degrees 1, 2, 3, or 4 supported" );
 	}
 
 	return EXIT_SUCCESS;

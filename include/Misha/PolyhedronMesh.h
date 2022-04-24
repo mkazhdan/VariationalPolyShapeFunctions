@@ -215,27 +215,19 @@ namespace Meshes
 			typename SimplexRefinableElements<>::EnergyWeights eWeights ,
 			unsigned int finestNodeDim ,
 			bool pou , 
-#ifdef INTERPOLATION_CONSTRAINTS
 			bool forceLinearPrecision ,
 			double planarityEpsilon ,
 			bool verbose
-#else // !INTERPOLATION_CONSTRAINTS
-			bool verbose=false
-#endif // INTERPOLATION_CONSTRAINTS
 		) const
 		{
 			std::function< SimplexRefinablePolyhedron (unsigned int) > cellFunctor = [&]( unsigned int c ){ return simplexRefinable( c , fullVertexPositionFunction ); };
 			typename HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template CellList< SimplexRefinablePolyhedron > cellList( (unsigned int)_polyhedra.size() , cellFunctor );
-#ifdef INTERPOLATION_CONSTRAINTS
 			if( forceLinearPrecision )
 				if( pou ) return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , eWeights , fullVertexPositionFunction , planarityEpsilon , finestNodeDim , verbose );
 				else      return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , eWeights , fullVertexPositionFunction , planarityEpsilon , finestNodeDim , verbose );
 			else
 				if( pou ) return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , eWeights , finestNodeDim , verbose );
 				else      return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , eWeights , finestNodeDim , verbose );
-#else // !INTERPOLATION_CONSTRAINTS
-			return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , finestNodeDim , verbose );
-#endif // INTERPOLATION_CONSTRAINTS
 		}
 
 		template< unsigned int Degree , unsigned int EmbeddingDimension >
@@ -245,27 +237,19 @@ namespace Meshes
 			typename SimplexRefinableElements<>::EnergyWeights eWeights ,
 			unsigned int finestNodeDim ,
 			bool pou , 
-#ifdef INTERPOLATION_CONSTRAINTS
 			bool forceLinearPrecision ,
 			double planarityEpsilon ,
 			bool verbose
-#else // !INTERPOLATION_CONSTRAINTS
-			bool verbose=false
-#endif // INTERPOLATION_CONSTRAINTS
 		) const
 		{
 			std::function< SimplexRefinablePolyhedron (unsigned int) > cellFunctor = [&]( unsigned int c ){ return simplexRefinable( c , fullVertexPositionFunction ); };
 			typename HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template CellList< SimplexRefinablePolyhedron > cellList( (unsigned int)_polyhedra.size() , cellFunctor );
-#ifdef INTERPOLATION_CONSTRAINTS
 			if( forceLinearPrecision )
 				if( pou ) return SimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , eWeights , fullVertexPositionFunction , planarityEpsilon , finestNodeDim , verbose );
 				else      return SimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , eWeights , fullVertexPositionFunction , planarityEpsilon , finestNodeDim , verbose );
 			else
 				if( pou ) return SimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , eWeights , finestNodeDim , verbose );
 				else      return SimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , eWeights , finestNodeDim , verbose );
-#else // !INTERPOLATION_CONSTRAINTS
-			return SimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , finestNodeDim , verbose );
-#endif // INTERPOLATION_CONSTRAINTS
 		}
 
 		// Create a solid simplex-refinable cell mesh, with:
@@ -280,23 +264,15 @@ namespace Meshes
 			typename SimplexRefinableElements<>::EnergyWeights eWeights ,
 			unsigned int finestNodeDim ,
 			bool pou ,
-#ifdef INTERPOLATION_CONSTRAINTS
 			bool forceLinearPrecision ,
 			double planarityEpsilon ,
 			bool verbose
-#else // !INTERPOLATION_CONSTRAINTS
-			bool verbose=false
-#endif // INTERPOLATION_CONSTRAINTS
 		) const
 		{
 			std::function< SimplexRefinablePolyhedron (unsigned int) > cellFunctor = [&]( unsigned int c ){ return simplexRefinable( c , fullVertexPositionFunction ); };
 			typename HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template CellList< SimplexRefinablePolyhedron > cellList( (unsigned int)_polyhedra.size() , cellFunctor );
-#ifdef INTERPOLATION_CONSTRAINTS
 			if( pou ) return HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , forceLinearPrecision , planarityEpsilon , verbose );
 			else      return HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , forceLinearPrecision , planarityEpsilon , verbose );
-#else // !INTERPOLATION_CONSTRAINTS
-			return HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , verbose );
-#endif // INTERPOLATION_CONSTRAINTS
 		}
 
 		template< unsigned int Degree >
@@ -306,23 +282,15 @@ namespace Meshes
 			typename SimplexRefinableElements<>::EnergyWeights eWeights ,
 			unsigned int finestNodeDim ,
 			bool pou ,
-#ifdef INTERPOLATION_CONSTRAINTS
 			bool forceLinearPrecision ,
 			double planarityEpsilon ,
 			bool verbose
-#else // !INTERPOLATION_CONSTRAINTS
-			bool verbose=false
-#endif // INTERPOLATION_CONSTRAINTS
 		) const
 		{
 			std::function< SimplexRefinablePolyhedron (unsigned int) > cellFunctor = [&]( unsigned int c ){ return simplexRefinable( c , fullVertexPositionFunction ); };
 			typename HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template CellList< SimplexRefinablePolyhedron > cellList( (unsigned int)_polyhedra.size() , cellFunctor );
-#ifdef INTERPOLATION_CONSTRAINTS
 			if( pou ) return SolidSimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , forceLinearPrecision , planarityEpsilon , verbose );
 			else      return SolidSimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , forceLinearPrecision , planarityEpsilon , verbose );
-#else // !INTERPOLATION_CONSTRAINTS
-			return SolidSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , verbose );
-#endif // INTERPOLATION_CONSTRAINTS
 		}
 
 	protected:

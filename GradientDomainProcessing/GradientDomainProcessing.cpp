@@ -45,10 +45,10 @@ DAMAGE.
 const unsigned int ManifoldDimension = 2;
 
 Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" );
-Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , CoarseNodeDimension( "coarseDim" , 1 ) , VCycles( "vCycles" , 10 ) , GSIters( "gsIters" , 5 );
-Misha::CmdLineParameter< double > StepSize( "stepSize" , 1.e-5 ) , GradientScale( "gScale" , 1. );
+Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , CoarseNodeDimension( "coarseDim" , 1 ) , VCycles( "vCycles" , 3 ) , GSIters( "gsIters" , 5 );
+Misha::CmdLineParameter< double > GradientWeight( "gWeight" , 1.e-5 ) , GradientScale( "gScale" , 1. );
 Misha::CmdLineReadable Multigrid( "mg" ) , Verbose( "verbose" ) , Color( "color" );
-Misha::CmdLineReadable* params[] = { &In , &Out , &GradientScale , &Degree , &StepSize , &Verbose , &CoarseNodeDimension , &Multigrid , &VCycles , &GSIters , &Color , NULL };
+Misha::CmdLineReadable* params[] = { &In , &Out , &GradientScale , &Degree , &GradientWeight , &Verbose , &CoarseNodeDimension , &Multigrid , &VCycles , &GSIters , &Color , NULL };
 
 void ShowUsage( const char* ex )
 {
@@ -57,7 +57,7 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <output mesh>]\n" , Out.name.c_str() );
 	printf( "\t[--%s <element degree>=%d]\n" , Degree.name.c_str() , Degree.value );
 	printf( "\t[--%s <coarse node dimensions>=%d]\n" , CoarseNodeDimension.name.c_str() , CoarseNodeDimension.value );
-	printf( "\t[--%s <step size>=%e]\n" , StepSize.name.c_str() , StepSize.value );
+	printf( "\t[--%s <gradient weight>=%e]\n" , GradientWeight.name.c_str() , GradientWeight.value );
 	printf( "\t[--%s <gradient scale>=%e]\n" , GradientScale.name.c_str() , GradientScale.value );
 	printf( "\t[--%s <v-cycles>=%d]\n" , VCycles.name.c_str() , VCycles.value );
 	printf( "\t[--%s <Gauss-Seidel iterations>=%d]\n" , GSIters.name.c_str() , GSIters.value );
@@ -120,7 +120,7 @@ void Execute( const std::vector< RGBVertex > &vertices , const std::vector< std:
 	S = Pt * pMesh.simplexMesh().stiffness() * P;
 
 	Eigen::SparseMatrix< double > M = Pt * pMesh.simplexMesh().mass() * P;
-	Eigen::SparseMatrix< double > L = M + S * StepSize.value;
+	Eigen::SparseMatrix< double > L = M + S * GradientWeight.value;
 	PointVector< 3 > nodeValues( pMesh.nodes() );
 
 	// Use the vertex normals to set the node coefficients
@@ -139,7 +139,7 @@ void Execute( const std::vector< RGBVertex > &vertices , const std::vector< std:
 		MGSolver::Solver< MGSolver::ParallelGaussSeidelRelaxer< 20u > > mgSolver( L , Ps , false );
 #if 1
 		PointVector< 3 > b;
-		b = M * nodeValues + S * nodeValues * StepSize.value * GradientScale.value;
+		b = M * nodeValues + S * nodeValues * GradientWeight.value * GradientScale.value;
 		nodeValues = mgSolver.solve( b , nodeValues , VCycles.value , GSIters.value , GSIters.value , false );
 #else
 		Eigen::VectorXd x( pMesh.nodes() ) , b;
@@ -147,7 +147,7 @@ void Execute( const std::vector< RGBVertex > &vertices , const std::vector< std:
 		for( unsigned int d=0 ; d<3 ; d++ )
 		{
 			for( unsigned int i=0 ; i<pMesh.nodes() ; i++ ) x[i] = nodeValues[i][d];
-			b = M * x + S * x * StepSize.value * GradientScale.value;
+			b = M * x + S * x * GradientWeight.value * GradientScale.value;
 			x = mgSolver.solve( b , x , VCycles.value , GSIters.value , GSIters.value , false );
 			for( unsigned int i=0 ; i<pMesh.nodes() ; i++ ) nodeValues[i][d] = x[i];
 		}
@@ -160,7 +160,7 @@ void Execute( const std::vector< RGBVertex > &vertices , const std::vector< std:
 		for( unsigned int d=0 ; d<3 ; d++ )
 		{
 			for( unsigned int i=0 ; i<pMesh.nodes() ; i++ ) x[i] = nodeValues[i][d];
-			b = M * x + S * x * StepSize.value * GradientScale.value;
+			b = M * x + S * x * GradientWeight.value * GradientScale.value;
 			x = solver.solve( b );
 			for( unsigned int i=0 ; i<pMesh.nodes() ; i++ ) nodeValues[i][d] = x[i];
 		}
@@ -213,7 +213,7 @@ int main( int argc , char* argv[] )
 
 	std::vector< Point< double , 3 > > values( vertices.size() );
 	if( Color.set ) for( unsigned int i=0 ; i<vertices.size() ; i++ ) values[i] = vertices[i].get<1>();
-	else            for( unsigned int i=0 ; i<vertices.size() ; i++ ) values[i] = vertices[i].get<1>();
+	else            for( unsigned int i=0 ; i<vertices.size() ; i++ ) values[i] = vertices[i].get<0>();
 
 	if( Multigrid.set )
 	{

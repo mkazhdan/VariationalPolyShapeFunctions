@@ -37,8 +37,6 @@ DAMAGE.
 #include "SimplexBasis.h"
 #include "LCQO.h"
 
-#define INTERPOLATION_CONSTRAINTS
-
 // An abstract class representing topology that can be decomposed into Dim-dimensional simplices
 template< unsigned int Dim >
 struct SimplexIndexRefinable
@@ -239,12 +237,10 @@ struct InterpolatingProlongationSystem
 	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , CoarseSelectionFunctor coarseSelectionFunctor );
 	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices );
 	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const std::vector< Constraint > &constraints );
-#ifdef INTERPOLATION_CONSTRAINTS
 	template< unsigned int InterpolationDim >
 	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const Point< double , InterpolationDim > *interpolationConstraints  );
 	template< unsigned int InterpolationDim >
 	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const std::vector< Constraint > &constraints , const Point< double , InterpolationDim > *interpolationConstraints  );
-#endif // INTERPOLATION_CONSTRAINTS
 
 	template< unsigned int Degree >
 	struct ProlongationInfo
@@ -256,10 +252,8 @@ struct InterpolatingProlongationSystem
 	template< unsigned int Dim , unsigned int Degree >
 	static void HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim=Dim );
 
-#ifdef INTERPOLATION_CONSTRAINTS
 	template< unsigned int Dim , unsigned int Degree , unsigned int EmbeddingDimension >
 	static void HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim );
-#endif // INTERPOLATION_CONSTRAINTS
 
 	template< bool StableSolve >
 	Eigen::MatrixXd prolongation( void ) const;
@@ -274,12 +268,8 @@ protected:
 	std::vector< unsigned int > _coarseIndices , _fineIndices;
 	LCQO _lcqo;
 
-#ifdef INTERPOLATION_CONSTRAINTS
 	template< unsigned int InterpolationDim >
 	void _init( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const std::vector< Constraint > &constraints , const Point< double , InterpolationDim > *interpolationConstraints );
-#else // !INTERPOLATION_CONSTRAINTS
-	void _init( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const std::vector< Constraint > &constraints );
-#endif // INTERPOLATION_CONSTRAINTS
 
 	unsigned int _index( unsigned fine , unsigned int coarse ) const;
 	Eigen::MatrixXd _toMatrix( const Eigen::VectorXd &v ) const;
@@ -319,7 +309,6 @@ protected:
 		const Eigen::MatrixXd &coarseP
 	);
 
-#ifdef INTERPOLATION_CONSTRAINTS
 	template< unsigned int Dim , unsigned int Degree , unsigned int EmbeddingDimension >
 	static void _HierarchicalProlongation
 	(
@@ -354,7 +343,6 @@ protected:
 		const std::vector< unsigned int > &coarseIndices ,
 		const Eigen::MatrixXd &coarseP
 	);
-#endif // INTERPOLATION_CONSTRAINTS
 };
 
 #include "SimplexRefinableBasis.inl"

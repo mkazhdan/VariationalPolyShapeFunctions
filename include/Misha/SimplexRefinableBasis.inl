@@ -285,11 +285,7 @@ InterpolatingProlongationSystem< PoU >::InterpolatingProlongationSystem( const E
 	std::vector< unsigned int > coarseIndices;
 	for( unsigned int i=0 ; i<E.rows() ; i++ ) if( coarseSelectionFunctor(i) ) coarseIndices.push_back( i );
 	std::vector< Constraint > constraints;
-#ifdef INTERPOLATION_CONSTRAINTS
 	_init< 0 >( E , coarseIndices , constraints , NULL );
-#else // !INTERPOLATION_CONSTRAINTS
-	_init( E , coarseIndices , constraints );
-#endif // INTERPOLATION_CONSTRAINTS
 }
 
 template< bool PoU >
@@ -303,11 +299,7 @@ InterpolatingProlongationSystem< PoU >::InterpolatingProlongationSystem( const E
 			if( coarseIndices[i]==coarseIndices[j] ) ERROR_OUT( "Duplicated coarse index: " , i , " , " , j , " ->"  , coarseIndices[i] );
 	}
 	std::vector< Constraint > constraints;
-#ifdef INTERPOLATION_CONSTRAINTS
 	_init< 0 >( E , coarseIndices , constraints , NULL );
-#else // !INTERPOLATION_CONSTRAINTS
-	_init( E , coarseIndices , constraints );
-#endif // INTERPOLATION_CONSTRAINTS
 }
 
 template< bool PoU >
@@ -320,14 +312,9 @@ InterpolatingProlongationSystem< PoU >::InterpolatingProlongationSystem( const E
 		for( unsigned int j=0 ; j<i ; j++ )
 			if( coarseIndices[i]==coarseIndices[j] ) ERROR_OUT( "Duplicated coarse index: " , i , " , " , j , " ->"  , coarseIndices[i] );
 	}
-#ifdef INTERPOLATION_CONSTRAINTS
 	_init< 0 >( E , coarseIndices , constraints , NULL );
-#else // !INTERPOLATION_CONSTRAINTS
-	_init( E , coarseIndices , constraints );
-#endif // INTERPOLATION_CONSTRAINTS
 }
 
-#ifdef INTERPOLATION_CONSTRAINTS
 template< bool PoU >
 template< unsigned int InterpolationDim >
 InterpolatingProlongationSystem< PoU >::InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const Point< double , InterpolationDim > *interpolationConstraints )
@@ -342,16 +329,10 @@ InterpolatingProlongationSystem< PoU >::InterpolatingProlongationSystem( const E
 	std::vector< Constraint > constraints;
 	_init< InterpolationDim >( E , coarseIndices , constraints , interpolationConstraints );
 }
-#endif // INTERPOLATION_CONSTRAINTS
 
-#ifdef INTERPOLATION_CONSTRAINTS
 template< bool PoU >
 template< unsigned int InterpolationDim >
 void InterpolatingProlongationSystem< PoU >::_init( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const std::vector< Constraint > &constraints , const Point< double , InterpolationDim > *interpolationConstraints )
-#else // !INTERPOLATION_CONSTRAINTS
-template< bool PoU >
-void InterpolatingProlongationSystem< PoU >::_init( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const std::vector< Constraint > &constraints )
-#endif // INTERPOLATION_CONSTRAINTS
 {
 	_coarseIndices = coarseIndices;
 	_fineIndices.reserve( E.rows() - _coarseIndices.size() );
@@ -394,8 +375,6 @@ void InterpolatingProlongationSystem< PoU >::_init( const Eigen::MatrixXd &E , c
 		for( unsigned int i=0 ; i<_coarseDim ; i++ ) qEntries.push_back( Eigen::Triplet< double >( _index(j,i) , _index(k,i) , E( _fineIndices[j] , _fineIndices[k] ) ) );
 	for( unsigned int j=0 ; j<_fineDim ; j++ ) for( unsigned int k=0 ; k<_coarseDim ; k++ ) _q[ _index(j,k) ] = E( _fineIndices[j] , _coarseIndices[k] );
 
-
-#ifdef INTERPOLATION_CONSTRAINTS
 	// The linear interpolation constraint
 	if( interpolationConstraints )
 	{
@@ -425,12 +404,6 @@ void InterpolatingProlongationSystem< PoU >::_init( const Eigen::MatrixXd &E , c
 			_c = Eigen::VectorXd::Zero( constraints.size() );
 		}
 	}
-#else // !INTERPOLATION_CONSTRAINTS
-	cEntries.reserve( _fineDim * _coarseDim + constraints.size() );
-	_C.resize( _fineDim + constraints.size() , dim );
-	_c = Eigen::VectorXd::Zero( _fineDim + constraints.size() );
-#endif // INTERPOLATION_CONSTRAINTS
-
 
 	if constexpr( PoU )
 	{
@@ -458,7 +431,6 @@ void InterpolatingProlongationSystem< PoU >::_init( const Eigen::MatrixXd &E , c
 		}
 	}
 
-#ifdef INTERPOLATION_CONSTRAINTS
 	// Interpolation constraints
 	// For the i-th node, we would like to satisfy:
 	//		\sum_j P( _coarseIndices[j] , _fineIndices[i] ) * internalConstraints[ _coarseIndices[j] ] = internalConstraints[ _fineIndices[i] ]
@@ -473,7 +445,6 @@ void InterpolatingProlongationSystem< PoU >::_init( const Eigen::MatrixXd &E , c
 			_c[row] = interpolationConstraints[ _fineIndices[f] ][d];
 		}
 	}
-#endif // INTERPOLATION_CONSTRAINTS
 
 	_Q.setFromTriplets( qEntries.begin() , qEntries.end() );
 	_C.setFromTriplets( cEntries.begin() , cEntries.end() );
@@ -535,7 +506,6 @@ void InterpolatingProlongationSystem< PoU >::HierarchicalProlongation( const Sim
 	_HierarchicalProlongation< Dim , Degree >( simplexRefinableCell , sre , eWeights , &pInfo[0] , finestDim );
 }
 
-#ifdef INTERPOLATION_CONSTRAINTS
 template< bool PoU >
 template< unsigned int Dim , unsigned int Degree , unsigned int EmbeddingDimension >
 void InterpolatingProlongationSystem< PoU >::HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim )
@@ -543,7 +513,6 @@ void InterpolatingProlongationSystem< PoU >::HierarchicalProlongation( const Sim
 	SimplexRefinableElements< Dim , Degree > sre( simplexRefinableCell );
 	_HierarchicalProlongation< Dim , Degree , EmbeddingDimension >( simplexRefinableCell , sre , eWeights , positionFunctor , planarityEpsilon , &pInfo[0] , finestDim );
 }
-#endif // INTERPOLATION_CONSTRAINTS
 
 template< bool PoU >
 template< unsigned int Dim , unsigned int Degree >
@@ -745,7 +714,6 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 	return P;
 }
 
-#ifdef INTERPOLATION_CONSTRAINTS
 template< bool PoU >
 template< unsigned int Dim , unsigned int Degree , unsigned int EmbeddingDimension >
 void InterpolatingProlongationSystem< PoU >::_HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , ProlongationInfo< Degree > *pInfo , unsigned int finestDim )
@@ -886,7 +854,6 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 	Eigen::MatrixXd E = sre.template systemMatrix< EmbeddingDimension >( eType , positionFunctor );
 
 	// Get the prolongation
-#ifdef INTERPOLATION_CONSTRAINTS
 	if constexpr( Dim<EmbeddingDimension )
 	{
 		if( planarityEpsilon>0 )
@@ -940,9 +907,6 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 		}
 	}
 	else return InterpolatingProlongationSystem( E , coarseIndices ).prolongation< false >();
-#else //!INTERPOLATION_CONSTRAINTS
-	return InterpolatingProlongationSystem( E , coarseIndices ).prolongation();
-#endif // INTERPOLATION_CONSTRAINTS
 }
 
 template< bool PoU >
@@ -997,7 +961,6 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 
 	return P;
 }
-#endif // INTERPOLATION_CONSTRAINTS
 
 template< bool PoU >
 template< unsigned int Dim , unsigned int Degree >

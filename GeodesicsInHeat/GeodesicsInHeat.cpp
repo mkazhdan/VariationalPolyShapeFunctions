@@ -41,8 +41,8 @@ const unsigned int ManifoldDimension = 2;
 Misha::CmdLineParameter< std::string > In( "in" );
 Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , CoarseNodeDimension( "coarseDim" , 1 ) , Width( "width" , 512 ) , Height( "height" , 512 ) , SubdivisionIterations( "sub" , 0 );
 Misha::CmdLineParameter< double > TimeStep( "time" , 1.e-3 ) , StiffnessRegularizer( "sRegularizer" , 1e-8 );
-Misha::CmdLineReadable Multigrid( "mg" ) , Verbose( "verbose" );
-Misha::CmdLineReadable* params[] = { &In , &Degree , &TimeStep , &Verbose , &CoarseNodeDimension , &Multigrid , &Width , &Height , &SubdivisionIterations , &StiffnessRegularizer , NULL };
+Misha::CmdLineReadable Multigrid( "mg" ) , Verbose( "verbose" ) , NoHelp( "noHelp" );
+Misha::CmdLineReadable* params[] = { &In , &Degree , &TimeStep , &Verbose , &CoarseNodeDimension , &Multigrid , &Width , &Height , &SubdivisionIterations , &StiffnessRegularizer , &NoHelp , NULL };
 
 void ShowUsage( const char* ex )
 {
@@ -57,10 +57,11 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <window height>=%d]\n" , Height.name.c_str() , Height.value );
 	printf( "\t[--%s]\n" , Multigrid.name.c_str() );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
+	printf( "\t[--%s]\n" , NoHelp.name.c_str() );
 }
 
 template< unsigned int Degree >
-void Execute( std::vector< Point3D< double > > &vertices , const std::vector< std::vector< unsigned int > > &polygons )
+void Execute( int argc , char *argv[] , std::vector< Point3D< double > > &vertices , const std::vector< std::vector< unsigned int > > &polygons )
 {
 	if( Multigrid.set )
 	{
@@ -68,7 +69,7 @@ void Execute( std::vector< Point3D< double > > &vertices , const std::vector< st
 
 		char windowName[1024];
 		sprintf( windowName , "Geodesics in heat (Degree=%d, multigrid solver)" , Degree );
-		Misha::Viewable< GeodesicsInHeatVisualization< Degree , true > >::Viewer::Run( &v , 0 , NULL , windowName );
+		Misha::Viewable< GeodesicsInHeatVisualization< Degree , true > >::Viewer::Run( &v , argc , argv , windowName );
 	}
 	else
 	{
@@ -76,63 +77,12 @@ void Execute( std::vector< Point3D< double > > &vertices , const std::vector< st
 
 		char windowName[1024];
 		sprintf( windowName , "Geodesics in heat (Degree=%d, direct solver)" , Degree );
-		Misha::Viewable< GeodesicsInHeatVisualization< Degree , false > >::Viewer::Run( &v , 0 , NULL , windowName );
+		Misha::Viewable< GeodesicsInHeatVisualization< Degree , false > >::Viewer::Run( &v , argc , argv , windowName );
 	}
 }
 
 int main( int argc , char* argv[] )
 {
-#if 1
-	{
-		static const unsigned int RES = 128;
-		typedef VertexFactory::Factory< double , VertexFactory::PositionFactory< double , 3 > , VertexFactory::TextureFactory< double , 2 > > Factory;
-		typedef typename Factory::VertexType Vertex;
-
-		std::vector< Vertex > vertices( (RES+1) * (RES-1) + 2 );
-		std::vector< TriangleIndex > triangles;
-		triangles.reserve( RES * ( (RES-2) + 2*RES ) );
-
-		auto VertexIndex = []( unsigned int i , unsigned int j , unsigned int r )
-		{
-			unsigned int off = 0;
-//			i %= r;
-			if( j==0 ) return off;
-			off++;
-			j--;
-			if( j<(r-1) ) return j*(r+1)+i + off;
-			off += (r-1)*(r+1);
-			j -= (r-1);
-			if( j==0 ) return off;
-			else ERROR_OUT( "Row index out of bounds" );
-			return (unsigned int)-1;
-		};
-
-		// Add the vertices
-		for( unsigned int j=0 ; j<=RES ; j++ ) for( unsigned int i=0 ; i<=RES ; i++ )
-		{
-			double u = (double)i/RES , v = (double)j/RES;
-			double theta = u * 2. * M_PI  , phi = v * M_PI;
-			unsigned int idx = VertexIndex(i,j,RES);
-			vertices[idx].get<0>() = Point< double , 3 >( cos(theta)*sin(phi) , cos(phi) , sin(theta)*sin(phi) );
-			vertices[idx].get<1>() = Point< double , 2 >(u,v);
-		}
-
-		for( unsigned int j=0 ; j<RES ; j++ )
-		{
-			if( j==0 )          for( unsigned int i=0 ; i<RES ; i++ ) triangles.push_back( TriangleIndex( VertexIndex(i,j,RES) , VertexIndex(i+1,j+1,RES) , VertexIndex(i,j+1,RES) ) );
-			else if( j==RES-1 ) for( unsigned int i=0 ; i<RES ; i++ ) triangles.push_back( TriangleIndex( VertexIndex(i,j+1,RES) , VertexIndex(i,j,RES) , VertexIndex(i+1,j,RES) ) );
-			else for( unsigned int i=0 ; i<RES ; i++ )
-			{
-				triangles.push_back( TriangleIndex( VertexIndex(i,j,RES) , VertexIndex(i+1,j,RES) , VertexIndex(i,j+1,RES) ) );
-				triangles.push_back( TriangleIndex( VertexIndex(i+1,j+1,RES) , VertexIndex(i,j+1,RES) , VertexIndex(i+1,j,RES) ) );
-			}
-		}
-
-
-		Factory factory;
-		PLY::WriteTriangles< Factory >( "sphere.ply" , factory , vertices , triangles , PLY_BINARY_NATIVE );
-	}
-#endif
 	typedef VertexFactory::PositionFactory< double , 3 > Factory;
 	typedef typename Factory::VertexType Vertex;
 
@@ -141,6 +91,16 @@ int main( int argc , char* argv[] )
 	{
 		ShowUsage( argv[0] );
 		return EXIT_FAILURE;
+	}
+
+	if( !NoHelp.set )
+	{
+		printf( "+----------------------------------------+\n" );
+		printf( "| Interface Controls:                    |\n" );
+		printf( "|    [Left Mouse]:            rotate     |\n" );
+		printf( "|    [Left/Mouse] + [CTRL]:   pan        |\n" );
+		printf( "|    [Left/Mouse] + [SHIFT]:  set seed   |\n" );
+		printf( "+----------------------------------------+\n" );
 	}
 
 	std::vector< std::vector< unsigned int > > polygons;
@@ -154,9 +114,9 @@ int main( int argc , char* argv[] )
 
 	switch( Degree.value )
 	{
-		case 1: Execute< 1 >( vertices , polygons ) ; break;
-		case 2: Execute< 2 >( vertices , polygons ) ; break;
-		case 3: Execute< 3 >( vertices , polygons ) ; break;
+		case 1: Execute< 1 >( argc , argv , vertices , polygons ) ; break;
+		case 2: Execute< 2 >( argc , argv , vertices , polygons ) ; break;
+		case 3: Execute< 3 >( argc , argv , vertices , polygons ) ; break;
 		default: ERROR_OUT( "Only degrees 1, 2, and 3 supported" );
 	}
 

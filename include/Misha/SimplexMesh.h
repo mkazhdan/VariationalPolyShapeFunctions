@@ -37,9 +37,6 @@ DAMAGE.
 #include "Misha/Geometry.h"
 #include "SimplexBasis.h"
 
-//#define NEW_SIMPLEX_MESH
-#define HAS_SIMPLEX_NODE_INDEX
-
 template< unsigned int ... > struct SimplexMesh;
 
 template< unsigned int Dim >
@@ -72,10 +69,6 @@ struct SimplexMesh< Dim , Degree >
 	template< typename Index >
 	static SimplexMesh Init( const std::vector< SimplexIndex< Dim , Index > > &simplices , MetricFunctor< Index > gFunction );
 
-#ifdef NEW_SIMPLEX_MESH
-	static unsigned int NodeDim( const NodeMultiIndex &multiIndex );
-	size_t vertices( void ) const { return _vertices; }
-#endif // NEW_SIMPLEX_MESH
 	size_t simplices( void ) const { return _simplices.size(); }
 	SimplexIndex< Dim , unsigned int > simplex( unsigned int idx ) const{ return _simplices[idx]; }
 	SquareMatrix< double , Dim > metric( unsigned int idx ) const { return _g[idx]; }
@@ -93,21 +86,12 @@ struct SimplexMesh< Dim , Degree >
 	double evaluate( const Eigen::VectorXd &coefficients , typename SimplexMesh< Dim >::Sample sample ) const;
 	Polynomial::Polynomial< Dim , Degree , double > evaluate( const Eigen::VectorXd &coefficients , unsigned int simplexIndex ) const;
 
-#ifdef NEW_SIMPLEX_MESH
-	SimplexMesh( SimplexMesh &&sm ){ std::swap( _simplices , sm._simplices ) , std::swap( _g , sm._g ) , std::swap( _nodeMap , sm._nodeMap ) , std::swap( _vertices , sm._vertices ); }
-	SimplexMesh & operator = ( SimplexMesh &&sm ){ std::swap( _simplices , sm._simplices ) , std::swap( _g , sm._g ) , std::swap( _nodeMap , sm._nodeMap ) , std::swap( _vertices , sm._vertices ) ; return *this; }
-#else // !NEW_SIMPLEX_MESH
 	SimplexMesh( SimplexMesh &&sm ){ std::swap( _simplices , sm._simplices ) , std::swap( _g , sm._g ) , std::swap( _nodeMap , sm._nodeMap ); }
 	SimplexMesh & operator = ( SimplexMesh &&sm ){ std::swap( _simplices , sm._simplices ) , std::swap( _g , sm._g ) , std::swap( _nodeMap , sm._nodeMap ) ; return *this; }
-#endif // NEW_SIMPLEX_MESH
 
 	NodeMultiIndex nodeMultiIndex( unsigned int s , unsigned int n ) const;
 	unsigned int nodeIndex( const NodeMultiIndex &multiIndex ) const;
-#ifdef HAS_SIMPLEX_NODE_INDEX
 	unsigned int nodeIndex( unsigned int s , unsigned int n ) const { return _localToGlobalNodeIndex.size() ? _localToGlobalNodeIndex[ s*NodesPerSimplex+n ] : nodeIndex( nodeMultiIndex( s , n ) ); }
-#else // !HAS_SIMPLEX_NODE_INDEX
-	unsigned int nodeIndex( unsigned int s , unsigned int n ) const { return nodeIndex( nodeMultiIndex( s , n ) ); }
-#endif // HAS_SIMPLEX_NODE_INDEX
 	typename std::map< NodeMultiIndex , unsigned int >::const_iterator cbegin( void ) const { return _nodeMap.cbegin(); }
 	typename std::map< NodeMultiIndex , unsigned int >::const_iterator cend  ( void ) const { return _nodeMap.cend  (); }
 	const std::map< NodeMultiIndex , unsigned int > &nodeMap( void ) const{ return _nodeMap; }
@@ -115,9 +99,7 @@ struct SimplexMesh< Dim , Degree >
 	double volume( void ) const;
 	void makeUnitVolume( void );
 	void setMetric( std::function< SquareMatrix< double , Dim > (unsigned int) > metricFunction );
-#ifdef HAS_SIMPLEX_NODE_INDEX
 	void hashLocalToGlobalNodeIndex( void );
-#endif // HAS_SIMPLEX_NODE_INDEX
 
 protected:
 	template< unsigned int EmbeddingDimension , typename Index >
@@ -129,12 +111,7 @@ protected:
 	std::vector< SimplexIndex< Dim , unsigned int > > _simplices;
 	std::map< NodeMultiIndex , unsigned int  > _nodeMap;
 	std::vector< SquareMatrix< double , Dim > > _g;
-#ifdef HAS_SIMPLEX_NODE_INDEX
 	std::vector< unsigned int > _localToGlobalNodeIndex;
-#endif // HAS_SIMPLEX_NODE_INDEX
-#ifdef NEW_SIMPLEX_MESH
-	size_t _vertices;
-#endif // NEW_SIMPLEX_MESH
 };
 
 #include "SimplexMesh.inl"

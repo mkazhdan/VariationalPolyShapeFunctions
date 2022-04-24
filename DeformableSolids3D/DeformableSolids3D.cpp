@@ -42,8 +42,8 @@ Misha::CmdLineParameter< std::string > Input( "in" );
 Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , Width( "width" , 512 ) , Height( "height" , 512 ) , RefinementResolution( "refine" , 8 ) , CoarseNodeDimension( "coarseDim" , 1 ) , VCycles( "vCycles" , 1 ) , GSIterations( "gsIters" , 5 );
 Misha::CmdLineParameterArray< float , Dim * Dim > AffineTransform( "xForm" );
 Misha::CmdLineParameter< float > Gravity( "gravity" , -5e8f ) , TimeStep( "timeStep" );
-Misha::CmdLineReadable Multigrid( "mg" ) , Lock( "lock" ) , NoLinearPrecision( "noLinear" );
-Misha::CmdLineReadable* params[] = { &Input , &Width , &Height , &Degree , &AffineTransform , &Lock , &Gravity , &TimeStep , &RefinementResolution , &CoarseNodeDimension , &VCycles , &GSIterations , &Multigrid , &NoLinearPrecision , NULL };
+Misha::CmdLineReadable Multigrid( "mg" ) , Lock( "lock" ) , NoLinearPrecision( "noLinear" ) , NoHelp( "noHelp" );
+Misha::CmdLineReadable* params[] = { &Input , &Width , &Height , &Degree , &AffineTransform , &Lock , &Gravity , &TimeStep , &RefinementResolution , &CoarseNodeDimension , &VCycles , &GSIterations , &Multigrid , &NoLinearPrecision , &NoHelp , NULL };
 
 void ShowUsage( const char* ex )
 {
@@ -62,10 +62,11 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s]\n" , Multigrid.name.c_str() );
 	printf( "\t[--%s]\n" , NoLinearPrecision.name.c_str() );
 	printf( "\t[--%s]\n" , Lock.name.c_str() );
+	printf( "\t[--%s]\n" , NoHelp.name.c_str() );
 }
 
 template< unsigned int Degree >
-void Execute( const std::vector< Point< double , Dim > > &vertices , const std::vector< std::vector< unsigned int > > &polygons , const std::vector< std::vector< std::pair< unsigned int , bool > > > &polyhedra , const std::vector< bool > &lockedVertices , SquareMatrix< double , Dim > xForm , unsigned int width , unsigned int height , unsigned int refinementResolution )
+void Execute( int argc , char *argv[] , const std::vector< Point< double , Dim > > &vertices , const std::vector< std::vector< unsigned int > > &polygons , const std::vector< std::vector< std::pair< unsigned int , bool > > > &polyhedra , const std::vector< bool > &lockedVertices , SquareMatrix< double , Dim > xForm , unsigned int width , unsigned int height , unsigned int refinementResolution )
 {
 	char windowName[1024];
 	if( Multigrid.set )
@@ -77,7 +78,7 @@ void Execute( const std::vector< Point< double , Dim > > &vertices , const std::
 		v.init( vertices , polygons , polyhedra , lockedVertices , xForm , width , height , Gravity.value , refinementResolution , CoarseNodeDimension.value , !NoLinearPrecision.set );
 		if( TimeStep.set ) v.setTimeStep( TimeStep.value );
 
-		Misha::Viewable< DeformablePolyhedralMeshVisualization< Degree , true > >::Viewer::Run( &v , 0 , NULL , windowName );
+		Misha::Viewable< DeformablePolyhedralMeshVisualization< Degree , true > >::Viewer::Run( &v , argc , argv , windowName );
 	}
 	else
 	{
@@ -86,7 +87,7 @@ void Execute( const std::vector< Point< double , Dim > > &vertices , const std::
 		v.init( vertices , polygons , polyhedra , lockedVertices , xForm , width , height , Gravity.value , refinementResolution , CoarseNodeDimension.value , !NoLinearPrecision.set );
 		if( TimeStep.set ) v.setTimeStep( TimeStep.value );
 
-		Misha::Viewable< DeformablePolyhedralMeshVisualization< Degree , false > >::Viewer::Run( &v , 0 , NULL , windowName );
+		Misha::Viewable< DeformablePolyhedralMeshVisualization< Degree , false > >::Viewer::Run( &v , argc , argv , windowName );
 	}
 }
 
@@ -99,6 +100,15 @@ int main( int argc , char* argv[] )
 	{
 		ShowUsage( argv[0] );
 		return EXIT_FAILURE;
+	}
+
+	if( !NoHelp.set )
+	{
+		printf( "+---------------------------------------+\n" );
+		printf( "| Interface Controls:                   |\n" );
+		printf( "|    [Left Mouse]:           rotate     |\n" );
+		printf( "|    [Left/Mouse] + [CTRL]:  pan        |\n" );
+		printf( "+---------------------------------------+\n" );
 	}
 
 	SquareMatrix< double , Dim > xForm = SquareMatrix< double , Dim >::Identity();
@@ -118,13 +128,12 @@ int main( int argc , char* argv[] )
 
 	switch( Degree.value )
 	{
-		case 1: Execute< 1 >( vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
-		case 2: Execute< 2 >( vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
-		case 3: Execute< 3 >( vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
-		case 4: Execute< 4 >( vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
+		case 1: Execute< 1 >( argc , argv , vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
+		case 2: Execute< 2 >( argc , argv , vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
+		case 3: Execute< 3 >( argc , argv , vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
+		case 4: Execute< 4 >( argc , argv , vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
 		default: ERROR_OUT( "Only degrees 1, 2, 3, or 4 supported" );
 	}
 
 	return EXIT_SUCCESS;
-
 }

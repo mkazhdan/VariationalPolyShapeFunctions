@@ -18,7 +18,6 @@ HierarchicalSimplexRefinableCellMesh< Dim , Degree > HierarchicalSimplexRefinabl
 	return srcm;
 }
 
-#ifdef INTERPOLATION_CONSTRAINTS
 template< unsigned int Dim , unsigned int Degree >
 template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 HierarchicalSimplexRefinableCellMesh< Dim , Degree > HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , bool verbose )
@@ -35,7 +34,6 @@ HierarchicalSimplexRefinableCellMesh< Dim , Degree > HierarchicalSimplexRefinabl
 	srcm.template _init< PoU >( cellList , eWeights , positionFunctor , planarityEpsilon , finestDim , verbose );
 	return srcm;
 }
-#endif // INTERPOLATION_CONSTRAINTS
 
 template< unsigned int Dim , unsigned int Degree >
 template< bool PoU , typename SimplexRefinableCellType >
@@ -45,7 +43,6 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_init( const CellList
 	_setProlongationAndNodeMap< PoU , SimplexRefinableCellType >( cellList , eWeights , finestDim , verbose );
 }
 
-#ifdef INTERPOLATION_CONSTRAINTS
 template< unsigned int Dim , unsigned int Degree >
 template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose )
@@ -53,7 +50,6 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_init( const CellList
 	_setSimplexMesh           <       SimplexRefinableCellType >( cellList ,                                                             verbose );
 	_setProlongationAndNodeMap< PoU , SimplexRefinableCellType >( cellList , eWeights , positionFunctor , planarityEpsilon , finestDim , verbose );
 }
-#endif // INTERPOLATION_CONSTRAINTS
 
 template< unsigned int Dim , unsigned int Degree >
 template< typename SimplexRefinableCellType >
@@ -70,93 +66,29 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setSimplexMesh( cons
 	simplices.resize( sCount );
 	metrics.resize( sCount );
 
-#ifdef NEW_SIMPLEX_MESH
-	_cellSimplices.resize( cellNum );
-#endif // NEW_SIMPLEX_MESH
-
 	{
-#ifdef NEW_SIMPLEX_MESH
-		struct SimplexData
-		{
-			unsigned int cellIndex;
-			SimplexIndex< Dim , unsigned int > simplexIndex;
-			SquareMatrix< double , Dim > simplexMetric;
-
-			SimplexData( void ){}
-			SimplexData( unsigned int ci , SimplexIndex< Dim , unsigned int > si , SquareMatrix< double , Dim > sm )
-				: cellIndex(ci) , simplexIndex(si) , simplexMetric(sm) {}
-		};
-		std::vector< std::vector< SimplexData > > _simplexData( omp_get_max_threads() );
-		for( unsigned int t=0 ; t<_simplexData.size() ; t++ ) _simplexData.reserve( sCount );
-#else // !NEW_SIMPLEX_MESH
 		std::vector< std::vector< std::pair< SimplexIndex< Dim , unsigned int > , SquareMatrix< double , Dim > > > > _simplicesAndMetrics( omp_get_max_threads() );
 		for( unsigned int t=0 ; t<_simplicesAndMetrics.size() ; t++ ) _simplicesAndMetrics[t].reserve( sCount );
-#endif // NEW_SIMPLEX_MESH
 
 #pragma omp parallel for
 		for( int c=0 ; c<(int)cellList.size() ; c++ )
 		{
 			SimplexRefinableCellType simplexRefinable = cellList[c];
-#ifdef NEW_SIMPLEX_MESH
-			_cellSimplices[c].reserve( simplexRefinable.size() );
-			std::vector< SimplexData > &simplexData = _simplexData[ omp_get_thread_num() ];
-			for( unsigned int s=0 ; s<simplexRefinable.size() ; s++ ) simplexData.push_back( SimplexData( c , simplexRefinable[s] , simplexRefinable.metric(s) ) );
-#else // !NEW_SIMPLEX_MESH
 			std::vector< std::pair< SimplexIndex< Dim , unsigned int > , SquareMatrix< double , Dim > > > &simplicesAndMetrics = _simplicesAndMetrics[ omp_get_thread_num() ];
 			for( unsigned int s=0 ; s<simplexRefinable.size() ; s++ ) simplicesAndMetrics.push_back( std::make_pair( simplexRefinable[s] , simplexRefinable.metric(s) ) );
-#endif // NEW_SIMPLEX_MESH
 		}
-#ifdef NEW_SIMPLEX_MESH
-		unsigned int idx = 0;
-		for( unsigned int t=0 ; t<_simplexData.size() ; t++ ) for( unsigned int i=0 ; i<_simplexData[t].size() ; i++ )
-		{
-			simplices[idx] = _simplexData[t][i].simplexIndex;
-			metrics[idx] = _simplexData[t][i].simplexMetric;
-			_cellSimplices[ _simplexData[t][i].cellIndex ].push_back( idx );
-			idx++;
-		}
-#else // !NEW_SIMPLEX_MESH
 		unsigned int idx = 0;
 		for( unsigned int t=0 ; t<_simplicesAndMetrics.size() ; t++ ) for( unsigned int i=0 ; i<_simplicesAndMetrics[t].size() ; i++ )
 		{
 			simplices[idx] = _simplicesAndMetrics[t][i].first , metrics[idx] = _simplicesAndMetrics[t][i].second;
 			idx++;
 		}
-#endif // NEW_SIMPLEX_MESH
 	}
 	std::function< SquareMatrix< double , Dim > ( unsigned int ) > gFunction = [&]( unsigned int idx ){ return metrics[idx]; };
 	_simplexMesh = SimplexMesh< Dim , Degree >::Init( simplices , gFunction );
 
-#ifdef NEW_SIMPLEX_MESH
-	_vertexDim.resize( _simplexMesh.vertices() , 0 );
-	if constexpr( Dim>1 )
-		for( int c=0 ; c<(int)cellNum ; c++ )
-		{
-			SimplexRefinableCellType simplexRefinable = cellFunctor( c );
-			_setVertexDim( simplexRefinable );
-		}
-#endif // NEW_SIMPLEX_MESH
-
 	if( verbose ) std::cout << "Got simplicial mesh: " << timer.elapsed() << std::endl;
 }
-
-#ifdef NEW_SIMPLEX_MESH
-template< unsigned int Dim , unsigned int Degree >
-template< unsigned int _Dim >
-void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setVertexDim( const SimplexRefinableCell< _Dim > &src )
-{
-	_vertexDim[ src.centerIndex() ] = _Dim;
-	if constexpr( _Dim-1>1 ) for( unsigned int f=0 ; f<src.faces() ; f++ ) _setVertexDim( src.face(f) );
-}
-
-template< unsigned int Dim , unsigned int Degree >
-unsigned int HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_nodeDim( const NodeMultiIndex &multiIndex ) const
-{
-	unsigned int dim = SimplexMesh< Dim , Degree >::NodeDim( multiIndex );
-	for( unsigned int d=0 ; d<Degree ; d++ ) dim = std::max< unsigned int >( dim , _vertexDim[ multiIndex[d] ] );
-	return dim;
-}
-#endif // NEW_SIMPLEX_MESH
 
 template< unsigned int Dim , unsigned int Degree >
 template< bool PoU , typename SimplexRefinableCellType >
@@ -239,13 +171,10 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 	if( verbose ) std::cout << "Got prolongation/restriction: " << timer.elapsed() << std::endl;
 }
 
-#ifdef INTERPOLATION_CONSTRAINTS
 template< unsigned int Dim , unsigned int Degree >
 template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose )
 {
-	WARN_ONCE( "Enforcing linear precision" );
-
 	_prolongationAndNodeMap.resize( finestDim+1 );
 
 	struct PEntry
@@ -322,7 +251,6 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 
 	if( verbose ) std::cout << "Got prolongation/restriction: " << timer.elapsed() << std::endl;
 }
-#endif // INTERPOLATION_CONSTRAINTS
 
 template< unsigned int Dim , unsigned int Degree >
 unsigned int HierarchicalSimplexRefinableCellMesh< Dim , Degree >::nodeIndex( unsigned int l , NodeMultiIndex ni ) const

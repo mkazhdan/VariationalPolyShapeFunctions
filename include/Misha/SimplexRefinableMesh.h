@@ -100,13 +100,11 @@ struct HierarchicalSimplexRefinableCellMesh
 	template< bool PoU , typename SimplexRefinableCellType >
 	static HierarchicalSimplexRefinableCellMesh Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool verbose=false );
 
-#ifdef INTERPOLATION_CONSTRAINTS
 	template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 	static HierarchicalSimplexRefinableCellMesh Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon ,                          bool verbose=false );
 
 	template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 	static HierarchicalSimplexRefinableCellMesh Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose=false );
-#endif // INTERPOLATION_CONSTRAINTS
 
 	HierarchicalSimplexRefinableCellMesh( HierarchicalSimplexRefinableCellMesh &&srcm ){ std::swap( _simplexMesh , srcm._simplexMesh ) , std::swap( _prolongationAndNodeMap , srcm._prolongationAndNodeMap ); }
 	HierarchicalSimplexRefinableCellMesh &operator = ( HierarchicalSimplexRefinableCellMesh &&srcm ){ std::swap( _simplexMesh , srcm._simplexMesh ) , std::swap( _prolongationAndNodeMap , srcm._prolongationAndNodeMap ) ; return *this; }
@@ -124,9 +122,7 @@ struct HierarchicalSimplexRefinableCellMesh
 	unsigned int nodeIndex( NodeMultiIndex ni ) const { return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::nodeIndex( maxLevel()-1 , ni ); }
 
 	const SimplexMesh< Dim , Degree > &simplexMesh( void ) const { return _simplexMesh; }
-#ifdef HAS_SIMPLEX_NODE_INDEX
 	void hashSimplexMeshLocalToGlobalNodeIndex( void ){ _simplexMesh.hashLocalToGlobalNodeIndex(); }
-#endif // HAS_SIMPLEX_NODE_INDEX
 
 
 	double volume( void ) const { return _simplexMesh.volume(); }
@@ -139,10 +135,8 @@ protected:
 	template< bool PoU , typename SimplexRefinableCellType >
 	void _init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool verbose );
 
-#ifdef INTERPOLATION_CONSTRAINTS
 	template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 	void _init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose );
-#endif // INTERPOLATION_CONSTRAINTS
 
 	template< typename SimplexRefinableCellType >
 	void _setSimplexMesh( const CellList< SimplexRefinableCellType > &cellList , bool verbose );
@@ -150,20 +144,8 @@ protected:
 	template< bool PoU , typename SimplexRefinableCellType >
 	void _setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool verbose );
 
-#ifdef INTERPOLATION_CONSTRAINTS
 	template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 	void _setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose );
-#endif // INTERPOLATION_CONSTRAINTS
-
-#ifdef NEW_SIMPLEX_MESH
-	std::vector< unsigned int > _vertexDim;
-	std::vector< std::vector< unsigned int > > _cellSimplices;
-
-	template< unsigned int _Dim >
-	void _setVertexDim( const SimplexRefinableCell< _Dim > &src );
-
-	unsigned int _nodeDim( const NodeMultiIndex &multiIndex ) const;
-#endif // NEW_SIMPLEX_MESH
 };
 
 template< unsigned int Dim , unsigned int Degree >
@@ -186,7 +168,6 @@ struct SimplexRefinableCellMesh : protected HierarchicalSimplexRefinableCellMesh
 		return srcm;
 	}
 
-#ifdef INTERPOLATION_CONSTRAINTS
 	template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 	static SimplexRefinableCellMesh Init( const typename HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > (unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestNodeDim , bool verbose )
 	{
@@ -194,7 +175,6 @@ struct SimplexRefinableCellMesh : protected HierarchicalSimplexRefinableCellMesh
 		srcm.template _init< PoU , SimplexRefinableCellType , EmbeddingDimension >( cellList , eWeights , positionFunctor , planarityEpsilon , finestNodeDim , verbose );
 		return srcm;
 	}
-#endif // INTERPOLATION_CONSTRAINTS
 
 	size_t nodes( void ) const { return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::nodes( _level ); }
 	const std::map< NodeMultiIndex , unsigned int > &nodeMap( void ) const { return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::nodeMap( _level ); }
@@ -203,9 +183,7 @@ struct SimplexRefinableCellMesh : protected HierarchicalSimplexRefinableCellMesh
 	unsigned int nodeIndex( NodeMultiIndex ni ) const { return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::nodeIndex( _level , ni ); }
 
 	const SimplexMesh< Dim , Degree > &simplexMesh( void ) const { return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::simplexMesh(); }
-#ifdef HAS_SIMPLEX_NODE_INDEX
 	void hashSimplexMeshLocalToGlobalNodeIndex( void ){ HierarchicalSimplexRefinableCellMesh< Dim , Degree >::hashSimplexMeshLocalToGlobalNodeIndex(); }
-#endif // HAS_SIMPLEX_NODE_INDEX
 
 	double volume( void ) const { return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::volume(); }
 	void makeUnitVolume( void ) { HierarchicalSimplexRefinableCellMesh< Dim , Degree >::makeUnitVolume(); }
@@ -223,7 +201,6 @@ protected:
 		_Pt = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::P( _level , _level+1 );
 	}
 
-#ifdef INTERPOLATION_CONSTRAINTS
 	template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 	void _init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestNodeDim , bool verbose )
 	{
@@ -232,7 +209,6 @@ protected:
 		_P  = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::P( _level+1 , _level );
 		_Pt = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::P( _level , _level+1 );
 	}
-#endif // INTERPOLATION_CONSTRAINTS
 };
 
 #include "SimplexRefinableMesh.inl"

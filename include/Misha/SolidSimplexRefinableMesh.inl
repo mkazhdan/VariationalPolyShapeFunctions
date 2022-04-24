@@ -29,7 +29,6 @@ DAMAGE.
 ///////////////////////////////////////////////
 // HierarchicalSolidSimplexRefinableCellMesh //
 ///////////////////////////////////////////////
-#ifdef INTERPOLATION_CONSTRAINTS
 template< unsigned int Dim , unsigned int Degree >
 template< bool PoU , typename SimplexRefinableCellType >
 HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree > HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool linearPrecision , double planarityEpsilon , bool verbose )
@@ -46,32 +45,10 @@ HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree > HierarchicalSolidSimpl
 	ssrcm.template _init< PoU >( cellList , vFunction , eWeights , finestDim , linearPrecision , planarityEpsilon , verbose );
 	return ssrcm;
 }
-#else // !INTERPOLATION_CONSTRAINTS
-template< unsigned int Dim , unsigned int Degree >
-template<  typename SimplexRefinableCellType >
-HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree > HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool verbose )
-{
-	return Init( cellList , vFunction , eWeights , Dim , verbose );
-}
-
-template< unsigned int Dim , unsigned int Degree >
-template<  typename SimplexRefinableCellType >
-HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree > HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool verbose )
-{
-	static_assert( std::is_base_of< SimplexRefinable< Dim > , SimplexRefinableCellType >::value , "[ERROR] SimplexRefinableCellType must derive from SimplexRefinable" );
-	HierarchicalSolidSimplexRefinableCellMesh ssrcm;
-	ssrcm._init( cellList , vFunction , eWeights , finestDim , verbose );
-	return ssrcm;
-}
-#endif // INTERPOLATION_CONSTRAINTS
 
 template< unsigned int Dim , unsigned int Degree >
 template< bool PoU , typename SimplexRefinableCellType >
-#ifdef INTERPOLATION_CONSTRAINTS
 void HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::_init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool linearPrecision , double planarityEpsilon , bool verbose )
-#else // !INTERPOLATION_CONSTRAINTS
-void HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::_init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool verbose )
-#endif // INTERPOLATION_CONSTRAINTS
 {
 	// Start by constructing the underlying SolidSimplexMesh
 	{
@@ -96,13 +73,9 @@ void HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::_init( const Cel
 	// Next, compute the prolongation information
 	{
 		Timer timer;
-#ifdef INTERPOLATION_CONSTRAINTS
 		HierarchicalSimplexRefinableCellMesh< Dim , Degree > srm;
 		if( linearPrecision ) srm = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< PoU >( cellList , eWeights , vFunction , planarityEpsilon , finestDim , verbose );
 		else                  srm = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< PoU >( cellList , eWeights , finestDim , verbose );
-#else // !INTERPOLATION_CONSTRAINTS
-		HierarchicalSimplexRefinableCellMesh< Dim , Degree > srm = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , finestDim , verbose );
-#endif // INTERPOLATION_CONSTRAINTS
 		if( verbose ) std::cout << "Got simplex refinable cell mesh: " << timer.elapsed() << std::endl;
 		_prolongationAndNodeMap.resize( srm.maxLevel() );
 		for( unsigned int l=0 ; l<srm.maxLevel() ; l++ )

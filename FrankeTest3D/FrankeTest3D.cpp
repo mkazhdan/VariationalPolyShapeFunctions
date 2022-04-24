@@ -44,10 +44,10 @@ DAMAGE.
 static const unsigned int Dim = 3;
 
 Misha::CmdLineParameter< std::string > Input( "in" );
-Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , CoarseNodeDimension( "coarseDim" , 1 ) , VCycles( "vCycles" , 1 ) , Iterations( "iters" , 0 ) , MGRelaxerType( "relaxer" , MGSolver::RELAXER_PARALLEL_GAUSS_SEIDEL );
+Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , CoarseNodeDimension( "coarseDim" , 1 ) , VCycles( "vCycles" , 1 ) , GSIterations( "gsIters" , 5 );
 Misha::CmdLineParameter< double > PlanarityEpsilon( "pEps" , 0 );
 Misha::CmdLineReadable Verbose( "verbose" ) , Multigrid( "mg" ) , FullVerbose( "fullVerbose" ) , Debug( "debug" ) , LinearPrecision( "linear" );
-Misha::CmdLineReadable* params[] = { &Input , &Degree , &Verbose , &CoarseNodeDimension , &Multigrid , &VCycles , &Iterations , &FullVerbose , &Debug , &MGRelaxerType , &LinearPrecision , &PlanarityEpsilon , NULL };
+Misha::CmdLineReadable* params[] = { &Input , &Degree , &Verbose , &CoarseNodeDimension , &Multigrid , &VCycles , &GSIterations , &FullVerbose , &Debug , &LinearPrecision , &PlanarityEpsilon , NULL };
 
 void ShowUsage( const char* ex )
 {
@@ -56,9 +56,7 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <fem degree>=%d]\n" , Degree.name.c_str() , Degree.value );
 	printf( "\t[--%s <coarse node dimensions>=%d]\n" , CoarseNodeDimension.name.c_str() , CoarseNodeDimension.value );
 	printf( "\t[--%s <number of v-cycles>=%d]\n" , VCycles.name.c_str() , VCycles.value );
-	printf( "\t[--%s <number of relaxation iterations per level>=%d]\n" , Iterations.name.c_str() , Iterations.value );
-	printf( "\t[--%s <multigrid relaxer type>=%d]\n" , MGRelaxerType.name.c_str() , MGRelaxerType.value );
-	for( unsigned int i=0 ; i<MGSolver::RELAXER_COUNT ; i++ ) std::cout << "\t\t" << i << "] " << MGSolver::RelaxerTypeNames[i] << std::endl;
+	printf( "\t[--%s <number of relaxation iterations per level>=%d]\n" , GSIterations.name.c_str() , GSIterations.value );
 	printf( "\t[--%s <planarity epsilon>=%g]\n" , PlanarityEpsilon.name.c_str() , PlanarityEpsilon.value );
 	printf( "\t[--%s]\n" , Multigrid.name.c_str() );
 	printf( "\t[--%s]\n" , LinearPrecision.name.c_str() );
@@ -401,16 +399,7 @@ void Execute( const Meshes::PolyhedronMesh< unsigned int > &polyMesh , const std
 	{
 		HierarchicalSimplexRefinableCellMesh< Dim , Degree > simplexRefinableCellMesh;
 		simplexRefinableCellMesh = polyMesh.template hierarchicalSimplexRefinableCellMesh< Degree >( fullVertexPositionFunction , eWeights , CoarseNodeDimension.value , false , LinearPrecision.set , PlanarityEpsilon.value , Verbose.set );
-		switch( MGRelaxerType.value )
-		{
-			case MGSolver::RELAXER_JACOBI:
-				return ExecuteMG< Degree , MGSolver::JacobiRelaxer >( simplexRefinableCellMesh , NodePosition , IsBoundaryNode , VCycles.value , Iterations.value );
-			case MGSolver::RELAXER_GAUSS_SEIDEL:
-				return ExecuteMG< Degree , MGSolver::GaussSeidelRelaxer >( simplexRefinableCellMesh , NodePosition , IsBoundaryNode , VCycles.value , Iterations.value );
-			case MGSolver::RELAXER_PARALLEL_GAUSS_SEIDEL:
-				return ExecuteMG< Degree , MGSolver::ParallelGaussSeidelRelaxer< 20 > >( simplexRefinableCellMesh , NodePosition , IsBoundaryNode , VCycles.value , Iterations.value );
-			default: ERROR_OUT( "Unrecognized relaxer type: " , MGRelaxerType.value );
-		}
+		return ExecuteMG< Degree , MGSolver::ParallelGaussSeidelRelaxer< 20 > >( simplexRefinableCellMesh , NodePosition , IsBoundaryNode , VCycles.value , GSIterations.value );
 	}
 	else
 	{

@@ -66,40 +66,15 @@ void SimplexMesh< Dim , Degree >::_init( const std::vector< SimplexIndex< Dim , 
 {
 	_simplices.resize( simplices.size() );
 	_g.resize( _simplices.size() );
-#ifdef NEW_SIMPLEX_MESH
-	std::set< unsigned int > vSet;
-	unsigned int maxV=0;
-#endif // NEW_SIMPLEX_MESH
 	for( unsigned int s=0 ; s<_simplices.size() ; s++ )
 	{
 		for( unsigned int d=0 ; d<=Dim ; d++ ) _simplices[s][d] = (unsigned int)simplices[s][d];
 		_g[s] = gFunction(s);
 		for( unsigned int n=0 ; n<SimplexElements< Dim , Degree >::NodeNum ; n++ ) _nodeMap[ nodeMultiIndex( s , n ) ] = 0;
-#ifdef NEW_SIMPLEX_MESH
-		for( unsigned int d=0 ; d<=Dim ; d++ )
-		{
-			vSet.insert( (unsigned int)simplices[s][d] );
-			maxV = std::max< unsigned int >( maxV , (unsigned int)simplices[s][d] );
-		}
-#endif // NEW_SIMPLEX_MESH
 	}
 	unsigned int nodeCount = 0;
 	for( auto iter=_nodeMap.begin() ; iter!=_nodeMap.end() ; iter++ ) iter->second = nodeCount++;
-#ifdef NEW_SIMPLEX_MESH
-	if( vSet.size()!=maxV+1 ) ERROR_OUT( "Vertex indexing mismatch: " , vSet.size() , " != " , maxV+1 );
-	_vertices = vSet.size();
-#endif // NEW_SIMPLEX_MESH
 }
-
-#ifdef NEW_SIMPLEX_MESH
-template< unsigned int Dim , unsigned int Degree >
-unsigned int SimplexMesh< Dim , Degree >::NodeDim( const NodeMultiIndex &multiIndex )
-{
-	unsigned int dim = 0;
-	for( unsigned int d=1 ; d<Degree ; d++ ) if( multiIndex[d-1]!=multiIndex[d] ) dim++;
-	return dim;
-}
-#endif // NEW_SIMPLEX_MESH
 
 template< unsigned int Dim , unsigned int Degree >
 typename SimplexMesh< Dim , Degree >::NodeMultiIndex SimplexMesh< Dim , Degree >::nodeMultiIndex( unsigned int s , unsigned int n ) const
@@ -385,7 +360,6 @@ Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::_crossFaceGradientEne
 	return E;
 }
 
-#ifdef HAS_SIMPLEX_NODE_INDEX
 template< unsigned int Dim , unsigned int Degree >
 void SimplexMesh< Dim , Degree >::hashLocalToGlobalNodeIndex( void )
 {
@@ -394,7 +368,6 @@ void SimplexMesh< Dim , Degree >::hashLocalToGlobalNodeIndex( void )
 	for( int s=0 ; s<(int)simplices() ; s++ ) for( unsigned int n=0 , i=s*NodesPerSimplex ; n<NodesPerSimplex ; n++ , i++ )
 		_localToGlobalNodeIndex[i] = nodeIndex( nodeMultiIndex( s , n ) );
 }
-#endif // HAS_SIMPLEX_NODE_INDEX
 
 template< unsigned int Dim , unsigned int Degree >
 Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::evaluationMatrix( const std::vector< typename SimplexMesh< Dim >::Sample > &samples ) const

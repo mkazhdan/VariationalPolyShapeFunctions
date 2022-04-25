@@ -14,8 +14,19 @@ else
 endif
 MD=mkdir
 
+ifeq ($(OS),Windows_NT)
+    detected_OS := Windows
+else
+    detected_OS := $(shell uname)
+endif
+
 CFLAGS += -fpermissive -Wno-deprecated -Wno-unused-result -Wno-format -msse2 -std=c++17 -O3 -funroll-loops -ffast-math
-LFLAGS = -lgomp -lz -lGL -lGLU -lglut -lGLEW -lpng -ljpeg -O3 
+
+ifeq ($(detected_OS),Darwin)
+		LFLAGS = -lgomp -lz -framework GLUT -framework OpenGL -lGLEW -lpng -ljpeg -O3 
+else
+        LFLAGS = -lgomp -lz -lGL -lGLU -lglut -lGLEW -lpng -ljpeg -O3 
+endif
 
 SRC = ./
 BIN = ./../Bin/Linux/

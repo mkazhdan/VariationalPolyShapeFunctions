@@ -98,8 +98,8 @@ int main( int argc , char* argv[] )
 		printf( "+----------------------------------------+\n" );
 		printf( "| Interface Controls:                    |\n" );
 		printf( "|    [Left Mouse]:            rotate     |\n" );
-		printf( "|    [Left/Mouse] + [CTRL]:   pan        |\n" );
-		printf( "|    [Left/Mouse] + [SHIFT]:  set seed   |\n" );
+		printf( "|    [Left Mouse] + [CTRL]:   pan        |\n" );
+		printf( "|    [Left Mouse] + [SHIFT]:  set seed   |\n" );
 		printf( "+----------------------------------------+\n" );
 	}
 

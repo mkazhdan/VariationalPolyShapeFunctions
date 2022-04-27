@@ -41,7 +41,7 @@ namespace Misha
 	template<>
 	struct Tensor< UIntPack<> > : public StaticWindow< double , UIntPack<> > , public InnerProductSpace< double , Tensor< UIntPack<> > >
 	{
-		typedef  UIntPack<> Pack;
+		typedef UIntPack<> Pack;
 		static const unsigned int Size = Pack::Size;
 
 		Tensor( double d=0 ) : StaticWindow< double , UIntPack<> >(d) {}

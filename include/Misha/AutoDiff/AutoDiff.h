@@ -281,7 +281,7 @@ namespace Misha
 			else return JPack::First * DStart + _InPower< JPack::Rest , DStart+1 >();
 		}
 
-		template< unsigned int D , typename JPack , unsigned int Index=-1 >
+		template< unsigned int D , typename JPack , unsigned int Index=(unsigned int)-1 >
 		Tensor< OutDPack< D , typename _Function::OutPack , typename _Function::InPack > > _d( const Tensor< typename _Function::InPack > &t ) const
 		{
 			if constexpr( D==_InPower< JPack >() )
@@ -431,6 +431,25 @@ namespace Misha
 	template< typename F1 , typename F2 >
 	Add< F1 , F2 > operator + ( const F1 &f1 , const F2 &f2 ){ return Add< F1 , F2 >(f1,f2); }
 
+#if 1
+	template< typename F >
+	typename std::enable_if< std::is_class< F >::value , Scale< F > >::type operator * ( const F &f , double s ){ return Scale< F >(f,s); }
+
+	template< typename F >
+	typename std::enable_if< std::is_class< F >::value , Scale< F > >::type operator * ( const F &f , int s ){ return Scale< F >(f,s); }
+
+	template< typename F >
+	typename std::enable_if< std::is_class< F >::value , Scale< F > >::type operator * ( double s , const F &f ){ return Scale< F >(f,s); }
+
+	template< typename F >
+	typename std::enable_if< std::is_class< F >::value , Scale< F > >::type operator * ( int s , const F &f ){ return Scale< F >(f,s); }
+
+	template< typename F >
+	typename std::enable_if< std::is_class< F >::value , Scale< F > >::type operator - ( const F &f ){ return f * -1.; }
+
+	template< typename F >
+	typename std::enable_if< std::is_class< F >::value , Scale< F > >::type operator / ( const F &f , double s ){ return Scale< F >(f,1./s); }
+#else
 	template< typename F >
 	Scale< F > operator * ( const F &f , double s ){ return Scale< F >(f,s); }
 
@@ -446,11 +465,12 @@ namespace Misha
 	template< typename F >
 	Scale< F > operator - ( const F &f ){ return f * -1.; }
 
+	template< typename F >
+	Scale< F > operator / ( const F &f , double s ){ return Scale< F >(f,1./s); }
+#endif 
 	template< typename F1 , typename F2 >
 	Add< F1 , Scale< F2 > > operator - ( const F1 &f1 , const F2 &f2 ){ return f1 + ( -f2 ); }
 
-	template< typename F >
-	Scale< F > operator / ( const F &f , double s ){ return Scale< F >(f,1./s); }
 
 	template< typename F1 , typename F2 >
 	ContractedOuterProduct< 0 , F1 , F2 > operator * ( const F1 &f1 , const F2 &f2 ){ return ContractedOuterProduct< 0 , F1 , F2 >(f1,f2); }
@@ -528,7 +548,7 @@ namespace Misha
 		template< unsigned int D >
 		static double _Scalar( double e )
 		{
-			if constexpr( D==0 ) return 1;
+			if constexpr( D==0 ) return e;
 			else return e * _Scalar< D-1 >( e-1 );
 		}
 	};

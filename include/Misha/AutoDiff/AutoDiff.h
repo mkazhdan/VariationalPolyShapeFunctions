@@ -528,7 +528,7 @@ namespace Misha
 		template< unsigned int D >
 		static double _Scalar( double e )
 		{
-			if constexpr( D==0 ) return e;
+			if constexpr( D==0 ) return 1;
 			else return e * _Scalar< D-1 >( e-1 );
 		}
 	};

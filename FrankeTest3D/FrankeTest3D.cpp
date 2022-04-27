@@ -358,18 +358,18 @@ int main( int argc , char* argv[] )
 		auto y = LinearFunction( Point< double , Dim >( 0 , 1 , 0 ) );
 		auto z = LinearFunction( Point< double , Dim >( 0 , 0 , 1 ) );
 
-		auto cx2 = (9.*x-2.)*(9.*x-2.);
-		auto cy2 = (9.*y-2.)*(9.*y-2.);
-		auto cz2 = (9.*z-2.)*(9.*z-2.);
+		auto cx2 = Pow( 9.*x-2. , 2. );
+		auto cy2 = Pow( 9.*y-2. , 2. );
+		auto cz2 = Pow( 9.*z-2. , 2. );
 
-		auto cx1 = (9.*x+1.)*(9.*x+1.);
-		auto cx7 = (9.*x+7.)*(9.*x+7.);
+		auto cx1 = Pow( 9.*x+1. , 2. );
+		auto cx7 = Pow( 9.*x+7. , 2. );
 
-		auto cy3 = (9.*y-3.)*(9.*y-3.);
-		auto cx4 = (9.*x-7.)*(9.*x-7.);
+		auto cy3 = Pow( 9.*y-3. , 2. );
+		auto cx4 = Pow( 9.*x-7. , 2. );
 
-		auto cy7 = (9.*y-7.)*(9.*y-7.);
-		auto cz5 = (9.*z-5.)*(9.*z-5.);
+		auto cy7 = Pow( 9.*y-7. , 2. );
+		auto cz5 = Pow( 9.*z-5. , 2. );
 
 		auto e1 = (3./4.) * Misha::Exp( -(1./4.)*( cx2 + cy2 + cz2 ) );
 		auto e2 = (3./4.) * Misha::Exp( -(1./49.)*cx1 - (9./10.)*y - (1./10.) - (9./10.)*z - (1./10.) );

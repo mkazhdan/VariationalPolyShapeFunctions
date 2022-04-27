@@ -23,7 +23,6 @@ TextureFiltering/x64/
 ZLIB/x64/
 CHOLMOD/*
 *~
-*.filters
 *.recipe
 *.iobj
 *.ipdb

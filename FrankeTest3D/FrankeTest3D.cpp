@@ -84,7 +84,11 @@ void ExecuteDirect
 	{
 		Misha::Tensor< Misha::UIntPack< Dim > > _p;
 		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
+#ifdef NEW_WINDOW_CODE
+		return franke( _p );
+#else // !NEW_WINDOW_CODE
 		return (double)franke( _p );
+#endif // NEW_WINDOW_CODE
 	};
 
 	auto FrankeLaplacian = [&]( Point< double , Dim > p )
@@ -120,7 +124,11 @@ void ExecuteDirect
 	b = M * b;
 
 	// Set the constraints at the locked vertices to the evluation of the Franke function
+#ifdef NEW_WINDOW_CODE
+	for( unsigned int i=0 ; i<lockedNodes.size() ; i++ ) if( lockedNodes[i] ) b[i] = Franke( NodePosition( nodeMultiIndices[i] ) )();
+#else // !NEW_WINDOW_CODE
 	for( unsigned int i=0 ; i<lockedNodes.size() ; i++ ) if( lockedNodes[i] ) b[i] = Franke( NodePosition( nodeMultiIndices[i] ) );
+#endif // NEW_WINDOW_CODE
 
 	// Adjust the right-hand-side to account for the locked nodes
 	for( unsigned int i=0 ; i<S.outerSize() ; i++ ) for( Eigen::SparseMatrix< double >::InnerIterator iter(S,i) ; iter ; ++iter )
@@ -161,7 +169,11 @@ void ExecuteDirect
 	}
 
 	double rms = 0;
+#ifdef NEW_WINDOW_CODE
+	for( unsigned int i=0 ; i<simplexRefinableCellMesh.nodes() ; i++ ) rms += pow( x[i] - Franke( NodePosition( nodeMultiIndices[i] ) )() , 2. );
+#else // !NEW_WINDOW_CODE
 	for( unsigned int i=0 ; i<simplexRefinableCellMesh.nodes() ; i++ ) rms += pow( x[i] - Franke( NodePosition( nodeMultiIndices[i] ) ) , 2. );
+#endif //NEW_WINDOW_CODE
 	{
 		Miscellany::StreamFloatPrecision sfp( std::cout , 3 , true );
 		std::cout << "RMS: " << sqrt( rms / simplexRefinableCellMesh.nodes() ) << std::endl;
@@ -189,7 +201,11 @@ void ExecuteMG
 	{
 		Misha::Tensor< Misha::UIntPack< Dim > > _p;
 		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
+#ifdef NEW_WINDOW_CODE
+		return franke( _p );
+#else // !NEW_WINDOW_CODE
 		return (double)franke( _p );
+#endif // NEW_WINDOW_CODE
 	};
 
 	auto FrankeLaplacian = [&]( Point< double , Dim > p )
@@ -232,7 +248,11 @@ void ExecuteMG
 	b = M * b;
 
 	// Set the constraints at the locked vertices to the evluation of the Franke function
+#ifdef NEW_WINDOW_CODE
+	for( unsigned int i=0 ; i<lockedNodes.size() ; i++ ) if( lockedNodes[i] ) b[i] = Franke( NodePosition( nodeMultiIndices[i] ) )();
+#else // !NEW_WINDOW_CODE
 	for( unsigned int i=0 ; i<lockedNodes.size() ; i++ ) if( lockedNodes[i] ) b[i] = Franke( NodePosition( nodeMultiIndices[i] ) );
+#endif // NEW_WINDOW_CODE
 
 	// Adjust the right-hand-side to account for the locked nodes
 	for( unsigned int i=0 ; i<S.outerSize() ; i++ ) for( Eigen::SparseMatrix< double >::InnerIterator iter(S,i) ; iter ; ++iter )
@@ -262,7 +282,11 @@ void ExecuteMG
 	}
 
 	double rms = 0;
+#ifdef NEW_WINDOW_CODE
+	for( unsigned int i=0 ; i<simplexRefinableCellMesh.nodes( CoarseNodeDimension.value ) ; i++ ) rms += pow( x[i] - Franke( NodePosition( nodeMultiIndices[i] ) )() , 2. );
+#else // !NEW_WINDOW_CODE
 	for( unsigned int i=0 ; i<simplexRefinableCellMesh.nodes( CoarseNodeDimension.value ) ; i++ ) rms += pow( x[i] - Franke( NodePosition( nodeMultiIndices[i] ) ) , 2. );
+#endif // NEW_WINDOW_CODE
 	{
 		Miscellany::StreamFloatPrecision sfp( std::cout , 3 , true );
 		std::cout << "RMS: " << sqrt( rms / simplexRefinableCellMesh.nodes( CoarseNodeDimension.value ) ) << std::endl;

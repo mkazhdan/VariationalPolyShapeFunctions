@@ -33,7 +33,7 @@ DAMAGE.
 #include "Misha/PlyVertexData.h"
 #include <GL/glew.h>
 #include <GL/glut.h>
-#include <Misha/cmdLineParser.h>
+#include <Misha/CmdLineParser.h>
 #include "DeformablePolygonMesh.inl"
 
 static const unsigned int Dim = 2;

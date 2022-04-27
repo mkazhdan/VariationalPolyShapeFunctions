@@ -32,8 +32,6 @@ DAMAGE.
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 
-#define NEW_LCQO_CODE
-
 struct LCQO
 {
 	// Solve for the minimizer of the energy:
@@ -54,10 +52,8 @@ struct LCQO
 	LCQO( void ) : _variableCount(0) , _constraintCount(0){}
 	LCQO( const Eigen::SparseMatrix< double > &Q , const Eigen::VectorXd &q , const Eigen::SparseMatrix< double , Eigen::RowMajor > &C , const Eigen::VectorXd &c , bool reduce=true );
 	LCQO( const Eigen::SparseMatrix< double > &Q ,                            const Eigen::SparseMatrix< double , Eigen::RowMajor > &C , const Eigen::VectorXd &c , bool reduce=true );
-#ifdef NEW_LCQO_CODE
 	LCQO( const Eigen::SparseMatrix< double > &Q , const Eigen::VectorXd &q );
 	LCQO( const Eigen::SparseMatrix< double > &Q                            );
-#endif // NEW_LCQO_CODE
 
 	const Eigen::SparseMatrix< double > &reducedSystem( void ) const { return _M; }
 	const Eigen::VectorXd &reducedConstraint( void ) const { return _b; }
@@ -74,13 +70,11 @@ struct LCQO
 	template< bool StableSolve >
 	static Eigen::VectorXd Solve( const Eigen::SparseMatrix< double > &Q , const Eigen::VectorXd &q , const Eigen::SparseMatrix< double , Eigen::RowMajor > &C , const Eigen::VectorXd &c , bool reduce=true ){ return LCQO( Q , q , C , c , reduce ).solve< StableSolve >(); }
 
-#ifdef NEW_LCQO_CODE
 	template< bool StableSolve >
 	static Eigen::VectorXd Solve( const Eigen::SparseMatrix< double > &Q ){ return LCQO( Q ).solve< StableSolve >(); }
 
 	template< bool StableSolve >
 	static Eigen::VectorXd Solve( const Eigen::SparseMatrix< double > &Q , const Eigen::VectorXd &q ){ return LCQO( Q , q ).solve< StableSolve >(); }
-#endif // NEW_LCQO_CODE
 
 protected:
 	struct _VariableInfo
@@ -103,9 +97,7 @@ protected:
 LCQO::LCQO( const Eigen::SparseMatrix< double > &Q , const Eigen::SparseMatrix< double , Eigen::RowMajor > &C , const Eigen::VectorXd &c , bool reduce )
 	: LCQO( Q , Eigen::VectorXd::Zero( Q.rows() ) , C , c , reduce ){}
 
-#ifdef NEW_LCQO_CODE
 LCQO::LCQO( const Eigen::SparseMatrix< double > &Q ) : LCQO( Q , Eigen::VectorXd::Zero( Q.rows() ) ){}
-#endif // NEW_LCQO_CODE
 
 LCQO::LCQO( const Eigen::SparseMatrix< double > &Q , const Eigen::VectorXd &q , const Eigen::SparseMatrix< double , Eigen::RowMajor > &C , const Eigen::VectorXd &c , bool reduce )
 {
@@ -233,7 +225,6 @@ LCQO::LCQO( const Eigen::SparseMatrix< double > &Q , const Eigen::VectorXd &q , 
 	}
 }
 
-#ifdef NEW_LCQO_CODE
 LCQO::LCQO( const Eigen::SparseMatrix< double > &Q , const Eigen::VectorXd &q )
 {
 	typedef Eigen::SparseMatrix< double > QMatrix;
@@ -248,14 +239,12 @@ LCQO::LCQO( const Eigen::SparseMatrix< double > &Q , const Eigen::VectorXd &q )
 	for( unsigned int i=0 ; i<_variableInfo.size() ; i++ ) _variableInfo[i].idx = i;
 
 	_M = Q;
-	_b = q;
+	_b = -q;
 }
-#endif // NEW_LCQO_CODE
 
 template< bool StableSolve >
 Eigen::VectorXd LCQO::solve( void ) const
 {
-#if 1
 	if( _M.rows()==0 || _M.cols()==0 )
 	{
 		Eigen::VectorXd solution( _variableInfo.size() );
@@ -266,7 +255,6 @@ Eigen::VectorXd LCQO::solve( void ) const
 	}
 	else
 	{
-#if 1
 		typedef typename std::conditional< StableSolve , Eigen::SparseQR< Eigen::SparseMatrix< double > , Eigen::COLAMDOrdering< int > > , Eigen::SimplicialLDLT< Eigen::SparseMatrix< double > > >::type Solver;
 
 		Solver solver( _M );
@@ -278,22 +266,6 @@ Eigen::VectorXd LCQO::solve( void ) const
 			case Eigen::InvalidInput:   ERROR_OUT( "Eigen::Solver failed to factorize matrix -- invalid input" );
 			case Eigen::Success: ;
 		}
-#else
-		typedef typename std::conditional< StableSolve , Eigen::HouseholderQR< Eigen::MatrixXd > , Eigen::SimplicialLDLT< Eigen::SparseMatrix< double > > >::type Solver;
-
-		Solver solver;
-		if constexpr( StableSolve ) solver.compute( Eigen::MatrixXd(_M) );
-		else
-		{
-			solver.compute( _M );
-			switch( solver.info() )
-			{
-				case Eigen::NumericalIssue: ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- numerical issue" );
-				case Eigen::NoConvergence:  ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- no convergence" );
-				case Eigen::InvalidInput:   ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- invalid input" );
-			}
-		}
-#endif
 
 		Eigen::VectorXd x = solver.solve( _b );
 	
@@ -303,23 +275,6 @@ Eigen::VectorXd LCQO::solve( void ) const
 			else                           solution[i] = x[ _variableInfo[i].idx ];
 		return solution;
 	}
-#else
-	Eigen::SimplicialLDLT< Eigen::SparseMatrix< double > > solver;
-	solver.compute( _M );
-	switch( solver.info() )
-	{
-		case Eigen::NumericalIssue: ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- numerical issue" );
-		case Eigen::NoConvergence:  ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- no convergence" );
-		case Eigen::InvalidInput:   ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- invalid input" );
-	}
-	Eigen::VectorXd x = solver.solve( _b );
-
-	Eigen::VectorXd solution( _variableInfo.size() );
-	for( unsigned int i=0 ; i<_variableInfo.size() ; i++ )
-		if( _variableInfo[i].idx==-1 ) solution[i] = _variableInfo[i].lockedValue;
-		else                           solution[i] = x[ _variableInfo[i].idx ];
-	return solution;
-#endif
 }
 
 #endif // LINEARLY_CONSTRAINED_QUADRATIC_OPTIMIZATION_INCLUDED

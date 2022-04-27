@@ -36,7 +36,7 @@ DAMAGE.
 #endif
 #include <float.h>
 #include <unordered_map>
-#include "polynomial.h"
+#include "Polynomial.h"
 
 inline long long HalfEdgeKey( int i1 , int i2 )
 {

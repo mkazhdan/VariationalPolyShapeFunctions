@@ -40,13 +40,14 @@ DAMAGE.
 #include "Misha/SimplexRefinableMesh.h"
 #include "Misha/Meshes.h"
 #include "Misha/MGSolver.h"
+#include "Misha/AutoDiff/AutoDiff.h"
 
 static const unsigned int Dim = 2;
 
 Misha::CmdLineParameter< std::string > Input( "in" );
 Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , CoarseNodeDimension( "coarseDim" , 1 ) , VCycles( "vCycles" , 3 ) , GSIterations( "gsIters" , 5 );
-Misha::CmdLineReadable Verbose( "verbose" ) , Multigrid( "mg" ) , FullVerbose( "fullVerbose" ) , Debug( "debug" );
-Misha::CmdLineReadable* params[] = { &Input , &Degree , &Verbose , &CoarseNodeDimension , &Multigrid , &VCycles , &GSIterations , &FullVerbose , &Debug , NULL };
+Misha::CmdLineReadable Verbose( "verbose" ) , Multigrid( "mg" ) , FullVerbose( "fullVerbose" );
+Misha::CmdLineReadable* params[] = { &Input , &Degree , &Verbose , &CoarseNodeDimension , &Multigrid , &VCycles , &GSIterations , &FullVerbose , NULL };
 
 
 void ShowUsage( const char* ex )
@@ -60,123 +61,39 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s]\n" , Multigrid.name.c_str() );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 	printf( "\t[--%s]\n" , FullVerbose.name.c_str() );
-	printf( "\t[--%s]\n" , Debug.name.c_str() );
 }
 
-double Franke( Point< double , 2 > p )
-{
-	double x = p[0] , y = p[1];
-	double cx2 = (9. * x - 2.) * (9. * x - 2.);
-	double cy2 = (9. * y - 2.) * (9. * y - 2.);
-
-	double cx1 = (9. * x + 1.) * (9. * x + 1.);
-	double cx7 = (9. * x - 7.) * (9. * x - 7.);
-
-	double cy3 = (9. * y - 3.) * (9. * y - 3.);
-	double cx4 = (9. * x - 4.) * (9. * x - 4.);
-
-	double cy7 = (9. * y - 7.) * (9. * y - 7.);
-
-	return
-		(3. / 4.) * exp(-(1. / 4.) * cx2 - (1. / 4.) * cy2) +
-		(3. / 4.) * exp(-(1. / 49.) * cx1 - (9. / 10.) * y - 1. / 10.) +
-		(1. / 2.) * exp(-(1. / 4.) * cx7 - (1. / 4.) * cy3) -
-		(1. / 5.) * exp(-cx4 - cy7);
-}
-
-double FrankeLaplacian( Point< double , 2 > p )
-{
-	double x = p[0] , y = p[1];
-	double mathematica =
-		64.8 * exp(-pow(-4. + 9. * x, 2.0) - pow(-7. + 9. * y, 2.0)) -
-		40.5 * exp(0.25 * (-pow(-7. + 9. * x, 2) - pow(-3. + 9. * y, 2))) -
-		60.75 * exp(0.25 * (-pow(-2. + 9. * x, 2) - pow(-2. + 9. * y, 2))) -
-		1.8720918367346937 * exp(-0.02040816326530612 * pow(1. + 9. * x, 2) -
-			0.1 * (1. + 9. * y)) +
-		10.125 * exp(0.25 * (-pow(-7. + 9. * x, 2) - pow(-3. + 9. * y, 2))) *
-		pow(-7. + 9. * x, 2) -
-		64.8 * exp(-pow(-4. + 9. * x, 2) - pow(-7. + 9. * y, 2)) *
-		pow(-4. + 9. * x, 2) +
-		15.1875 * exp(0.25 * (-pow(-2. + 9. * x, 2) - pow(-2. + 9. * y, 2))) *
-		pow(-2. + 9. * x, 2) +
-		0.1012078300708038 *
-		exp(-0.02040816326530612 * pow(1. + 9. * x, 2) -
-			0.1 * (1. + 9. * y)) *
-		pow(1. + 9. * x, 2) -
-		64.8 * exp(-pow(-4. + 9. * x, 2) - pow(-7. + 9. * y, 2)) *
-		pow(-7. + 9. * y, 2) +
-		10.125 * exp(0.25 * (-pow(-7. + 9. * x, 2) - pow(-3. + 9. * y, 2))) *
-		pow(-3. + 9. * y, 2) +
-		15.1875 * exp(0.25 * (-pow(-2. + 9. * x, 2) - pow(-2. + 9. * y, 2))) *
-		pow(-2. + 9. * y, 2);
-
-	return mathematica;
-}
-
-double Franke( Point< double , 3 > p )
-{
-	double x=p[0] , y=p[1] , z=p[2];
-
-	double cx2 = (9. * x - 2.) * (9. * x - 2.);
-	double cy2 = (9. * y - 2.) * (9. * y - 2.);
-	double cz2 = (9. * z - 2.) * (9. * z - 2.);
-
-	double cx1 = (9. * x + 1.) * (9. * x + 1.);
-	double cx7 = (9. * x - 7.) * (9. * x - 7.);
-
-	double cy3 = (9. * y - 3.) * (9. * y - 3.);
-	double cx4 = (9. * x - 4.) * (9. * x - 4.);
-
-	double cy7 = (9. * y - 7.) * (9. * y - 7.);
-	double cz5 = (9. * z - 5.) * (9. * z - 5.);
-
-	return
-		(3. / 4.) *	exp(-(1. /  4.) * cx2 - (1. /  4.) * cy2 - (1. / 4.) * cz2) +
-		(3. / 4.) * exp(-(1. / 49.) * cx1 - (9. / 10.) * y - 1. / 10. -	(9. / 10.) * z - 1. / 10.) +
-		(1. / 2.) * exp(-(1. /  4.) * cx7 - (1. /  4.) * cy3 - (1. / 4.) * cz5) -
-		(1. / 5.) * exp(-cx4 - cy7 - cz5);
-}
-
-double FrankeLaplacian( Point< double , 3 > p )
-{
-	double x=p[0] , y=p[1] , z=p[2];
-
-	return (243. * (-2299. + 1800. * x * (2. + 9. * x))) /
-		(480200. *
-			exp((9. * (12. + 10. * x * (2. + 9. * x) + 49. * y + 49. * z)) /
-				490.)) -
-		(486. *
-			exp(-pow(4. - 9. * x, 2) - pow(7. - 9. * y, 2) -
-				pow(5. - 9. * z, 2)) *
-			(59. + 6. * x * (-8. + 9. * x) + 6. * y * (-14. + 9. * y) +
-				6. * z * (-10 + 9 * z))) /
-		5. +
-		(81. *
-			exp((-pow(7. - 9. * x, 2) - 9 * pow(1. - 3. * y, 2) -
-				pow(5. - 9. * z, 2)) /
-				4.) *
-			(77. + 9. * x * (-14. + 9. * x) + 27. * y * (-2. + 3. * y) +
-				9 * z * (-10. + 9. * z))) /
-		8. +
-		(729. * (2. + 3. * x * (-4. + 9. * x) + 3. * y * (-4. + 9. * y) +
-			3. * z * (-4. + 9. * z))) /
-		(16. *
-			exp((3. * (4. + 3. * x * (-4. + 9. * x) +
-				3. * y * (-4. + 9. * y) + 3. * z * (-4. + 9. * z))) /
-				4.0));
-}
-
-template< unsigned int Degree >
+template< unsigned int Degree , typename TestFunction >
 void ExecuteDirect
 (
 	const SimplexRefinableCellMesh< Dim , Degree > &simplexRefinableCellMesh ,
 	const std::function< Point< double , Dim > ( typename SimplexMesh< Dim , Degree >::NodeMultiIndex ) > &NodePosition ,
+	const TestFunction &franke ,
 	const std::function< bool ( typename SimplexMesh< Dim , Degree >::NodeMultiIndex ) > &IsBoundaryNode
 )
 {
 	typedef typename SimplexMesh< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
 	Eigen::SparseMatrix< double > M , S;
 	Timer timer;
+
+	auto franke_2 = franke.d().d();
+
+	auto Franke = [&]( Point< double , Dim > p )
+	{
+		Misha::Tensor< Misha::UIntPack< Dim > > _p;
+		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
+		return (double)franke( _p );
+	};
+
+	auto FrankeLaplacian = [&]( Point< double , Dim > p )
+	{
+		Misha::Tensor< Misha::UIntPack< Dim > > _p;
+		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
+		Misha::Tensor< Misha::UIntPack< Dim , Dim > > d2 = franke_2( _p );
+		double lap = 0;
+		for( unsigned int d=0 ; d<Dim ; d++ ) lap += d2[d][d];
+		return lap;
+	};
 
 	// Get the system matrices
 	timer.reset();
@@ -243,14 +160,18 @@ void ExecuteDirect
 
 	double rms = 0;
 	for( unsigned int i=0 ; i<simplexRefinableCellMesh.nodes() ; i++ ) rms += pow( x[i] - Franke( NodePosition( nodeMultiIndices[i] ) ) , 2. );
-	std::cout << "RMS: " << sqrt( rms / simplexRefinableCellMesh.nodes() ) << std::endl;
+	{
+		Miscellany::StreamFloatPrecision sfp( std::cout , 3 , true );
+		std::cout << "RMS: " << sqrt( rms / simplexRefinableCellMesh.nodes() ) << std::endl;
+	}
 }
 
-template< unsigned int Degree , typename RelaxerType >
+template< unsigned int Degree , typename RelaxerType , typename TestFunction >
 void ExecuteMG
 (
 	const HierarchicalSimplexRefinableCellMesh< Dim , Degree > &simplexRefinableCellMesh ,
 	const std::function< Point< double , Dim > ( typename SimplexMesh< Dim , Degree >::NodeMultiIndex ) > &NodePosition ,
+	const TestFunction &franke ,
 	const std::function< bool ( typename SimplexMesh< Dim , Degree >::NodeMultiIndex ) > &IsBoundaryNode ,
 	unsigned int vCycles , unsigned int gsIters
 )
@@ -259,6 +180,25 @@ void ExecuteMG
 	Eigen::SparseMatrix< double > M , S;
 	std::vector< Eigen::SparseMatrix< double > > P( CoarseNodeDimension.value );
 	Timer timer;
+
+	auto franke_2 = franke.d().d();
+
+	auto Franke = [&]( Point< double , Dim > p )
+	{
+		Misha::Tensor< Misha::UIntPack< Dim > > _p;
+		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
+		return (double)franke( _p );
+	};
+
+	auto FrankeLaplacian = [&]( Point< double , Dim > p )
+	{
+		Misha::Tensor< Misha::UIntPack< Dim > > _p;
+		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
+		Misha::Tensor< Misha::UIntPack< Dim , Dim > > d2 = franke_2( _p );
+		double lap = 0;
+		for( unsigned int d=0 ; d<Dim ; d++ ) lap += d2[d][d];
+		return lap;
+	};
 
 	// Get the system matrices
 	timer.reset();
@@ -308,48 +248,27 @@ void ExecuteMG
 
 	if( Verbose.set && !FullVerbose.set ) std::cout << "DoFs / Non-zero matrix entries / Entries per row: " << S.rows() << " / " << S.nonZeros() << " / " << S.nonZeros()/S.rows() << std::endl;
 
-	if( Debug.set )
+	timer.reset();
+	Eigen::VectorXd x = mgSolver.solve( b , vCycles , gsIters , gsIters , FullVerbose.set );
+	if( Verbose.set )
 	{
-		for( unsigned int vCycles=1 ; vCycles<=32 ; vCycles*=2 )
-		{
-			std::cout << "V-Cycles[" << vCycles << "]" << std::endl;
-			timer.reset();
-			Eigen::VectorXd x = mgSolver.solve( b , vCycles , gsIters , gsIters , false );
-			if( Verbose.set )
-			{
-				std::cout << "\tSolved multigrid system: " << timer.elapsed() << std::endl;
-				double eIn = 0 , eOut = 0;
-				Eigen::VectorXd r = b - S* x;
-				for( unsigned int i=0 ; i<S.rows() ; i++ ) eIn += b[i] * b[i] , eOut += r[i] * r[i];
-				std::cout << "\tError: " << sqrt(eIn) << " -> " << sqrt(eOut) << std::endl;
-			}
-
-			double rms = 0;
-			for( unsigned int i=0 ; i<simplexRefinableCellMesh.nodes( CoarseNodeDimension.value ) ; i++ ) rms += pow( x[i] - Franke( NodePosition( nodeMultiIndices[i] ) ) , 2. );
-			std::cout << "\tRMS: " << sqrt( rms / simplexRefinableCellMesh.nodes( CoarseNodeDimension.value ) ) << std::endl;
-		}
+		std::cout << "Solved multigrid system: " << timer.elapsed() << std::endl;
+		double eIn = 0 , eOut = 0;
+		Eigen::VectorXd r = b - S* x;
+		for( unsigned int i=0 ; i<S.rows() ; i++ ) eIn += b[i] * b[i] , eOut += r[i] * r[i];
+		std::cout << "Error: " << sqrt(eIn) << " -> " << sqrt(eOut) << std::endl;
 	}
-	else
-	{
-		timer.reset();
-		Eigen::VectorXd x = mgSolver.solve( b , vCycles , gsIters , gsIters , FullVerbose.set );
-		if( Verbose.set )
-		{
-			std::cout << "Solved multigrid system: " << timer.elapsed() << std::endl;
-			double eIn = 0 , eOut = 0;
-			Eigen::VectorXd r = b - S* x;
-			for( unsigned int i=0 ; i<S.rows() ; i++ ) eIn += b[i] * b[i] , eOut += r[i] * r[i];
-			std::cout << "Error: " << sqrt(eIn) << " -> " << sqrt(eOut) << std::endl;
-		}
 
-		double rms = 0;
-		for( unsigned int i=0 ; i<simplexRefinableCellMesh.nodes( CoarseNodeDimension.value ) ; i++ ) rms += pow( x[i] - Franke( NodePosition( nodeMultiIndices[i] ) ) , 2. );
+	double rms = 0;
+	for( unsigned int i=0 ; i<simplexRefinableCellMesh.nodes( CoarseNodeDimension.value ) ; i++ ) rms += pow( x[i] - Franke( NodePosition( nodeMultiIndices[i] ) ) , 2. );
+	{
+		Miscellany::StreamFloatPrecision sfp( std::cout , 3 , true );
 		std::cout << "RMS: " << sqrt( rms / simplexRefinableCellMesh.nodes( CoarseNodeDimension.value ) ) << std::endl;
 	}
 }
 
-template< unsigned int Degree >
-void Execute( const Meshes::PolygonMesh< unsigned int > &polyMesh , const std::vector< Point< double , Dim > > &vertices )
+template< unsigned int Degree , typename TestFunction >
+void Execute( const Meshes::PolygonMesh< unsigned int > &polyMesh , const std::vector< Point< double , Dim > > &vertices , const TestFunction &franke )
 {
 	typedef typename SimplexMesh< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
 	Timer timer;
@@ -399,13 +318,13 @@ void Execute( const Meshes::PolygonMesh< unsigned int > &polyMesh , const std::v
 	{
 		HierarchicalSimplexRefinableCellMesh< Dim , Degree > simplexRefinableCellMesh;
 		simplexRefinableCellMesh = polyMesh.template hierarchicalSimplexRefinableCellMesh< Degree >( fullVertexPositionFunction , eWeights , CoarseNodeDimension.value , false , false , 0 , Verbose.set );
-		return ExecuteMG< Degree , MGSolver::ParallelGaussSeidelRelaxer< 20 > >( simplexRefinableCellMesh , NodePosition , IsBoundaryNode , VCycles.value , GSIterations.value );
+		return ExecuteMG< Degree , MGSolver::ParallelGaussSeidelRelaxer< 20 > >( simplexRefinableCellMesh , NodePosition , franke , IsBoundaryNode , VCycles.value , GSIterations.value );
 	}
 	else
 	{
 		SimplexRefinableCellMesh< Dim , Degree > simplexRefinableCellMesh;
 		simplexRefinableCellMesh = polyMesh.template simplexRefinableCellMesh< Degree >( fullVertexPositionFunction , eWeights , CoarseNodeDimension.value , false , false , 0 , Verbose.set );
-		ExecuteDirect< Degree >( simplexRefinableCellMesh , NodePosition , IsBoundaryNode );
+		ExecuteDirect< Degree >( simplexRefinableCellMesh , NodePosition , franke , IsBoundaryNode );
 	}
 }
 
@@ -434,13 +353,37 @@ int main( int argc , char* argv[] )
 
 	Meshes::PolygonMesh< unsigned int > polyMesh = Meshes::PolygonMesh< unsigned int >( polygons );
 
-	switch( Degree.value )
 	{
-		case 1: Execute< 1 >( polyMesh , vertices ) ; break;
-		case 2: Execute< 2 >( polyMesh , vertices ) ; break;
-		case 3: Execute< 3 >( polyMesh , vertices ) ; break;
-		case 4: Execute< 4 >( polyMesh , vertices ) ; break;
-		default: ERROR_OUT( "Only degrees 1, 2, 3, or 4 supported" );
-	}
+		auto _x = Misha::Tensor< Misha::UIntPack< Dim > >() ; _x[0] = 1;
+		auto _y = Misha::Tensor< Misha::UIntPack< Dim > >() ; _y[1] = 1;
+		auto x = Misha::Linear< Misha::UIntPack<> , Misha::UIntPack< Dim > >( _x );
+		auto y = Misha::Linear< Misha::UIntPack<> , Misha::UIntPack< Dim > >( _y );
 
+		auto cx2 = (9.*x-2.)*(9.*x-2.);
+		auto cy2 = (9.*y-2.)*(9.*y-2.);
+
+		auto cx1 = (9.*x+1.)*(9.*x+1.);
+		auto cx7 = (9.*x+7.)*(9.*x+7.);
+
+		auto cy3 = (9.*y-3.)*(9.*y-3.);
+		auto cx4 = (9.*x-7.)*(9.*x-7.);
+
+		auto cy7 = (9.*y-7.)*(9.*y-7.);
+
+		auto e1 = (3./4.) * Misha::Exp( -(1./4.)*( cx2 + cy2 ) );
+		auto e2 = (3./4.) * Misha::Exp( -(1./49.)*cx1 - (9./10.)*y - (1./10.) );
+		auto e3 = (1./2.) * Misha::Exp( -(1./4.)*( cx7 + cy3 ) );
+		auto e4 = (1./5.) * Misha::Exp( -( cx4 + cy7 ) );
+
+		auto franke = e1 + e2 + e3 - e4;
+
+		switch( Degree.value )
+		{
+			case 1: Execute< 1 >( polyMesh , vertices , franke ) ; break;
+			case 2: Execute< 2 >( polyMesh , vertices , franke ) ; break;
+			case 3: Execute< 3 >( polyMesh , vertices , franke ) ; break;
+			case 4: Execute< 4 >( polyMesh , vertices , franke ) ; break;
+			default: ERROR_OUT( "Only degrees 1, 2, 3, or 4 supported" );
+		}
+	}
 }

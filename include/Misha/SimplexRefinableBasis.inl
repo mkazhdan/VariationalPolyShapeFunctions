@@ -449,12 +449,8 @@ void InterpolatingProlongationSystem< PoU >::_init( const Eigen::MatrixXd &E , c
 	_Q.setFromTriplets( qEntries.begin() , qEntries.end() );
 	_C.setFromTriplets( cEntries.begin() , cEntries.end() );
 
-#ifdef NEW_LCQO_CODE
 	if( _c.size() ) _lcqo = LCQO( _Q , _q , _C , _c , true );
 	else            _lcqo = LCQO( _Q , _q );
-#else // !NEW_LCQO_CODE
-	_lcqo = LCQO( _Q , _q , _C , _c , true );
-#endif // NEW_LCQO_CODE
 }
 
 template< bool PoU >

@@ -33,7 +33,7 @@ DAMAGE.
 #include <iostream>
 #include <GL/glew.h>
 #include <GL/glut.h>
-#include <Misha/cmdLineParser.h>
+#include <Misha/CmdLineParser.h>
 #include "DeformablePolyhedralMesh.inl"
 
 static const unsigned int Dim = 3;

@@ -86,6 +86,16 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PNG", "PNG\PNG.vcxproj", "{
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GradientDomainProcessing", "GradientDomainProcessing\GradientDomainProcessing.vcxproj", "{F8FED96C-5661-42E0-B871-4C74B7938847}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AutoDiff", "AutoDiff", "{2073848B-77A1-425F-BDA7-E0198330096A}"
+	ProjectSection(SolutionItems) = preProject
+		include\Misha\AutoDiff\AutoDiff.h = include\Misha\AutoDiff\AutoDiff.h
+		include\Misha\AutoDiff\Factorial.h = include\Misha\AutoDiff\Factorial.h
+		include\Misha\AutoDiff\Tensors.h = include\Misha\AutoDiff\Tensors.h
+		include\Misha\AutoDiff\UIntPack.h = include\Misha\AutoDiff\UIntPack.h
+		include\Misha\AutoDiff\Windows.h = include\Misha\AutoDiff\Windows.h
+		include\Misha\AutoDiff\Windows.inl = include\Misha\AutoDiff\Windows.inl
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64

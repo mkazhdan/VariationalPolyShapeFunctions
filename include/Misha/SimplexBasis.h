@@ -30,7 +30,7 @@ DAMAGE.
 #define SIMPLEX_BASIS_INCLUDED
 #include <mutex>
 #include "Exceptions.h"
-#include "polynomial.h"
+#include "Polynomial.h"
 #include "Geometry.h"
 
 template< unsigned int Size , typename Index , bool SmallestFirst >

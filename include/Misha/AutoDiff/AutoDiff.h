@@ -432,6 +432,7 @@ namespace Misha
 	Add< F1 , F2 > operator + ( const F1 &f1 , const F2 &f2 ){ return Add< F1 , F2 >(f1,f2); }
 
 #if 1
+	// The things I need to do to keep clang happy
 	template< typename F >
 	typename std::enable_if< std::is_class< F >::value , Scale< F > >::type operator * ( const F &f , double s ){ return Scale< F >(f,s); }
 

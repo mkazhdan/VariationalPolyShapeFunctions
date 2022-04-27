@@ -603,6 +603,7 @@ GeodesicsInHeatVisualization< Degree , Hierarchical >::GeodesicsInHeatVisualizat
 			case Eigen::NumericalIssue: ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- numerical issue" );
 			case Eigen::NoConvergence:  ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- no convergence" );
 			case Eigen::InvalidInput:   ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- invalid input" );
+			case Eigen::Success: ;
 		}
 	}
 
@@ -676,6 +677,7 @@ void GeodesicsInHeatVisualization< Degree , Hierarchical >::_setDiffusionTime( v
 			case Eigen::NumericalIssue: ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- numerical issue" );
 			case Eigen::NoConvergence:  ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- no convergence" );
 			case Eigen::InvalidInput:   ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- invalid input" );
+			case Eigen::Success: ;
 		}
 	}
 	_setSource();

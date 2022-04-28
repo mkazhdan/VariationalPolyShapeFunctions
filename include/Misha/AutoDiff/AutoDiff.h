@@ -540,7 +540,7 @@ namespace Misha
 	{
 		_Pow( double e ) : _e(e) {}
 		template< unsigned int D >
-		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( pow( t() , _e-D ) * _Scalar<D>( _e ) ); }
+		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( pow( t , _e-D ) * _Scalar<D>( _e ) ); }
 		Scale< _Pow > d( void ) const { return _Pow( _e-1 ) * _e; }
 		friend std::ostream &operator<<( std::ostream &os , const _Pow &p ){ return os << "pow( " << p._e << " )"; }
 	protected:
@@ -563,7 +563,7 @@ namespace Misha
 	struct _Exp : public Function< UIntPack<> , UIntPack<> , _Exp >
 	{
 		template< unsigned int D >
-		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( exp( t() ) ); }
+		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( exp( t ) ); }
 		_Exp d( void ) const { return _Exp(); }
 		friend std::ostream &operator<<( std::ostream &os , const _Exp & ){ return os << "exp"; }
 	};
@@ -576,7 +576,7 @@ namespace Misha
 		template< unsigned int D >
 		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const
 		{
-			if constexpr( D==0 ) return Tensor< UIntPack<> >( log( t() ) );
+			if constexpr( D==0 ) return Tensor< UIntPack<> >( log( t ) );
 			else return _Pow( -1. ).template d< D-1  >( t );
 		}
 		_Pow d( void ) const { return _Pow(-1.); }
@@ -592,11 +592,11 @@ namespace Misha
 		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const
 		{
 			if( D&1 )
-				if( (D>>1)&1 ) return Tensor< UIntPack<> >( -cos( t() ) );
-				else           return Tensor< UIntPack<> >(  cos( t() ) );
+				if( (D>>1)&1 ) return Tensor< UIntPack<> >( -cos( t ) );
+				else           return Tensor< UIntPack<> >(  cos( t ) );
 			else
-				if( (D>>1)&1 ) return Tensor< UIntPack<> >( -sin( t() ) );
-				else           return Tensor< UIntPack<> >(  sin( t() ) );
+				if( (D>>1)&1 ) return Tensor< UIntPack<> >( -sin( t ) );
+				else           return Tensor< UIntPack<> >(  sin( t ) );
 		}
 		struct _Cos d( void ) const;
 		friend std::ostream &operator<<( std::ostream &os , const _Sin & ){ return os << "sin"; }
@@ -610,11 +610,11 @@ namespace Misha
 		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const
 		{
 			if( D&1 )
-				if( (D>>1)&1 ) return Tensor< UIntPack<> >(  sin( t() ) );
-				else           return Tensor< UIntPack<> >( -sin( t() ) );
+				if( (D>>1)&1 ) return Tensor< UIntPack<> >(  sin( t ) );
+				else           return Tensor< UIntPack<> >( -sin( t ) );
 			else
-				if( (D>>1)&1 ) return Tensor< UIntPack<> >( -cos( t() ) );
-				else           return Tensor< UIntPack<> >(  cos( t() ) );
+				if( (D>>1)&1 ) return Tensor< UIntPack<> >( -cos( t ) );
+				else           return Tensor< UIntPack<> >(  cos( t ) );
 		}
 		Scale< _Sin > d( void ) const { return -_Sin(); }
 		friend std::ostream &operator <<( std::ostream &os , const _Cos & ){ return os << "cos"; }

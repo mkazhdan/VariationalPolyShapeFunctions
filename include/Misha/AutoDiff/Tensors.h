@@ -39,12 +39,16 @@ namespace Misha
 
 	// A zero-tensor is the same as a double value
 	template<>
-	struct Tensor< UIntPack<> > : public StaticWindow< double , UIntPack<> > , public InnerProductSpace< double , Tensor< UIntPack<> > >
+	struct Tensor< UIntPack<> > : public InnerProductSpace< double , Tensor< UIntPack<> > >
 	{
 		typedef UIntPack<> Pack;
-		static const unsigned int Size = Pack::Size;
+		static const unsigned int Size = 1;
 
-		Tensor( double d=0 ) : StaticWindow< double , UIntPack<> >(d) {}
+		double data;
+
+		Tensor( double d=0 ) : data(d) {}
+		operator double &( void ){ return data; }
+		operator const double &( void ) const { return data; }
 
 		void Add( const Tensor &t ){ data += t.data; }
 		void Scale( double s ){ data *= s; }
@@ -69,15 +73,14 @@ namespace Misha
 		friend std::ostream &operator << ( std::ostream &os , const Tensor &t ){ return os << t.data; }
 	};
 
-
 	// A general tensor
 	template< unsigned int ... Dims >
-	struct Tensor< UIntPack< Dims ... > > : public StaticWindow< double , UIntPack< Dims ... > > , public InnerProductSpace< double , Tensor< UIntPack< Dims ... > > >
+	struct Tensor< UIntPack< Dims ... > > : public Window< double , UIntPack< Dims ... > > , public InnerProductSpace< double , Tensor< UIntPack< Dims ... > > >
 	{
 		typedef UIntPack< Dims ... > Pack;
 		static const unsigned int Size = Pack::Size;
 
-		Tensor( void ){ memset( StaticWindow< double , Pack >::data , 0 , sizeof( double ) * WindowSize< Pack >::Size ); }
+		Tensor( void ){ memset( Window< double , Pack >::data , 0 , sizeof( double ) * WindowSize< Pack >::Size ); }
 
 		// Inner-product space methods
 		void Add( const Tensor &t )
@@ -180,7 +183,7 @@ namespace Misha
 			(
 				ZeroUIntPack< Pack::Size >() , Pack() ,
 				[]( int d , int i ){} ,
-				[&]( WindowSlice< double , _Pack > __t , const double &v )
+				[&]( WindowWrapper< double , _Pack > __t , const double &v )
 				{
 					WindowLoop< _Pack::Size >::Run
 					(
@@ -227,6 +230,9 @@ namespace Misha
 			}
 		};
 
+		// In1 := [ N{1} , ... , N{I} , N{I+1} , ... , N{K} ]
+		// In2 :=                     [ N{I+1} , ... , N{K} , N{K+1} , ... N{M} ]
+		// Out := [ N{1} , ... , N{I}             ,           N{K+1} , ... N{M} ]
 		template< unsigned int I , unsigned int ... _Dims >
 		Tensor< Concatenation< typename Split< Size-I , Pack >::First , typename Split< I , UIntPack< _Dims ... > >::Second > > contractedOuterProduct( const Tensor< UIntPack< _Dims ... > > &t ) const 
 		{
@@ -237,21 +243,29 @@ namespace Misha
 			typedef typename Split< Size-I ,  Pack >::Second P2;
 			typedef typename Split<      I , _Pack >::Second P3;
 
+			typedef typename std::conditional< P2::Size , ConstWindowWrapper< double , P2 > , const double & >::type In1SliceType;
+			typedef typename std::conditional< P3::Size , ConstWindowWrapper< double , P3 > , const double & >::type In2SliceType;
+			typedef typename std::conditional< P3::Size ,      WindowWrapper< double , P3 > ,       double & >::type OutSliceType;
+
 			const Tensor<  Pack > &in1 = *this;
 			const Tensor< _Pack > &in2 = t;
 			Tensor< Concatenation< P1 , P3 > > out;
+
+			// Iterate over {1,...,I} of in1 and out
 			WindowLoop< P1::Size >::Run
 			(
 				ZeroUIntPack< P1::Size >() , P1() ,
 				[]( int d , int i ){} ,
-				[&]( ConstWindowSlice< double , P2 > _in1 , WindowSlice< double , P3 > _out )
+				[&]( In1SliceType _in1 , OutSliceType _out )
 				{
+					// Iterate over {I,...,K} of in1 and in2
 					WindowLoop< P2::Size >::Run
 					(
 						ZeroUIntPack< P2::Size >() , P2() ,
 						[]( int d , int i ){} ,
-						[&]( double __in1 , ConstWindowSlice< double , P3 > _in2 )
+						[&]( double __in1 , In2SliceType _in2 )
 						{
+							// Iterate over {K+1,...,M} of in2 and out
 							WindowLoop< P3::Size >::Run
 							(
 								ZeroUIntPack< P3::Size >() , P3() ,

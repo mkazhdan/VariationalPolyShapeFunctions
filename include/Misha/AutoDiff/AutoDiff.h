@@ -35,6 +35,7 @@ DAMAGE.
 #include <iostream>
 #include "Tensors.h"
 #include "Factorial.h"
+#include "Misha/Exceptions.h"
 
 namespace Misha
 {
@@ -410,8 +411,38 @@ namespace Misha
 	template< unsigned int ... OutDims , unsigned int ... InDims >
 	struct Linear< UIntPack< OutDims ... > , UIntPack< InDims ... > > : public Function< UIntPack< OutDims ... > , UIntPack< InDims ... > , Linear< UIntPack< OutDims ... > , UIntPack< InDims ... > > >
 	{
+		// A constructor generating the zero linear function
 		Linear( void ){}
+
+		// A constructor generating a linear function with the prescribed tensor taking input tensors to output tensors
 		Linear( const Tensor< Concatenation< UIntPack< OutDims ... > , UIntPack< InDims ... > > > &l ) : _l(l){}
+
+		// A constructor generating a simple Linear function with one in the entry {out,in} and zero for all other entries.
+		Linear( std::initializer_list< unsigned int > out , std::initializer_list< unsigned int > in )
+		{
+			if( out.size()!=sizeof...(OutDims) ) ERROR_OUT( "Output dimensions don't match" );
+			if(  in.size()!=sizeof...( InDims) ) ERROR_OUT(  "Input dimensions don't match" );
+			if constexpr( sizeof...(OutDims)+sizeof...(InDims)==0 ) _l = 1.;
+			else
+			{
+				unsigned int idx[ sizeof...(OutDims)+sizeof...(InDims) ];
+				unsigned int c = 0;
+				for( auto it=out.begin() ; it!=out.end() ; it++ ) idx[c++] = *it;
+				for( auto it= in.begin() ; it!= in.end() ; it++ ) idx[c++] = *it;
+				_l(idx) = 1;
+			}
+		}
+
+		// A constructor generating a simple Linear function with one in the entry {_OutDims,_InDims} and zero for all other entries.
+		template< unsigned int ... _OutDims , unsigned int ... _InDims >
+		Linear( UIntPack< _OutDims ... > , UIntPack< _InDims ... > )
+		{
+			static_assert( sizeof...(_OutDims)==sizeof...(OutDims) && sizeof...(_InDims)==sizeof...(InDims) , "[ERROR] Size mismatch" );
+			unsigned int idx[] = { _OutDims ... , _InDims ... };
+			_l(idx) = 1;
+		}
+
+
 		template< unsigned int D >
 		Tensor< OutDPack< D , UIntPack< OutDims ... > , UIntPack< InDims ... > > > d( const Tensor< UIntPack< InDims ... > > &t ) const { return _d<D>(t); }
 		Constant< Concatenation< UIntPack< OutDims ... > , UIntPack< InDims ... > > , UIntPack< InDims ... > > d( void ) const { return Constant< Concatenation< UIntPack< OutDims ... > , UIntPack< InDims ... > > , UIntPack< InDims ... > >(_l); }

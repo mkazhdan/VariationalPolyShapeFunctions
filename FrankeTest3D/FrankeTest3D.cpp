@@ -346,17 +346,10 @@ int main( int argc , char* argv[] )
 	Meshes::PolyhedronMesh< unsigned int >::ReadOVM( Input.value , polyhedra , polygons , vertices );
 	Meshes::PolyhedronMesh< unsigned int > polyMesh = Meshes::PolyhedronMesh< unsigned int >( polyhedra , polygons );
 
-
-	auto LinearFunction = []( Point< double , Dim > p )
 	{
-		Misha::Tensor< Misha::UIntPack< Dim > > t;
-		for( unsigned int i=0 ; i<Dim ; i++ ) t[i] = p[i];
-		return Misha::Linear< Misha::UIntPack<> , Misha::UIntPack< Dim > >( t );
-	};
-	{
-		auto x = LinearFunction( Point< double , Dim >( 1 , 0 , 0 ) );
-		auto y = LinearFunction( Point< double , Dim >( 0 , 1 , 0 ) );
-		auto z = LinearFunction( Point< double , Dim >( 0 , 0 , 1 ) );
+		auto x = Misha::Linear< Misha::UIntPack<> , Misha::UIntPack< Dim > >( {} , {0} );
+		auto y = Misha::Linear< Misha::UIntPack<> , Misha::UIntPack< Dim > >( {} , {1} );
+		auto z = Misha::Linear< Misha::UIntPack<> , Misha::UIntPack< Dim > >( {} , {2} );
 
 		auto cx2 = Pow( 9.*x-2. , 2. );
 		auto cy2 = Pow( 9.*y-2. , 2. );

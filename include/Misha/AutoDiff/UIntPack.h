@@ -33,7 +33,7 @@ DAMAGE.
 // Unsigned integer parameter packs //
 //////////////////////////////////////
 
-namespace Misha
+namespace AutoDiff
 {
 
 	// A wrapper class for passing unsigned integer parameter packs

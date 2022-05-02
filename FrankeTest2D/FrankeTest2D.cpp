@@ -76,23 +76,19 @@ void ExecuteDirect
 	Eigen::SparseMatrix< double > M , S;
 	Timer timer;
 
-	auto franke_2 = franke.d().d();
-
 	auto Franke = [&]( Point< double , Dim > p )
 	{
-		Misha::Tensor< Misha::UIntPack< Dim > > _p;
+		AutoDiff::Tensor< AutoDiff::UIntPack< Dim > > _p;
 		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
 		return (double)franke( _p );
 	};
 
+	auto franke_laplacian = franke.laplacian();
 	auto FrankeLaplacian = [&]( Point< double , Dim > p )
 	{
-		Misha::Tensor< Misha::UIntPack< Dim > > _p;
+		AutoDiff::Tensor< AutoDiff::UIntPack< Dim > > _p;
 		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
-		Misha::Tensor< Misha::UIntPack< Dim , Dim > > d2 = franke_2( _p );
-		double lap = 0;
-		for( unsigned int d=0 ; d<Dim ; d++ ) lap += d2[d][d];
-		return lap;
+		return (double)franke_laplacian( _p );
 	};
 
 	// Get the system matrices
@@ -181,23 +177,19 @@ void ExecuteMG
 	std::vector< Eigen::SparseMatrix< double > > P( CoarseNodeDimension.value );
 	Timer timer;
 
-	auto franke_2 = franke.d().d();
-
 	auto Franke = [&]( Point< double , Dim > p )
 	{
-		Misha::Tensor< Misha::UIntPack< Dim > > _p;
+		AutoDiff::Tensor< AutoDiff::UIntPack< Dim > > _p;
 		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
 		return (double)franke( _p );
 	};
 
+	auto franke_laplacian = franke.laplacian();
 	auto FrankeLaplacian = [&]( Point< double , Dim > p )
 	{
-		Misha::Tensor< Misha::UIntPack< Dim > > _p;
+		AutoDiff::Tensor< AutoDiff::UIntPack< Dim > > _p;
 		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
-		Misha::Tensor< Misha::UIntPack< Dim , Dim > > d2 = franke_2( _p );
-		double lap = 0;
-		for( unsigned int d=0 ; d<Dim ; d++ ) lap += d2[d][d];
-		return lap;
+		return (double)franke_laplacian( _p );
 	};
 
 	// Get the system matrices
@@ -354,8 +346,10 @@ int main( int argc , char* argv[] )
 	Meshes::PolygonMesh< unsigned int > polyMesh = Meshes::PolygonMesh< unsigned int >( polygons );
 
 	{
-		auto x = Misha::Linear< Misha::UIntPack<> , Misha::UIntPack< Dim > >( {} , {0} );
-		auto y = Misha::Linear< Misha::UIntPack<> , Misha::UIntPack< Dim > >( {} , {1} );
+		using namespace AutoDiff;
+
+		auto x = Linear< UIntPack<> , UIntPack< Dim > >( {} , {0} );
+		auto y = Linear< UIntPack<> , UIntPack< Dim > >( {} , {1} );
 
 		auto cx2 = Pow( 9.*x-2. , 2. );
 		auto cy2 = Pow( 9.*y-2. , 2. );
@@ -368,10 +362,10 @@ int main( int argc , char* argv[] )
 
 		auto cy7 = Pow( 9.*y-7. , 2. );
 
-		auto e1 = (3./4.) * Misha::Exp( -(1./4.)*( cx2 + cy2 ) );
-		auto e2 = (3./4.) * Misha::Exp( -(1./49.)*cx1 - (9./10.)*y - (1./10.) );
-		auto e3 = (1./2.) * Misha::Exp( -(1./4.)*( cx7 + cy3 ) );
-		auto e4 = (1./5.) * Misha::Exp( -( cx4 + cy7 ) );
+		auto e1 = (3./4.) * Exp( -(1./4.)*( cx2 + cy2 ) );
+		auto e2 = (3./4.) * Exp( -(1./49.)*cx1 - (9./10.)*y - (1./10.) );
+		auto e3 = (1./2.) * Exp( -(1./4.)*( cx7 + cy3 ) );
+		auto e4 = (1./5.) * Exp( -( cx4 + cy7 ) );
 
 		auto franke = e1 + e2 + e3 - e4;
 

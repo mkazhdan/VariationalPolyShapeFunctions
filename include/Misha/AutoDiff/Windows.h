@@ -36,7 +36,7 @@ DAMAGE.
 #include "UIntPack.h"
 
 
-namespace Misha
+namespace AutoDiff
 {
 	////////////
 	// Window //

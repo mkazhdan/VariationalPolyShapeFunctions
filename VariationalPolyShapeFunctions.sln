@@ -89,7 +89,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AutoDiff", "AutoDiff", "{2073848B-77A1-425F-BDA7-E0198330096A}"
 	ProjectSection(SolutionItems) = preProject
 		include\Misha\AutoDiff\AutoDiff.h = include\Misha\AutoDiff\AutoDiff.h
-		include\Misha\AutoDiff\Factorial.h = include\Misha\AutoDiff\Factorial.h
 		include\Misha\AutoDiff\Tensors.h = include\Misha\AutoDiff\Tensors.h
 		include\Misha\AutoDiff\UIntPack.h = include\Misha\AutoDiff\UIntPack.h
 		include\Misha\AutoDiff\Windows.h = include\Misha\AutoDiff\Windows.h

@@ -33,7 +33,7 @@ DAMAGE.
 #include "Misha/Algebra.h"
 #include "Windows.h"
 
-namespace Misha
+namespace AutoDiff
 {
 	template< typename Pack > struct Tensor;
 
@@ -243,9 +243,9 @@ namespace Misha
 			typedef typename Split< Size-I ,  Pack >::Second P2;
 			typedef typename Split<      I , _Pack >::Second P3;
 
-			typedef typename std::conditional< P2::Size , ConstWindowWrapper< double , P2 > , const double & >::type In1SliceType;
-			typedef typename std::conditional< P3::Size , ConstWindowWrapper< double , P3 > , const double & >::type In2SliceType;
-			typedef typename std::conditional< P3::Size ,      WindowWrapper< double , P3 > ,       double & >::type OutSliceType;
+			typedef typename std::conditional< P2::Size!=0 , ConstWindowWrapper< double , P2 > , const double & >::type In1SliceType;
+			typedef typename std::conditional< P3::Size!=0 , ConstWindowWrapper< double , P3 > , const double & >::type In2SliceType;
+			typedef typename std::conditional< P3::Size!=0 ,      WindowWrapper< double , P3 > ,       double & >::type OutSliceType;
 
 			const Tensor<  Pack > &in1 = *this;
 			const Tensor< _Pack > &in2 = t;

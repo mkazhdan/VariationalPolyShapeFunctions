@@ -288,11 +288,9 @@ namespace AutoDiff
 		// Need to define this functionality
 	};
 
-	template< typename OutPack , typename InPack > struct Constant;
-	template< typename OutPack , typename InPack > struct Linear;
-
-
 	// A class for describing a constant function
+	template< typename OutPack , typename InPack > struct Constant;
+
 	template< unsigned int ... OutDims , unsigned int ... InDims >
 	struct Constant< UIntPack< OutDims ... > , UIntPack< InDims ... > > : public Function< UIntPack< OutDims ... > , UIntPack< InDims ... > , Constant< UIntPack< OutDims ... > , UIntPack< InDims ... > > >
 	{
@@ -310,7 +308,9 @@ namespace AutoDiff
 	};
 
 
-	// A class for reprenting a lienar function
+	// A class for describing a linear function
+	template< typename OutPack , typename InPack > struct Linear;
+
 	template< unsigned int ... OutDims , unsigned int ... InDims >
 	struct Linear< UIntPack< OutDims ... > , UIntPack< InDims ... > > : public Function< UIntPack< OutDims ... > , UIntPack< InDims ... > , Linear< UIntPack< OutDims ... > , UIntPack< InDims ... > > >
 	{
@@ -410,102 +410,8 @@ namespace AutoDiff
 		return Add< Constant< typename F::OutPack , typename F::InPack > , Scale< F > >( Constant< typename F::OutPack , typename F::InPack >( s ) , -f );
 	}
 
-	struct _Pow;
-	struct _Exp;
-	struct _Log;
-	struct _Sin;
-	struct _Cos;
 	template< typename Pack > struct Identity;
 	template< typename Pack > struct SquareNorm;
-
-	struct _Pow : public Function< UIntPack<> , UIntPack<> , _Pow >
-	{
-		_Pow( double e ) : _e(e) {}
-		template< unsigned int D >
-		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( pow( t , _e-D ) * _Scalar<D>( _e ) ); }
-		auto d( void ) const { return _Pow( _e-1. ) * _e; }
-		friend std::ostream &operator<< ( std::ostream &os , const _Pow &p ){ return os << "pow( " << p._e << " )"; }
-	protected:
-		double _e;
-
-		template< unsigned int D >
-		static double _Scalar( double e )
-		{
-			if constexpr( D==0 ) return 1;
-			else return e * _Scalar< D-1 >( e-1 );
-		}
-	};
-
-	template< typename F >
-	auto Pow( const F &f , double e ){ return Composition< _Pow , F >( _Pow(e) , f ); }
-
-	template< typename F >
-	auto operator / ( double n , const F &f ){ return n * Pow(f,-1.); }
-
-	struct _Exp : public Function< UIntPack<> , UIntPack<> , _Exp >
-	{
-		template< unsigned int D >
-		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( exp( t ) ); }
-		_Exp d( void ) const { return _Exp(); }
-		friend std::ostream &operator<< ( std::ostream &os , const _Exp & ){ return os << "exp"; }
-	};
-
-	template< typename F >
-	auto Exp( const F &f ){ return Composition< _Exp , F >( _Exp() , f ); }
-
-	struct _Log : public Function< UIntPack<> , UIntPack<> , _Log >
-	{
-		template< unsigned int D >
-		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const
-		{
-			if constexpr( D==0 ) return Tensor< UIntPack<> >( log( t ) );
-			else return _Pow( -1. ).template d< D-1  >( t );
-		}
-		_Pow d( void ) const { return _Pow(-1.); }
-		friend std::ostream &operator<< ( std::ostream &os , const _Log & ){ return os << "log"; }
-	};
-	template< typename F >
-	auto Log( const F &f ){ return Composition< _Log , F >( _Log() , f ); }
-
-
-	struct _Sin : public Function< UIntPack<> , UIntPack<> , _Sin >
-	{
-		template< unsigned int D >
-		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const
-		{
-			if( D&1 )
-				if( (D>>1)&1 ) return Tensor< UIntPack<> >( -cos( t ) );
-				else           return Tensor< UIntPack<> >(  cos( t ) );
-			else
-				if( (D>>1)&1 ) return Tensor< UIntPack<> >( -sin( t ) );
-				else           return Tensor< UIntPack<> >(  sin( t ) );
-		}
-		struct _Cos d( void ) const;
-		friend std::ostream &operator<< ( std::ostream &os , const _Sin & ){ return os << "sin"; }
-	};
-	template< typename F >
-	auto Sin( const F &f ){ return Composition< _Sin , F >( _Sin() , f ); }
-
-	struct _Cos : public Function< UIntPack<> , UIntPack<> , _Cos >
-	{
-		template< unsigned int D >
-		Tensor< UIntPack<> > d( const Tensor< UIntPack<> > &t ) const
-		{
-			if( D&1 )
-				if( (D>>1)&1 ) return Tensor< UIntPack<> >(  sin( t ) );
-				else           return Tensor< UIntPack<> >( -sin( t ) );
-			else
-				if( (D>>1)&1 ) return Tensor< UIntPack<> >( -cos( t ) );
-				else           return Tensor< UIntPack<> >(  cos( t ) );
-		}
-		auto d( void ) const { return -_Sin(); }
-		friend std::ostream &operator << ( std::ostream &os , const _Cos & ){ return os << "cos"; }
-	};
-	template< typename F >
-	auto Cos( const F &f ){ return Composition< _Cos , F >( _Cos() , f ); }
-
-	_Cos _Sin::d( void ) const { return _Cos(); }
-
 
 	template< unsigned int ... Dims >
 	struct Identity< UIntPack< Dims ... > > : public Linear< UIntPack< Dims ... > , UIntPack< Dims ... > >
@@ -525,6 +431,15 @@ namespace AutoDiff
 	protected:
 		template< unsigned int D > auto _d( const Tensor< Pack > &t ) const;
 	};
+
+	template< typename F > auto Pow( const F &f , double e );
+	template< typename F > auto Exp( const F &f );
+	template< typename F > auto Log( const F &f );
+	template< typename F > auto Sin( const F &f );
+	template< typename F > auto Cos( const F &f );
+	template< typename F > auto Sinh( const F &f );
+	template< typename F > auto Cosh( const F &f );
+	template< typename F > auto operator / ( double n , const F &f );
 
 
 	////////////////////
@@ -995,5 +910,7 @@ namespace AutoDiff
 		}
 		return d;
 	}
+
+#include "AutoDiff.Transcendental.inc"
 }
 #endif // AUTO_DIFF_INCLUDED

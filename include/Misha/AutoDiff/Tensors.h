@@ -35,28 +35,28 @@ DAMAGE.
 
 namespace AutoDiff
 {
-	template< typename Pack > struct Tensor;
+	template< typename Pack > struct _Tensor;
 
 	// A zero-tensor is the same as a double value
 	template<>
-	struct Tensor< UIntPack<> > : public InnerProductSpace< double , Tensor< UIntPack<> > >
+	struct _Tensor< UIntPack<> > : public InnerProductSpace< double , _Tensor< UIntPack<> > >
 	{
 		typedef UIntPack<> Pack;
 		static const unsigned int Size = 1;
 
 		double data;
 
-		Tensor( double d=0 ) : data(d) {}
-		operator double &( void ){ return data; }
-		operator const double &( void ) const { return data; }
+		_Tensor( double d=0 ) : data(d) {}
+		explicit operator double &( void ){ return data; }
+		explicit operator const double &( void ) const { return data; }
 
-		void Add( const Tensor &t ){ data += t.data; }
+		void Add( const _Tensor &t ){ data += t.data; }
 		void Scale( double s ){ data *= s; }
-		double InnerProduct( const Tensor &t ) const { return data * t.data; }
+		double InnerProduct( const _Tensor &t ) const { return data * t.data; }
 		template< unsigned int ... _Dims >
-		Tensor< UIntPack< _Dims ... > > operator * ( const Tensor< UIntPack< _Dims ... > > &t ) const { return t * data; }
+		_Tensor< UIntPack< _Dims ... > > operator * ( const _Tensor< UIntPack< _Dims ... > > &t ) const { return t * data; }
 		template< unsigned int I , unsigned int ... _Dims >
-		Tensor< UIntPack< _Dims ... > > contractedOuterProduct( const Tensor< UIntPack< _Dims ... > > &t ) const 
+		_Tensor< UIntPack< _Dims ... > > contractedOuterProduct( const _Tensor< UIntPack< _Dims ... > > &t ) const 
 		{
 			static_assert( I==0 , "[ERROR] Contraction suffix/prefix don't match" );
 			return *this * t;
@@ -64,26 +64,26 @@ namespace AutoDiff
 
 		// Permute indices
 		template< unsigned int ... PermutationValues >
-		Tensor< Permutation< Pack , UIntPack< PermutationValues ... > > > permute( UIntPack< PermutationValues ... > ) const
+		_Tensor< Permutation< Pack , UIntPack< PermutationValues ... > > > permute( UIntPack< PermutationValues ... > ) const
 		{
 			static_assert( sizeof ... ( PermutationValues ) == Size , "[ERROR] Permutation size doesn't match dimension" );
 			return *this;
 		}
 
-		friend std::ostream &operator << ( std::ostream &os , const Tensor &t ){ return os << t.data; }
+		friend std::ostream &operator << ( std::ostream &os , const _Tensor &t ){ return os << t.data; }
 	};
 
 	// A general tensor
 	template< unsigned int ... Dims >
-	struct Tensor< UIntPack< Dims ... > > : public Window< double , UIntPack< Dims ... > > , public InnerProductSpace< double , Tensor< UIntPack< Dims ... > > >
+	struct _Tensor< UIntPack< Dims ... > > : public Window< double , UIntPack< Dims ... > > , public InnerProductSpace< double , _Tensor< UIntPack< Dims ... > > >
 	{
 		typedef UIntPack< Dims ... > Pack;
 		static const unsigned int Size = Pack::Size;
 
-		Tensor( void ){ memset( Window< double , Pack >::data , 0 , sizeof( double ) * WindowSize< Pack >::Size ); }
+		_Tensor( void ){ memset( Window< double , Pack >::data , 0 , sizeof( double ) * WindowSize< Pack >::Size ); }
 
 		// Inner-product space methods
-		void Add( const Tensor &t )
+		void Add( const _Tensor &t )
 		{
 			WindowLoop< Size >::Run
 			(
@@ -103,7 +103,7 @@ namespace AutoDiff
 				*this
 			);
 		}
-		double InnerProduct( const Tensor &t ) const
+		double InnerProduct( const _Tensor &t ) const
 		{
 			double innerProduct = 0;
 			WindowLoop< Size >::Run
@@ -118,7 +118,7 @@ namespace AutoDiff
 
 		// Permute indices
 		template< unsigned int ... PermutationValues >
-		Tensor< Permutation< Pack , UIntPack< PermutationValues ... > > > permute( UIntPack< PermutationValues ... > ) const
+		_Tensor< Permutation< Pack , UIntPack< PermutationValues ... > > > permute( UIntPack< PermutationValues ... > ) const
 		{
 			static_assert( sizeof ... ( PermutationValues ) == Size , "[ERROR] Permutation size doesn't match dimension" );
 			typedef UIntPack< PermutationValues ... > PPack;
@@ -126,7 +126,7 @@ namespace AutoDiff
 			unsigned int IPValues[ Size ];
 			for( unsigned int i=0 ; i<Size ; i++ ) IPValues[ PValues[i] ] = i;
 
-			Tensor< Permutation< Pack , PPack > > t;
+			_Tensor< Permutation< Pack , PPack > > t;
 			unsigned int idx[ Size ];
 			WindowLoop< Size >::Run
 			(
@@ -141,10 +141,10 @@ namespace AutoDiff
 		// Extract slice
 #if 0
 		template< unsigned int ... Indices >
-		Tensor< typename Split< sizeof ... ( Indices ) , Pack >::Second > extract( UIntPack< Indices ... > ) const
+		_Tensor< typename Split< sizeof ... ( Indices ) , Pack >::Second > extract( UIntPack< Indices ... > ) const
 		{
 			typedef typename Split< sizeof ... ( Indices ) , Pack >::Second Remainder;
-			Tensor< Remainder> t;
+			_Tensor< Remainder> t;
 
 			WindowLoop< Remainder::Size >::Run
 			(
@@ -158,9 +158,9 @@ namespace AutoDiff
 #endif
 
 		// Transpose operator
-		Tensor< typename Pack::Transpose > transpose( void ) const
+		_Tensor< typename Pack::Transpose > transpose( void ) const
 		{
-			Tensor< typename Pack::Transpose > t;
+			_Tensor< typename Pack::Transpose > t;
 			unsigned int idx[ Size ];
 			WindowLoop< Size >::Run
 			(
@@ -174,10 +174,10 @@ namespace AutoDiff
 
 		// Outer product
 		template< unsigned int ... _Dims >
-		Tensor< Concatenation< Pack , UIntPack< _Dims ... > > > operator * ( const Tensor< UIntPack< _Dims ... > > &t ) const 
+		_Tensor< Concatenation< Pack , UIntPack< _Dims ... > > > operator * ( const _Tensor< UIntPack< _Dims ... > > &t ) const 
 		{
 			typedef UIntPack< _Dims ... > _Pack;
-			Tensor< Concatenation< Pack , _Pack > > _t;
+			_Tensor< Concatenation< Pack , _Pack > > _t;
 
 			WindowLoop< Pack::Size >::Run
 			(
@@ -198,17 +198,17 @@ namespace AutoDiff
 			return _t;
 		}
 
-		Tensor< Pack > operator * ( const Tensor< UIntPack<> > &t ) const { return *this * t.data; }
+		_Tensor< Pack > operator * ( const _Tensor< UIntPack<> > &t ) const { return *this * t.data; }
 
 		// Tensor contraction
 		template< unsigned int D1 , unsigned int D2 >
-		Tensor< typename Select< (D1<D2?D2:D1) , typename Select< (D1<D2?D1:D2) , Pack >::Complement >::Complement > contract( void ) const
+		_Tensor< typename Select< (D1<D2?D2:D1) , typename Select< (D1<D2?D1:D2) , Pack >::Complement >::Complement > contract( void ) const
 		{
 			static_assert( Select< D1 , Pack >::Value == Select< D2 , Pack >::Value , "[ERROR] Values differ" );
 			if constexpr( D2<D1 ){ return contract< D2 , D1 >(); }
 			else
 			{
-				Tensor< typename Select< D2 , typename Select< D1 , Pack >::Complement >::Complement > t;
+				_Tensor< typename Select< D2 , typename Select< D1 , Pack >::Complement >::Complement > t;
 
 				unsigned int idx[ Size ] , _idx[ Size==2 ?  1 : Size - 2 ];
 				WindowLoop< Size >::Run
@@ -234,7 +234,7 @@ namespace AutoDiff
 		// In2 :=                     [ N{I+1} , ... , N{K} , N{K+1} , ... N{M} ]
 		// Out := [ N{1} , ... , N{I}             ,           N{K+1} , ... N{M} ]
 		template< unsigned int I , unsigned int ... _Dims >
-		Tensor< Concatenation< typename Split< Size-I , Pack >::First , typename Split< I , UIntPack< _Dims ... > >::Second > > contractedOuterProduct( const Tensor< UIntPack< _Dims ... > > &t ) const 
+		_Tensor< Concatenation< typename Split< Size-I , Pack >::First , typename Split< I , UIntPack< _Dims ... > >::Second > > contractedOuterProduct( const _Tensor< UIntPack< _Dims ... > > &t ) const 
 		{
 			static_assert( Compare< typename Split< Size-I , Pack >::Second , typename Split< I , UIntPack< _Dims ... > >::First >::Equal , "[ERROR] Contraction suffix/prefix don't match" );
 			typedef UIntPack< _Dims ... > _Pack;
@@ -245,11 +245,12 @@ namespace AutoDiff
 
 			typedef typename std::conditional< P2::Size!=0 , ConstWindowWrapper< double , P2 > , const double & >::type In1SliceType;
 			typedef typename std::conditional< P3::Size!=0 , ConstWindowWrapper< double , P3 > , const double & >::type In2SliceType;
-			typedef typename std::conditional< P3::Size!=0 ,      WindowWrapper< double , P3 > ,       double & >::type OutSliceType;
+			typedef typename std::conditional< Concatenation< P1 , P3 >::Size!=0 , double , _Tensor< UIntPack<> > >::type OutBaseType;
+			typedef typename std::conditional< P3::Size!=0 ,      WindowWrapper< double , P3 > , OutBaseType & >::type OutSliceType;
 
-			const Tensor<  Pack > &in1 = *this;
-			const Tensor< _Pack > &in2 = t;
-			Tensor< Concatenation< P1 , P3 > > out;
+			const _Tensor<  Pack > &in1 = *this;
+			const _Tensor< _Pack > &in2 = t;
+			_Tensor< Concatenation< P1 , P3 > > out;
 
 			// Iterate over {1,...,I} of in1 and out
 			WindowLoop< P1::Size >::Run
@@ -270,7 +271,7 @@ namespace AutoDiff
 							(
 								ZeroUIntPack< P3::Size >() , P3() ,
 								[]( int d , int i ){} ,
-								[&]( double __in2 , double &_out_ ){ _out_ += __in1 * __in2; } ,
+								[&]( double __in2 , OutBaseType &_out_ ){ _out_ += __in1 * __in2; } ,
 								_in2 , _out
 							);
 						} ,
@@ -283,11 +284,9 @@ namespace AutoDiff
 		}
 
 		template< unsigned int I >
-		Tensor< Pack > contractedOuterProduct( const Tensor< UIntPack<> > &t ) const { return *this * t; }
+		_Tensor< Pack > contractedOuterProduct( const _Tensor< UIntPack<> > &t ) const { return *this * t; }
 	};
 
-	template< unsigned int ... Dims > Tensor< UIntPack< Dims ... > >& operator *= ( Tensor< UIntPack< Dims ... > > &t , int s ){ return t *= (double)s; };
-	template< unsigned int ... Dims > Tensor< UIntPack< Dims ... > > operator * ( const Tensor< UIntPack< Dims ... > > &t , int s ){ return t * (double)s; };
-	template< unsigned int ... Dims > Tensor< UIntPack< Dims ... > > operator * ( int s , const Tensor< UIntPack< Dims ... > > &t ){ return t * (double)s; };
+	template< unsigned int ... Dims > using Tensor = _Tensor< UIntPack< Dims ... > >;
 }
 #endif // TENSORS_INCLUDED

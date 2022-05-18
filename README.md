@@ -1,4 +1,4 @@
-<center><h2>Variational Polygonal/Polyhedral Shape Functions (Version 1.00)</h2></center>
+<center><h2>Variational Polygonal/Polyhedral Shape Functions (Version 2.00)</h2></center>
 <center>
 <a href="#LINKS">links</a>
 <a href="#EXECUTABLES">executables</a>
@@ -31,6 +31,7 @@ This software supports finite-elements-type calculations over polygonal and poly
 <B>Data:</B>
 <A HREF="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/VPSF.Data.zip">ZIP</A><br>
 <b>Older Versions:</b>
+<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version1.00/">V1.00</a>
 </ul>
 <hr>
 <a name="EXECUTABLES"><b>EXECUTABLES</b></a><br>
@@ -315,9 +316,9 @@ To sharpen the Armadillo Man model using a hierarchical solver, execute:
 <summary>
 <a name="CHANGES"><b>HISTORY OF CHANGES</b></a><br>
 </summary>
+<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.00/">Version 2</a>:
+<ul><li> Added support for regularizing within the kerenl.</li></ul>
 <!--
-<a href="http://www.cs.jhu.edu/~misha/Code/TextureSignalProcessing/Version2.00/">Version 2</a>:
-<ul><li> Added support for reaction-diffusion based on the Gray-Scott model.</li></ul>
 <a href="http://www.cs.jhu.edu/~misha/Code/TextureSignalProcessing/Version3.00/">Version 3</a>:
 <ul><li> Added support for texture stitching.</li></ul>
 -->

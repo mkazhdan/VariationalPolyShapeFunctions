@@ -200,16 +200,6 @@ namespace Misha
 		void saveFrameBuffer( const char* fileName , int whichBuffer=GL_BACK );
 
 		void setPromptCallBack( const char *prompt , void (*callBackFunction)( DerivedViewableType* , const char* ) );
-#if 0
-		if( strlen( callBacks[i].prompt ) )
-		{
-			sprintf( promptString , "%s: " , callBacks[i].prompt );
-			promptLength = int( strlen( promptString ) );
-			promptCallBack = callBacks[i].callBackFunction;
-		}
-		else (*callBacks[i].callBackFunction)( (DerivedViewableType*)this , NULL );
-#endif
-
 
 #ifdef NEW_CALL_BACK
 		void addCallBack( char key , typename KeyboardCallBack::Modifiers modifiers , const char *description ,                      void ( *callBackFunction )( DerivedViewableType* , const char* ) );
@@ -419,7 +409,6 @@ namespace Misha
 		display();
 
 		_lastFPSCount++;
-#if 1
 		double t = _fpsTimer.elapsed();
 		if( t > _MIN_FPS_TIME )
 		{
@@ -427,15 +416,6 @@ namespace Misha
 			_lastFPSCount = 0;
 			_fpsTimer.reset();
 		}
-#else
-		double t = Time();
-		if( t-_lastFPSTime > _MIN_FPS_TIME )
-		{
-			_fps = (double)_lastFPSCount / (t-_lastFPSTime);
-			_lastFPSCount = 0;
-			_lastFPSTime = t;
-		}
-#endif
 		if( showFPS ) writeRightString( 5 , screenHeight - fontHeight - 5 , "%d x %d @ %.2f" , screenWidth , screenHeight , _fps );
 
 		GLboolean writeMask;

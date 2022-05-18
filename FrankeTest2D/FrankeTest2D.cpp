@@ -289,7 +289,7 @@ void Execute( const Meshes::PolygonMesh< unsigned int > &polyMesh , const std::v
 	};
 
 	SimplexRefinableElements<>::EnergyWeights eWeights( SimplexRefinableElements<>::EnergyWeights::CROSS_FACE_GRADIENT_DIFFERENCE );
-	eWeights[ SimplexRefinableElements<>::EnergyWeights::GRADIENT_SQUARE_NORM ] = 1e-8;
+	eWeights.kWeights[ SimplexRefinableElements<>::EnergyWeights::GRADIENT_SQUARE_NORM ] = 1;
 
 	std::function< Point< double , Dim > ( unsigned int ) > vertexPositionFunction = [&]( unsigned int idx )
 	{
@@ -374,8 +374,7 @@ int main( int argc , char* argv[] )
 			case 1: Execute< 1 >( polyMesh , vertices , franke ) ; break;
 			case 2: Execute< 2 >( polyMesh , vertices , franke ) ; break;
 			case 3: Execute< 3 >( polyMesh , vertices , franke ) ; break;
-			case 4: Execute< 4 >( polyMesh , vertices , franke ) ; break;
-			default: ERROR_OUT( "Only degrees 1, 2, 3, or 4 supported" );
+			default: ERROR_OUT( "Only degrees 1, 2, or 3 supported" );
 		}
 	}
 }

@@ -77,23 +77,6 @@ Real Point<Real,Dim>::InnerProduct(const Point<Real,Dim>& p)	const
 	return dot;
 }
 
-#if 0
-#if !FAST_POINT
-/////////////
-// Point3D //
-/////////////
-template< class Real >
-Point3D<Real> Point3D<Real>::CrossProduct( const Point3D<Real>& p1 , const Point3D<Real> & p2 )
-{
-	Point3D<Real> p;
-	p.coords[0]= p1.coords[1]*p2.coords[2]-p1.coords[2]*p2.coords[1];
-	p.coords[1]=-p1.coords[0]*p2.coords[2]+p1.coords[2]*p2.coords[0];
-	p.coords[2]= p1.coords[0]*p2.coords[1]-p1.coords[1]*p2.coords[0];
-	return p;
-}
-#endif // FAST_POINT
-#endif
-
 ////////////
 // Matrix //
 ////////////
@@ -135,18 +118,12 @@ template<class Real2>
 Point< Real2 , Rows > Matrix< Real , Cols , Rows >::operator * ( const Point< Real2 , Cols >& v ) const
 {
 	Point< Real2 , Rows > out;
-#if 1
 	for( int j=0 ; j<Cols ; j++ )
 	{
 		const Real* _coords = coords[j];
 		Real2 _v = v.coords[j];
 		for( int i=0 ; i<Rows ; i++ ) out.coords[i] += Real2( _coords[i] ) * _v;
 	}
-#else
-	for(int i=0;i<Rows;i++)
-		for(int j=0;j<Cols;j++)
-			out.coords[i] += Real2( coords[j][i] ) * v.coords[j];
-#endif
 	return out;
 }
 template<class Real,int Cols,int Rows>
@@ -398,7 +375,6 @@ Real Random2( void )
 	return Real( (double(temp)/(RAND_MAX+1))/(RAND_MAX+1) );
 }
 
-#if 1
 template< typename Real , unsigned int Dim >
 Point< Real , Dim > RandomBallPoint( void )
 {
@@ -418,50 +394,6 @@ Point< Real , Dim > RandomSpherePoint( void )
 	return p / l;
 }
 
-#else
-template<class Real>
-Point2D<Real> RandomDiskPoint(void){
-	Point2D<Real> p;
-	while(1)
-	{
-		p.coords[0]=Real(1.0-2.0*Random2<Real>());
-		p.coords[1]=Real(1.0-2.0*Random2<Real>());
-		double l=SquareLength(p);
-		if( l<=1 ) return p;
-	}
-}
-template<class Real>
-Point3D<Real> RandomBallPoint(void){
-	Point3D<Real> p;
-	while(1)
-	{
-		p.coords[0]=Real(1.0-2.0*Random2<Real>());
-		p.coords[1]=Real(1.0-2.0*Random2<Real>());
-		p.coords[2]=Real(1.0-2.0*Random2<Real>());
-		double l=SquareLength(p);
-		if( l<=1 ){return p;}
-	}
-}
-template<class Real>
-Point2D<Real> RandomCirclePoint(void)
-{
-	Point2D<Real> p = RandomDiskPoint<Real>();
-	Real l = Real(Length(p));
-	p.coords[0] /= l;
-	p.coords[1] /= l;
-	return p;
-}
-template<class Real>
-Point3D<Real> RandomSpherePoint(void)
-{
-	Point3D<Real> p = RandomBallPoint<Real>();
-	Real l = Real(Length(p));
-	p.coords[0] /= l;
-	p.coords[1] /= l;
-	p.coords[2] /= l;
-	return p;
-}
-#endif
 
 template<class Real>
 XForm3x3<Real> RotationMatrix( const Point3D<Real>& axis , const Real& angle )
@@ -633,10 +565,6 @@ Point3D< Real > NearestPointOnTriangle( Point3D< Real > point , const Point3D< R
 		M_inverse /= det;
 		Point2D< Real > st = M_inverse * Point2D< Real >( Point3D< Real >::Dot( p , d[0] ) , Point3D< Real >::Dot( p , d[1] ) );
 		// Sanity check
-#if 1
-#else
-		if( st[0]<0 || st[1]<0 || st[0]+st[1]>1 ) ERROR_OUT( "Bad barycentric coordinates: " , 1.-st[0]-st[1] , " " , st[0] , " " , st[1] , " " , Length(n) );
-#endif
 		b[0] = (Real)( 1. - st[0] - st[1] ) , b[1] = (Real)( st[0] , b[2] = st[1] );
 		Point3D< Real > ret = triangle[0] * ( Real )( 1. - st[0] - st[1] ) + d[0] * st[0] + d[1] * st[1];
 
@@ -683,16 +611,10 @@ void Simplex< Real , Dim , K >::split( const Real values[K+1] , std::vector< Sim
 		if( i!=v1 && i!=v2 ) continue;
 		Simplex< Real , Dim , K-1 > f;		// The face
 		Simplex< Real , Dim , K > s;		// The sub-simplex
-#if 1
 		Real v[K];
 		for( unsigned int j=0 , idx=0 ; j<=K ; j++ ) if( j!=i ){ f[idx] = p[j] , v[idx] = values[j] ; idx++ ; }
 		std::vector< Simplex< Real , Dim , K-1 > > _back , _front;
 		f.split( v , _back , _front );
-#else
-		for( unsigned int j=0 , idx=0 ; j<=K ; j++ ) if( j!=i ) f[idx++] = p[j];
-		std::vector< Simplex< Real , Dim , K-1 > > _back , _front;
-		f.split( pNormal , pOffset , _back , _front );
-#endif
 		s[i] = midPoint;
 
 		for( unsigned int j=0 ; j<_back.size() ; j++ ) 
@@ -800,15 +722,6 @@ SimplexIndex< K-1 , Index > SimplexIndex< K , Index >::face( unsigned int f , bo
 	oriented = (f%2)==0;
 	return s;
 }
-#if 0
-template< unsigned int K , typename Index >
-SimplexIndex< K-1 , Index > SimplexIndex< K , Index >::face( unsigned int f ) const
-{
-	bool oriented;
-	return face( f , oriented );
-}
-#endif
-
 
 template< unsigned int K , typename Index >
 template< typename Real , typename Vertex >
@@ -870,7 +783,6 @@ bool SimplexIndex< K , Index >::sort( void )
 template< unsigned int K , typename Index >
 bool SimplexIndex< K , Index >::sort( const Index indices[] )
 {
-#if 1
 	// Find the permutation that orders the face indices from smallest to largest
 	unsigned int permutation[ K+1 ] , temp[ K+1 ];
 	for( unsigned int k=0 ; k<=K ; k++ ) permutation[k] = k;
@@ -883,10 +795,6 @@ bool SimplexIndex< K , Index >::sort( const Index indices[] )
 	for( unsigned int i=0 ; i<=K ; i++ ) for( unsigned int j=0 ; j<i ; j++ ) if( permutation[i]>permutation[j] ) count++;
 
 	return (count&1)==0;
-#else
-	std::sort( idx , idx+K+1 , [&]( unsigned int i1 , unsigned int i2 ){ return indices[i1]<indices[i2]; } );
-	return true;
-#endif
 }
 
 //////////////////////////////

@@ -131,8 +131,7 @@ int main( int argc , char* argv[] )
 		case 1: Execute< 1 >( argc , argv , vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
 		case 2: Execute< 2 >( argc , argv , vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
 		case 3: Execute< 3 >( argc , argv , vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
-		case 4: Execute< 4 >( argc , argv , vertices , polygons , polyhedra , lockedVertices , xForm , Width.value , Height.value , RefinementResolution.value  ) ; break;
-		default: ERROR_OUT( "Only degrees 1, 2, 3, or 4 supported" );
+		default: ERROR_OUT( "Only degrees 1, 2, or 3 supported" );
 	}
 
 	return EXIT_SUCCESS;

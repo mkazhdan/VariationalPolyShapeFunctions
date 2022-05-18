@@ -103,10 +103,10 @@ LCQO::LCQO( const Eigen::SparseMatrix< double > &Q , const Eigen::VectorXd &q , 
 {
 	typedef Eigen::SparseMatrix< double > QMatrix;
 	typedef Eigen::SparseMatrix< double , Eigen::RowMajor > CMatrix;
-	if( Q.rows()!=Q.cols() ) ERROR_OUT( "Quadratic energy term is not square: " , Q.rows() , " != " , Q.cols() );
-	if( q.size()!=Q.rows() ) ERROR_OUT( "Linear energy dimension does not match quadratic energy dimension: " , q.size() , " != " , Q.rows() );
-	if( C.cols()!=Q.cols() ) ERROR_OUT( "Constraint and energy dimensions do not match: " , C.cols() , " != " , Q.cols() );
-	if( c.size()!=C.rows() ) ERROR_OUT( "Constraint value dimensions do not match constraint term dimensions: " , c.size() , " != " , C.rows() );
+	if( Q.rows()!=Q.cols() ) THROW( "Quadratic energy term is not square: " , Q.rows() , " != " , Q.cols() );
+	if( q.size()!=Q.rows() ) THROW( "Linear energy dimension does not match quadratic energy dimension: " , q.size() , " != " , Q.rows() );
+	if( C.cols()!=Q.cols() ) THROW( "Constraint and energy dimensions do not match: " , C.cols() , " != " , Q.cols() );
+	if( c.size()!=C.rows() ) THROW( "Constraint value dimensions do not match constraint term dimensions: " , c.size() , " != " , C.rows() );
 
 	if( reduce )
 	{
@@ -154,7 +154,7 @@ LCQO::LCQO( const Eigen::SparseMatrix< double > &Q , const Eigen::VectorXd &q , 
 			if( !count )
 			{
 				constraintIndices[r] = -1;
-				if( fabs( value )>1e-8 ) ERROR_OUT( "Inconsistent constraints: " , value );
+				if( fabs( value )>1e-8 ) THROW( "Inconsistent constraints: " , value );
 			}
 		}
 
@@ -229,8 +229,8 @@ LCQO::LCQO( const Eigen::SparseMatrix< double > &Q , const Eigen::VectorXd &q )
 {
 	typedef Eigen::SparseMatrix< double > QMatrix;
 	typedef Eigen::SparseMatrix< double , Eigen::RowMajor > CMatrix;
-	if( Q.rows()!=Q.cols() ) ERROR_OUT( "Quadratic energy term is not square: " , Q.rows() , " != " , Q.cols() );
-	if( q.size()!=Q.rows() ) ERROR_OUT( "Linear energy dimension does not match quadratic energy dimension: " , q.size() , " != " , Q.rows() );
+	if( Q.rows()!=Q.cols() ) THROW( "Quadratic energy term is not square: " , Q.rows() , " != " , Q.cols() );
+	if( q.size()!=Q.rows() ) THROW( "Linear energy dimension does not match quadratic energy dimension: " , q.size() , " != " , Q.rows() );
 
 	_variableCount = (unsigned int)Q.rows();
 	_constraintCount = 0;
@@ -261,9 +261,9 @@ Eigen::VectorXd LCQO::solve( void ) const
 
 		switch( solver.info() )
 		{
-			case Eigen::NumericalIssue: ERROR_OUT( "Eigen::Solver failed to factorize matrix -- numerical issue" );
-			case Eigen::NoConvergence:  ERROR_OUT( "Eigen::Solver failed to factorize matrix -- no convergence" );
-			case Eigen::InvalidInput:   ERROR_OUT( "Eigen::Solver failed to factorize matrix -- invalid input" );
+			case Eigen::NumericalIssue: THROW( "Eigen::Solver failed to factorize matrix -- numerical issue" );
+			case Eigen::NoConvergence:  THROW( "Eigen::Solver failed to factorize matrix -- no convergence" );
+			case Eigen::InvalidInput:   THROW( "Eigen::Solver failed to factorize matrix -- invalid input" );
 			case Eigen::Success: ;
 		}
 

@@ -215,18 +215,6 @@ struct GeodesicsInHeatVisualization : public Misha::Viewable3D< GeodesicsInHeatV
 	typedef typename Misha::Viewable< GeodesicsInHeatVisualization >::KeyboardCallBack KeyboardCallBack;
 	typedef typename KeyboardCallBack::Modifiers KeyboardCallBackModifiers;
 	using Misha::Viewable< GeodesicsInHeatVisualization >::promptCallBack;
-#if 0
-	using Misha::Viewable< GeodesicsInHeatVisualization >::callBacks;
-	using Misha::Viewable< GeodesicsInHeatVisualization >::info;
-	using Misha::Viewable< GeodesicsInHeatVisualization >::screenWidth;
-	using Misha::Viewable< GeodesicsInHeatVisualization >::screenHeight;
-	using Misha::Viewable< GeodesicsInHeatVisualization >::promptCallBack;
-	using Misha::Viewable3D< GeodesicsInHeatVisualization >::cameraType;
-	using Misha::Viewable3D< GeodesicsInHeatVisualization >::PERSPECTIVE_CAMERA;
-	using Misha::Viewable3D< GeodesicsInHeatVisualization >::perspectiveCameraInfo;
-	using Misha::Viewable3D< GeodesicsInHeatVisualization >::ORTHOGRAPHIC_CAMERA;
-	using Misha::Viewable3D< GeodesicsInHeatVisualization> >::orthographicCameraInfo;
-#endif
 
 	static const unsigned int Dim = 2;
 	typedef typename SimplexMesh< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
@@ -528,7 +516,7 @@ GeodesicsInHeatVisualization< Degree , Hierarchical >::GeodesicsInHeatVisualizat
 	for( unsigned int n=0 ; n<SimplexElements< Dim , Degree >::NodeNum ; n++ ) _dElements[n] = SimplexElements< Dim , Degree >::Differential( n );
 
 	SimplexRefinableElements<>::EnergyWeights eWeights( SimplexRefinableElements<>::EnergyWeights::CROSS_FACE_GRADIENT_DIFFERENCE );
-	eWeights[ SimplexRefinableElements<>::EnergyWeights::GRADIENT_SQUARE_NORM ] = 1e-8;
+	eWeights.kWeights[ SimplexRefinableElements<>::EnergyWeights::GRADIENT_SQUARE_NORM ] = 1;
 
 	_polygonMesh = Meshes::PolygonMesh< unsigned int >( _polygons );
 	std::function< Point< double , 3 > ( unsigned int ) > vertexPositionFunction = [&]( unsigned int v ){ return Point3D< double >( vertices[v] ); };
@@ -629,11 +617,7 @@ void GeodesicsInHeatVisualization< Degree , Hierarchical >::_setSamplingMesh( un
 	MeshRefiner refiner(res);
 	std::vector< typename SimplexMesh< 2 >::Sample > vertexSamples;
 
-#if 1
 	refiner.setRefinedPolygons( (unsigned int)_polygons.size() , [&]( unsigned int p ){ return (unsigned int)_polygons[p].size(); } , _triangles , vertexSamples );
-#else
-	refiner.setRefinedTriangles( (unsigned int)simplexMesh.simplices() , _triangles , vertexSamples );
-#endif
 	_verticesAndNormals.resize( vertexSamples.size()*2 );
 
 #pragma omp parallel for

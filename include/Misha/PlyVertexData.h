@@ -28,8 +28,6 @@ DAMAGE.
 #ifndef PLY_VERTEX_DATA
 #define PLY_VERTEX_DATA
 
-#define USE_PLY_FACTORY
-
 #include "Ply.h"
 #include "Geometry.h"
 

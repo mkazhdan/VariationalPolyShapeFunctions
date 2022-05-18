@@ -115,7 +115,6 @@ inline ImageReader* ImageReader::Get( const char* fileName , unsigned int& width
 }
 inline void ImageReader::GetInfo( const char* fileName , unsigned int& width , unsigned int& height , unsigned int& channels )
 {
-#if 1
 	char* ext = GetImageExtension( fileName );
 #ifdef WIN32
 	if( !_stricmp( ext , "jpeg" ) || !_stricmp( ext , "jpg" ) ) JPEGReader::GetInfo( fileName , width , height , channels );
@@ -123,22 +122,11 @@ inline void ImageReader::GetInfo( const char* fileName , unsigned int& width , u
 	else if( !_stricmp( ext , "bmp" ) )                          BMPReader::GetInfo( fileName , width , height , channels );
 	else if( !_stricmp( ext , "pbm" ) )                          PBMReader::GetInfo( fileName , width , height , channels );
 #else // !WIN32
-#if 1
 	if( !strcasecmp( ext , "jpeg" ) || !strcasecmp( ext , "jpg" ) ) JPEGReader::GetInfo( fileName , width , height , channels );
 	else if( !strcasecmp( ext , "png" ) )                            PNGReader::GetInfo( fileName , width , height , channels );
 	else if( !strcasecmp( ext , "bmp" ) )                            BMPReader::GetInfo( fileName , width , height , channels );
 	else if( !strcasecmp( ext , "pbm" ) )                            PBMReader::GetInfo( fileName , width , height , channels );
-#else
-	if( !strcasecmp( ext , "jpeg" ) || !strcasecmp( ext , "jpg" ) ) writer = new JPEGWriter( fileName , width , height , channels , quality );
-	else if( !strcasecmp( ext , "png" ) ) writer = new PNGWriter( fileName , width , height , channels , quality );
-	else if( !strcasecmp( ext , "bmp" ) ) writer = new BMPWriter( fileName , width , height , channels , quality );
-	else if( !strcasecmp( ext , "pbm" ) ) writer = new PBMWriter( fileName , width , height , channels , quality );
-#endif
 #endif // WIN32
-#else
-	ImageReader* reader = Get( fileName , width , height , channels );
-	delete reader;
-#endif
 }
 inline ImageWriter* ImageWriter::Get( const char* fileName , unsigned int width , unsigned int height , unsigned int channels , unsigned int quality )
 {

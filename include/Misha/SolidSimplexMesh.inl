@@ -135,7 +135,6 @@ Eigen::SparseMatrix< double > SolidSimplexMesh< Dim , Degree >::traceStiffnessMa
 	return S;
 }
 
-#ifdef NEW_SOLID_SYSTEM_MATRIX
 template< unsigned int Dim , unsigned int Degree >
 void SolidSimplexMesh< Dim , Degree >::setMassFrobeniusStiffnessAndTraceStiffnessMatrices( Eigen::SparseMatrix< double > &M , Eigen::SparseMatrix< double > &F , Eigen::SparseMatrix< double > & T ) const
 {
@@ -170,7 +169,6 @@ void SolidSimplexMesh< Dim , Degree >::setMassFrobeniusStiffnessAndTraceStiffnes
 	F.setFromTriplets( entriesF.begin() , entriesF.end() );
 	T.setFromTriplets( entriesT.begin() , entriesT.end() );
 }
-#endif // NEW_SOLID_SYSTEM_MATRIX
 
 template< unsigned int Dim , unsigned int Degree >
 Eigen::VectorXd SolidSimplexMesh< Dim , Degree >::stiffnessVector( void ) const

@@ -123,11 +123,9 @@ struct SimplexRefinableElements<>
 		};
 		static const std::string Names[];
 
-		double weights[ COUNT ];
-		EnergyWeights( void ){ memset( weights , 0 , sizeof(weights) ); }
-		EnergyWeights( unsigned int eType ){ memset( weights , 0 , sizeof(weights) ) ; weights[eType] = 1; }
-		double &operator[]( unsigned int idx ){ return weights[idx]; }
-		const double &operator[]( unsigned int idx ) const { return weights[idx]; }
+		double weights[ COUNT ] , kWeights[ COUNT ];
+		EnergyWeights( void ){ memset( weights , 0 , sizeof(weights) ) , memset( kWeights , 0 , sizeof(kWeights) ); }
+		EnergyWeights( unsigned int eType ) : EnergyWeights() { weights[eType] = 1; }
 	};
 };
 
@@ -184,9 +182,7 @@ struct SimplexRefinableElements< Dim , Degree >
 	Eigen::MatrixXd hessianSquareNormMatrix( void ) const;
 	Eigen::MatrixXd laplacianSquareNormMatrix( void ) const;
 	virtual Eigen::MatrixXd crossFaceGradientDifferenceMatrix( void ) const { return crossFaceGradientDifferenceMatrix( [&]( FaceMultiIndex ){ return true; } ); }
-	Eigen::MatrixXd systemMatrix( typename SimplexRefinableElements< Dim >::EnergyType eType ) const;
-	template< unsigned int EmbeddingDimension >
-	Eigen::MatrixXd systemMatrix( typename SimplexRefinableElements< Dim >::EnergyType eType , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor ) const;
+	Eigen::MatrixXd systemMatrix( const	double *weights , std::function< bool ( FaceMultiIndex ) > isIntegrationFaceFunctor=[]( FaceMultiIndex ){ return true; } ) const;
 
 	Eigen::MatrixXd crossFaceGradientDifferenceMatrix( std::function< bool ( FaceMultiIndex ) > faceSelectionFunctor ) const;
 
@@ -216,31 +212,24 @@ protected:
 
 // A struct for computing the prolongation matrix giving the expression of coarse basis function as a linear combination of finer basis function
 // that minimizes the prescribed energy.
-template< bool PoU >
 struct InterpolatingProlongationSystem
 {
-	struct Constraint
-	{
-		Constraint( unsigned int cIndex=0 , unsigned int fIndex=0 , double v=0 ) : coarseIndex(cIndex) , fineIndex(fIndex) , value(v){}
-		unsigned int coarseIndex , fineIndex;
-		double value;
-	};
+	template< unsigned int Dim , unsigned int EmbeddingDimension >
+	static bool IsPlanar( const SimplexRefinableCell< Dim > &simplexRefinableCell , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon );
 
 	// Given a SPD matrix E and a subset of indices, construct the prolongation matrix taking coarse basis functions
 	// to finer basis functions, that:
 	// -- Is interpolating (if index idx is in the subset, it will be mapped to itself)
 	// -- Forms a partition of unity
 
-	// CoarseSelectionFunctor:
-	//		A functor that takes a node index and returns a boolean indicating if that node is a degree of freedom in the coarse system
-	template< typename CoarseSelectionFunctor >
-	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , CoarseSelectionFunctor coarseSelectionFunctor );
-	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices );
-	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const std::vector< Constraint > &constraints );
+	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const Eigen::MatrixXd &kE , const std::vector< unsigned int > &coarseIndices , bool forcePoU );
 	template< unsigned int InterpolationDim >
-	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const Point< double , InterpolationDim > *interpolationConstraints  );
+	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const Eigen::MatrixXd &kE , const std::vector< unsigned int > &coarseIndices , bool forcePoU , const Point< double , InterpolationDim > *interpolationConstraints );
+
+	// Trivial kernel
+	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , bool forcePoU ) : InterpolatingProlongationSystem( E , Eigen::MatrixXd::Zero( E.rows() , E.cols() ) , coarseIndices , forcePoU ) {}
 	template< unsigned int InterpolationDim >
-	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const std::vector< Constraint > &constraints , const Point< double , InterpolationDim > *interpolationConstraints  );
+	InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , bool forcePoU , const Point< double , InterpolationDim > *interpolationConstraints ) : InterpolatingProlongationSystem( E , Eigen::MatrixXd::Zero( E.rows() , E.cols() ) , coarseIndices , forcePoU , interpolationConstraints ) {}
 
 	template< unsigned int Degree >
 	struct ProlongationInfo
@@ -250,26 +239,37 @@ struct InterpolatingProlongationSystem
 	};
 
 	template< unsigned int Dim , unsigned int Degree >
-	static void HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim=Dim );
+	static void HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim=Dim );
 
 	template< unsigned int Dim , unsigned int Degree , unsigned int EmbeddingDimension >
-	static void HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim );
+	static void HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim );
 
-	template< bool StableSolve >
 	Eigen::MatrixXd prolongation( void ) const;
 	double energy( const Eigen::MatrixXd &P ) const;
+	double kernelEnergy( const Eigen::MatrixXd &P ) const;
 
-	const LCQO &lcqo( void ) const { return _lcqo; }
 protected:
 	unsigned int _coarseDim , _fineDim;
-	Eigen::VectorXd _c;
-	Eigen::SparseMatrix< double > _Q , _C;
-	Eigen::VectorXd _q;
 	std::vector< unsigned int > _coarseIndices , _fineIndices;
-	LCQO _lcqo;
+	// The energy is defined as E(x) = Q(x,x) + < L , x > (not E(x) = Q(x,x) - < L , x >)
+	Eigen::MatrixXd _Q , _kQ;
+	Eigen::VectorXd _L , _kL;
+	bool _hasKernelRegularizer , _hasKernel , _hasImage;
+	Eigen::MatrixXd _kernel , _image;
+
+	struct _DependentSystem
+	{
+		Eigen::VectorXd c;
+		Eigen::SparseMatrix< double > C;
+	};
+	bool _isIndependent;
+	_DependentSystem _dependentSystem;
+
+	template< unsigned int Dim , unsigned int Degree , unsigned int EmbeddingDimension >
+	static std::vector< Point< double , EmbeddingDimension > > _InterpolationConstraints( const SimplexRefinableElements< Dim , Degree > &sre , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor );
 
 	template< unsigned int InterpolationDim >
-	void _init( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const std::vector< Constraint > &constraints , const Point< double , InterpolationDim > *interpolationConstraints );
+	void _init( const Eigen::MatrixXd &E , const Eigen::MatrixXd &kE , const std::vector< unsigned int > &coarseIndices , bool pou , const Point< double , InterpolationDim > *interpolationConstraints );
 
 	unsigned int _index( unsigned fine , unsigned int coarse ) const;
 	Eigen::MatrixXd _toMatrix( const Eigen::VectorXd &v ) const;
@@ -286,6 +286,7 @@ protected:
 		const SimplexRefinableCell< Dim > &simplexRefinableCell ,
 		const SimplexRefinableElements< Dim , Degree > &sre ,
 		typename SimplexRefinableElements<>::EnergyWeights eWeights ,
+		bool forcePoU ,
 		ProlongationInfo< Degree > *pInfo , 
 		unsigned int finestDim
 	);
@@ -296,6 +297,7 @@ protected:
 		const SimplexRefinableCell< Dim > &simplexRefinableCell ,
 		const SimplexRefinableElements< Dim , Degree > &sre ,
 		typename SimplexRefinableElements<>::EnergyWeights eWeights ,
+		bool forcePoU ,
 		const std::vector< unsigned int > &coarseIndices
 	);
 
@@ -305,6 +307,7 @@ protected:
 		const SimplexRefinableCell< Dim > &simplexRefinableCell ,
 		const SimplexRefinableElements< Dim , Degree > &sre ,
 		typename SimplexRefinableElements<>::EnergyWeights eWeights ,
+		bool forcePoU ,
 		const std::vector< unsigned int > &coarseIndices ,
 		const Eigen::MatrixXd &coarseP
 	);
@@ -315,6 +318,7 @@ protected:
 		const SimplexRefinableCell< Dim > &simplexRefinableCell ,
 		const SimplexRefinableElements< Dim , Degree > &sre ,
 		typename SimplexRefinableElements<>::EnergyWeights eWeights ,
+		bool forcePoU ,
 		std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor ,
 		double planarityEpsilon ,
 		ProlongationInfo< Degree > *pInfo , 
@@ -327,6 +331,7 @@ protected:
 		const SimplexRefinableCell< Dim > &simplexRefinableCell ,
 		const SimplexRefinableElements< Dim , Degree > &sre ,
 		typename SimplexRefinableElements<>::EnergyWeights eWeights ,
+		bool forcePoU ,
 		std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor ,
 		double planarityEpsilon ,
 		const std::vector< unsigned int > &coarseIndices
@@ -338,6 +343,7 @@ protected:
 		const SimplexRefinableCell< Dim > &simplexRefinableCell ,
 		const SimplexRefinableElements< Dim , Degree > &sre ,
 		typename SimplexRefinableElements<>::EnergyWeights eWeights ,
+		bool forcePoU ,
 		std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor ,
 		double planarityEpsilon ,
 		const std::vector< unsigned int > &coarseIndices ,

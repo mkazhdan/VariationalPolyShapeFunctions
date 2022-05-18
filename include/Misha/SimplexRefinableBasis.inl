@@ -138,29 +138,15 @@ Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::_systemMatrix( SystemM
 }
 
 template< unsigned int Dim , unsigned int Degree >
-Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::systemMatrix( typename SimplexRefinableElements< Dim >::EnergyType eType ) const
+Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::systemMatrix( const double *weights , std::function< bool ( FaceMultiIndex ) > isIntegrationFaceFunctor ) const
 {
 	typedef SimplexRefinableElements<>::EnergyWeights EnergyWeights;
 	Eigen::MatrixXd E = Eigen::MatrixXd::Zero( size() , size() );
-	if( eType.weights[ EnergyWeights::MASS                           ]>0 ) E += massMatrix()                                                        * eType.weights[ EnergyWeights::MASS                           ];
-	if( eType.weights[ EnergyWeights::GRADIENT_SQUARE_NORM           ]>0 ) E += gradientSquareNormMatrix()                                          * eType.weights[ EnergyWeights::GRADIENT_SQUARE_NORM           ];
-	if( eType.weights[ EnergyWeights::HESSIAN_SQUARE_NORM            ]>0 ) E += hessianSquareNormMatrix()                                           * eType.weights[ EnergyWeights::HESSIAN_SQUARE_NORM            ];
-	if( eType.weights[ EnergyWeights::LAPLACIAN_SQUARE_NORM          ]>0 ) E += laplacianSquareNormMatrix()                                         * eType.weights[ EnergyWeights::LAPLACIAN_SQUARE_NORM          ];
-	if( eType.weights[ EnergyWeights::CROSS_FACE_GRADIENT_DIFFERENCE ]>0 ) E += crossFaceGradientDifferenceMatrix( eType.isIntegrationFaceFunctor ) * eType.weights[ EnergyWeights::CROSS_FACE_GRADIENT_DIFFERENCE ];
-	return E;
-}
-
-template< unsigned int Dim , unsigned int Degree >
-template< unsigned int EmbeddingDimension >
-Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::systemMatrix( typename SimplexRefinableElements< Dim >::EnergyType eType , std::function< Point< double , EmbeddingDimension > ( unsigned int idx ) > positionFunctor ) const
-{
-	typedef SimplexRefinableElements<>::EnergyWeights EnergyWeights;
-	Eigen::MatrixXd E = Eigen::MatrixXd::Zero( size() , size() );
-	if( eType.weights[ EnergyWeights::MASS                                     ]>0 ) E += massMatrix()                                                                                   * eType.weights[ EnergyWeights::MASS                                     ];
-	if( eType.weights[ EnergyWeights::GRADIENT_SQUARE_NORM                     ]>0 ) E += gradientSquareNormMatrix()                                                                     * eType.weights[ EnergyWeights::GRADIENT_SQUARE_NORM                     ];
-	if( eType.weights[ EnergyWeights::HESSIAN_SQUARE_NORM                      ]>0 ) E += hessianSquareNormMatrix()                                                                      * eType.weights[ EnergyWeights::HESSIAN_SQUARE_NORM                      ];
-	if( eType.weights[ EnergyWeights::LAPLACIAN_SQUARE_NORM                    ]>0 ) E += laplacianSquareNormMatrix()                                                                    * eType.weights[ EnergyWeights::LAPLACIAN_SQUARE_NORM                    ];
-	if( eType.weights[ EnergyWeights::CROSS_FACE_GRADIENT_DIFFERENCE           ]>0 ) E += crossFaceGradientDifferenceMatrix( eType.isIntegrationFaceFunctor )                            * eType.weights[ EnergyWeights::CROSS_FACE_GRADIENT_DIFFERENCE           ];
+	if( weights[ EnergyWeights::MASS                           ]>0 ) E += massMatrix()                                                  * weights[ EnergyWeights::MASS                           ];
+	if( weights[ EnergyWeights::GRADIENT_SQUARE_NORM           ]>0 ) E += gradientSquareNormMatrix()                                    * weights[ EnergyWeights::GRADIENT_SQUARE_NORM           ];
+	if( weights[ EnergyWeights::HESSIAN_SQUARE_NORM            ]>0 ) E += hessianSquareNormMatrix()                                     * weights[ EnergyWeights::HESSIAN_SQUARE_NORM            ];
+	if( weights[ EnergyWeights::LAPLACIAN_SQUARE_NORM          ]>0 ) E += laplacianSquareNormMatrix()                                   * weights[ EnergyWeights::LAPLACIAN_SQUARE_NORM          ];
+	if( weights[ EnergyWeights::CROSS_FACE_GRADIENT_DIFFERENCE ]>0 ) E += crossFaceGradientDifferenceMatrix( isIntegrationFaceFunctor ) * weights[ EnergyWeights::CROSS_FACE_GRADIENT_DIFFERENCE ];
 	return E;
 }
 
@@ -278,61 +264,91 @@ Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::crossFaceGradientDiffe
 /////////////////////////////////////
 // InterpolatingProlongationSystem //
 /////////////////////////////////////
-template< bool PoU >
-template< typename CoarseSelectionFunctor >
-InterpolatingProlongationSystem< PoU >::InterpolatingProlongationSystem( const Eigen::MatrixXd &E , CoarseSelectionFunctor coarseSelectionFunctor )
+
+template< unsigned int Dim , unsigned int EmbeddingDimension >
+bool InterpolatingProlongationSystem::IsPlanar( const SimplexRefinableCell< Dim > &simplexRefinableCell , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon )
 {
-	std::vector< unsigned int > coarseIndices;
-	for( unsigned int i=0 ; i<E.rows() ; i++ ) if( coarseSelectionFunctor(i) ) coarseIndices.push_back( i );
-	std::vector< Constraint > constraints;
-	_init< 0 >( E , coarseIndices , constraints , NULL );
+	if( Dim>=EmbeddingDimension ) return true;
+	else if( planarityEpsilon<=0 ) return false;
+	else
+	{
+		unsigned int count = 0;
+
+		// Get the center
+		Point< double , EmbeddingDimension > c;
+		for( unsigned int i=0 ; i<simplexRefinableCell.size() ; i++ )
+		{
+			SimplexIndex< Dim , unsigned int > si = simplexRefinableCell[i];
+			for( unsigned int d=0 ; d<=Dim ; d++ ) c += positionFunctor( si[d] ) , count++;
+		}
+		c /= (double) count;
+
+		// Get the covariance matrix
+		SquareMatrix< double , EmbeddingDimension > cov;
+		for( unsigned int i=0 ; i<simplexRefinableCell.size() ; i++ )
+		{
+			SimplexIndex< Dim , unsigned int > si = simplexRefinableCell[i];
+			for( unsigned int d=0 ; d<=Dim ; d++ )
+			{
+				Point< double , EmbeddingDimension > p = positionFunctor( si[d] ) - c;
+				for( unsigned int j=0 ; j<EmbeddingDimension ; j++ ) for( unsigned int k=0 ; k<EmbeddingDimension ; k++ ) cov(j,k) += p[j] * p[k];
+			}
+		}
+
+		// Compute the characteristic polynomial
+		Polynomial::Polynomial< 1 , Dim , double > cPoly = cov.characteristicPolynomial();
+
+		// Check if the rank of characteristic polynomial is less than or equal to the embedding dimension
+		for( unsigned int i=0 ; i<(EmbeddingDimension-Dim) ; i++ ) if( fabs( cPoly.coefficient(i) )>planarityEpsilon ) return false;
+		return true;
+	}
 }
 
-template< bool PoU >
-InterpolatingProlongationSystem< PoU >::InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices )
+template< unsigned int Dim , unsigned int Degree , unsigned int EmbeddingDimension >
+std::vector< Point< double , EmbeddingDimension > > InterpolatingProlongationSystem::_InterpolationConstraints( const SimplexRefinableElements< Dim , Degree > &sre , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor )
+{
+	typedef typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
+
+	std::vector< Point< double , EmbeddingDimension > > interpolationConstraints( sre.size() );
+	for( unsigned int i=0 ; i<sre.size() ; i++ )
+	{
+		const NodeMultiIndex &nmi = sre[i];
+		Point< double , EmbeddingDimension > p;
+		for( unsigned int d=0 ; d<Degree ; d++ ) p += positionFunctor( nmi[d] );
+		interpolationConstraints[i] = p / Degree;
+	}
+	return interpolationConstraints;
+}
+
+InterpolatingProlongationSystem::InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const Eigen::MatrixXd &kE , const std::vector< unsigned int > &coarseIndices , bool forcePoU )
 {
 	// Do some sanity checking
+	if( E.rows()!=kE.rows() || E.cols()!=kE.cols() ) ERROR_OUT( "Dimensions don't match: " , E.rows() , " x " , E.cols() , " != " , kE.rows() , " x " , kE.cols() );
 	for( unsigned int i=0 ; i<coarseIndices.size() ; i++ )
 	{
 		if( coarseIndices[i]>=E.rows() ) ERROR_OUT( "Coarse index cannot exceed fine index: " , coarseIndices[i] , " >= " , E.rows() );
 		for( unsigned int j=0 ; j<i ; j++ )
 			if( coarseIndices[i]==coarseIndices[j] ) ERROR_OUT( "Duplicated coarse index: " , i , " , " , j , " ->"  , coarseIndices[i] );
 	}
-	std::vector< Constraint > constraints;
-	_init< 0 >( E , coarseIndices , constraints , NULL );
+	_init< 0 >( E , kE , coarseIndices , forcePoU , NULL );
 }
 
-template< bool PoU >
-InterpolatingProlongationSystem< PoU >::InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const std::vector< Constraint > &constraints )
-{
-	// Do some sanity checking
-	for( unsigned int i=0 ; i<coarseIndices.size() ; i++ )
-	{
-		if( coarseIndices[i]>=E.rows() ) ERROR_OUT( "Coarse index cannot exceed fine index: " , coarseIndices[i] , " >= " , E.rows() );
-		for( unsigned int j=0 ; j<i ; j++ )
-			if( coarseIndices[i]==coarseIndices[j] ) ERROR_OUT( "Duplicated coarse index: " , i , " , " , j , " ->"  , coarseIndices[i] );
-	}
-	_init< 0 >( E , coarseIndices , constraints , NULL );
-}
-
-template< bool PoU >
 template< unsigned int InterpolationDim >
-InterpolatingProlongationSystem< PoU >::InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const Point< double , InterpolationDim > *interpolationConstraints )
+InterpolatingProlongationSystem::InterpolatingProlongationSystem( const Eigen::MatrixXd &E , const Eigen::MatrixXd &kE , const std::vector< unsigned int > &coarseIndices , bool forcePoU , const Point< double , InterpolationDim > *interpolationConstraints )
 {
 	// Do some sanity checking
+	if( E.rows()!=kE.rows() || E.cols()!=kE.cols() ) ERROR_OUT( "Dimensions don't match: " , E.rows() , " x " , E.cols() , " != " , kE.rows() , " x " , kE.cols() );
 	for( unsigned int i=0 ; i<coarseIndices.size() ; i++ )
 	{
 		if( coarseIndices[i]>=E.rows() ) ERROR_OUT( "Coarse index cannot exceed fine index: " , coarseIndices[i] , " >= " , E.rows() );
 		for( unsigned int j=0 ; j<i ; j++ )
 			if( coarseIndices[i]==coarseIndices[j] ) ERROR_OUT( "Duplicated coarse index: " , i , " , " , j , " ->"  , coarseIndices[i] );
 	}
-	std::vector< Constraint > constraints;
-	_init< InterpolationDim >( E , coarseIndices , constraints , interpolationConstraints );
+	_init< InterpolationDim >( E , kE , coarseIndices , forcePoU , interpolationConstraints );
 }
 
-template< bool PoU >
 template< unsigned int InterpolationDim >
-void InterpolatingProlongationSystem< PoU >::_init( const Eigen::MatrixXd &E , const std::vector< unsigned int > &coarseIndices , const std::vector< Constraint > &constraints , const Point< double , InterpolationDim > *interpolationConstraints )
+void InterpolatingProlongationSystem::_init( const Eigen::MatrixXd &E , const Eigen::MatrixXd &kE , const std::vector< unsigned int > &coarseIndices , bool pou , const Point< double , InterpolationDim > *interpolationConstraints )
 {
 	_coarseIndices = coarseIndices;
 	_fineIndices.reserve( E.rows() - _coarseIndices.size() );
@@ -357,110 +373,128 @@ void InterpolatingProlongationSystem< PoU >::_init( const Eigen::MatrixXd &E , c
 	//		\sum_{i=0}^{coarseDim-1} P(j,i) = 1 for all j
 	// And the additional (constraints.size) constraints provided as input
 
-	std::vector< Eigen::Triplet< double > > qEntries , cEntries;
-
-	unsigned int dim = _coarseDim * _fineDim;
-
 	// The quadratic energy term
-	_Q.resize( dim , dim );
-	_q.resize( dim );
+	_isIndependent = !( interpolationConstraints || pou );
 
+	_Q.resize( _fineDim , _fineDim );
+	_L.resize( _coarseDim * _fineDim );
+
+	for( unsigned int j=0 ; j<_fineDim ; j++ ) for( unsigned int k=0 ; k<_fineDim ; k++ ) _Q(j,k) = E( _fineIndices[j] , _fineIndices[k] );
+	for( unsigned int j=0 ; j<_fineDim ; j++ ) for( unsigned int k=0 ; k<_coarseDim ; k++ ) _L[ _index(j,k) ] = E( _fineIndices[j] , _coarseIndices[k] );
+
+	Eigen::FullPivLU< Eigen::MatrixXd > lu( _Q );
+	_kernel = lu.kernel();
+	_image = lu.image( _Q );
+
+	auto OrthogonalizeColumns = []( Eigen::MatrixXd &M )
 	{
-		unsigned int count = 0;
-		for( unsigned int j=0 ; j<_fineDim ; j++ ) for( unsigned int k=0 ; k<_fineDim ; k++ ) if( E( _fineIndices[j] , _fineIndices[k] ) ) count += _coarseDim;
-		qEntries.reserve( _coarseDim );
-	}
-
-	for( unsigned int j=0 ; j<_fineDim ; j++ ) for( unsigned int k=0 ; k<_fineDim ; k++ ) if( E( _fineIndices[j] , _fineIndices[k] ) )
-		for( unsigned int i=0 ; i<_coarseDim ; i++ ) qEntries.push_back( Eigen::Triplet< double >( _index(j,i) , _index(k,i) , E( _fineIndices[j] , _fineIndices[k] ) ) );
-	for( unsigned int j=0 ; j<_fineDim ; j++ ) for( unsigned int k=0 ; k<_coarseDim ; k++ ) _q[ _index(j,k) ] = E( _fineIndices[j] , _coarseIndices[k] );
-
-	// The linear interpolation constraint
-	if( interpolationConstraints )
-	{
-		cEntries.reserve( _fineDim * _coarseDim + constraints.size() + _fineDim*_coarseDim*InterpolationDim );
-		if constexpr( PoU )
+		for( unsigned int i=0 ; i<M.cols() ; i++ )
 		{
-			_C.resize( _fineDim + constraints.size() + _fineDim*InterpolationDim , dim );
-			_c = Eigen::VectorXd::Zero( _fineDim + constraints.size() + _fineDim*InterpolationDim );
+			// Make orthogonal to previous
+			for( unsigned int j=0 ; j<i ; j++ )
+			{
+				double dot = 0;
+				for( unsigned int k=0 ; k<M.rows() ; k++ ) dot += M(k,i) * M(k,j);
+				for( unsigned int k=0 ; k<M.rows() ; k++ ) M(k,i) -= M(k,j) * dot;
+			}
+			// Make unit-norm
+			double l2 = 0;
+			for( unsigned int k=0 ; k<M.rows() ; k++ ) l2 += M(k,i)*M(k,i);
+			l2 = 1./sqrt( l2 );
+			for( unsigned int k=0 ; k<M.rows() ; k++ ) M(k,i) *= l2;
+		}
+	};
+
+	if( _kernel.squaredNorm() )
+	{
+		OrthogonalizeColumns( _kernel );
+		_hasKernel = true;
+	}
+	else _hasKernel = false;
+	if( _image.squaredNorm() )
+	{
+		OrthogonalizeColumns( _image );
+		_hasImage = true;
+	}
+	else _hasImage = false;
+
+	_kQ = Eigen::MatrixXd::Zero( _fineDim , _fineDim );
+	_kL = Eigen::VectorXd::Zero( _coarseDim * _fineDim );
+
+	if( kE.squaredNorm() )
+	{
+		_hasKernelRegularizer = true;
+
+		for( unsigned int j=0 ; j<_fineDim ; j++ ) for( unsigned int k=0 ; k<_fineDim ; k++ ) _kQ(j,k) = kE( _fineIndices[j] , _fineIndices[k] );
+		for( unsigned int j=0 ; j<_fineDim ; j++ ) for( unsigned int k=0 ; k<_coarseDim ; k++ ) _kL[ _index(j,k) ] = kE( _fineIndices[j] , _coarseIndices[k] );
+	}
+	else _hasKernelRegularizer = false;
+
+	if( !_isIndependent )
+	{
+		std::vector< Eigen::Triplet< double > > cEntries;
+		unsigned int dim = _coarseDim * _fineDim;
+
+		// The linear interpolation constraint
+		if( interpolationConstraints )
+		{
+			if( pou )
+			{
+				cEntries.reserve( _fineDim*_coarseDim + _fineDim*_coarseDim*InterpolationDim );
+				_dependentSystem.C.resize( _fineDim + _fineDim*InterpolationDim , dim );
+				_dependentSystem.c = Eigen::VectorXd::Zero( _fineDim + _fineDim*InterpolationDim );
+			}
+			else
+			{
+				cEntries.reserve( _fineDim*_coarseDim*InterpolationDim );
+				_dependentSystem.C.resize( _fineDim*InterpolationDim , dim );
+				_dependentSystem.c = Eigen::VectorXd::Zero( _fineDim*InterpolationDim );
+			}
 		}
 		else
 		{
-			_C.resize( constraints.size() + _fineDim*InterpolationDim , dim );
-			_c = Eigen::VectorXd::Zero( constraints.size() + _fineDim*InterpolationDim );
+			if( pou )
+			{
+				cEntries.reserve( _fineDim * _coarseDim );
+				_dependentSystem.C.resize( _fineDim , dim );
+				_dependentSystem.c = Eigen::VectorXd::Zero( _fineDim );
+			}
 		}
-	}
-	else
-	{
-		cEntries.reserve( _fineDim * _coarseDim + constraints.size() );
-		if constexpr( PoU )
-		{
-			_C.resize( _fineDim + constraints.size() , dim );
-			_c = Eigen::VectorXd::Zero( _fineDim + constraints.size() );
-		}
-		else
-		{
-			_C.resize( constraints.size() , dim );
-			_c = Eigen::VectorXd::Zero( constraints.size() );
-		}
-	}
 
-	if constexpr( PoU )
-	{
-		// The PoU constraints
-		for( unsigned int i=0 ; i<_fineDim ; i++ )
+		if( pou )
 		{
-			for( unsigned int j=0 ; j<_coarseDim ; j++ ) cEntries.push_back( Eigen::Triplet< double >( i , _index(i,j) , 1 ) );
-			_c[i] = 1;
+			// The PoU constraints
+			for( unsigned int i=0 ; i<_fineDim ; i++ )
+			{
+				for( unsigned int j=0 ; j<_coarseDim ; j++ ) cEntries.push_back( Eigen::Triplet< double >( i , _index(i,j) , 1 ) );
+				_dependentSystem.c[i] = 1;
+			}
 		}
+
+		// Interpolation constraints
+		// For the i-th node, we would like to satisfy:
+		//		\sum_j P( _coarseIndices[j] , _fineIndices[i] ) * internalConstraints[ _coarseIndices[j] ] = internalConstraints[ _fineIndices[i] ]
+		if constexpr( InterpolationDim!=0 ) if( interpolationConstraints )
+		{
+			unsigned int start = pou ? _fineDim : 0;
+			for( unsigned int f=0 ; f<_fineDim ; f++ ) for( unsigned int d=0 ; d<InterpolationDim ; d++ )
+			{
+				unsigned int row = start + f*InterpolationDim + d;
+				for( unsigned int c=0 ; c<_coarseDim ; c++ )
+					cEntries.push_back( Eigen::Triplet< double >( row , _index(f,c) , interpolationConstraints[ _coarseIndices[c] ][d] ) );
+				_dependentSystem.c[row] = interpolationConstraints[ _fineIndices[f] ][d];
+			}
+		}
+		_dependentSystem.C.setFromTriplets( cEntries.begin() , cEntries.end() );
 	}
-
-	// Locked weight constraints
-	for( unsigned int i=0 ; i<constraints.size() ; i++ )
-	{
-		unsigned int row = PoU ? _fineDim + i : i;
-		if( isCoarse[ constraints[i].fineIndex ] )
-		{
-			if     ( constraints[i].fineIndex==constraints[i].coarseIndex && constraints[i].value!=1. ) ERROR_OUT( "Bad constraint" );
-			else if( constraints[i].fineIndex!=constraints[i].coarseIndex && constraints[i].value!=0. ) ERROR_OUT( "Bad constraint" );
-		}
-		else
-		{
-			cEntries.push_back( Eigen::Triplet< double >( row , _index( fineIndexMap[ constraints[i].fineIndex ] , constraints[i].coarseIndex ) , 1 ) );
-			_c[ row ] = constraints[i].value;
-		}
-	}
-
-	// Interpolation constraints
-	// For the i-th node, we would like to satisfy:
-	//		\sum_j P( _coarseIndices[j] , _fineIndices[i] ) * internalConstraints[ _coarseIndices[j] ] = internalConstraints[ _fineIndices[i] ]
-	if constexpr( InterpolationDim!=0 ) if( interpolationConstraints )
-	{
-		unsigned int start = PoU ? _fineDim + (unsigned int)constraints.size() : (unsigned int)constraints.size();
-		for( unsigned int f=0 ; f<_fineDim ; f++ ) for( unsigned int d=0 ; d<InterpolationDim ; d++ )
-		{
-			unsigned int row = start + f*InterpolationDim + d;
-			for( unsigned int c=0 ; c<_coarseDim ; c++ )
-				cEntries.push_back( Eigen::Triplet< double >( row , _index(f,c) , interpolationConstraints[ _coarseIndices[c] ][d] ) );
-			_c[row] = interpolationConstraints[ _fineIndices[f] ][d];
-		}
-	}
-
-	_Q.setFromTriplets( qEntries.begin() , qEntries.end() );
-	_C.setFromTriplets( cEntries.begin() , cEntries.end() );
-
-	if( _c.size() ) _lcqo = LCQO( _Q , _q , _C , _c , true );
-	else            _lcqo = LCQO( _Q , _q );
 }
 
-template< bool PoU >
-unsigned int InterpolatingProlongationSystem< PoU >::_index( unsigned int fine , unsigned int coarse ) const
+unsigned int InterpolatingProlongationSystem::_index( unsigned int fine , unsigned int coarse ) const
 {
 	return fine + coarse*_fineDim;
 }
 
-template< bool PoU >
-Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_toMatrix( const Eigen::VectorXd &v ) const
+Eigen::MatrixXd InterpolatingProlongationSystem::_toMatrix( const Eigen::VectorXd &v ) const
 {
 	Eigen::MatrixXd P( _fineDim+_coarseDim , _coarseDim );
 	for( unsigned int i=0 ; i<_fineDim ; i++ ) for( unsigned int j=0 ; j<_coarseDim ; j++ ) P( _fineIndices[i] , j ) = v[ _index(i,j) ];
@@ -468,51 +502,183 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_toMatrix( const Eigen::
 	return P;
 }
 
-template< bool PoU >
-Eigen::VectorXd InterpolatingProlongationSystem< PoU >::_toVector( const Eigen::MatrixXd &P ) const
+Eigen::VectorXd InterpolatingProlongationSystem::_toVector( const Eigen::MatrixXd &P ) const
 {
 	Eigen::VectorXd v( _fineDim * _coarseDim );
 	for( unsigned int i=0 ; i<_fineDim ; i++ ) for( unsigned int j=0 ; j<_coarseDim ; j++ ) v[ _index(i,j) ] = P( _fineIndices[i] , j );
 	return v;
 }
 
-template< bool PoU >
-template< bool StableSolve >
-Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::prolongation( void ) const
+Eigen::MatrixXd InterpolatingProlongationSystem::prolongation( void ) const
 {
-	return _toMatrix( _lcqo.solve< StableSolve >() );
+	Eigen::VectorXd _x = Eigen::VectorXd::Zero( _fineDim*_coarseDim );
+
+	if( _isIndependent )
+	{
+		typedef Eigen::LDLT< Eigen::MatrixXd > Solver;
+
+		// Solve for the linear combination of vectors in the image that minimizes the energy
+		if( _hasImage )
+		{
+			Eigen::MatrixXd image_t = _image.transpose();
+			Solver solver( image_t * _Q * _image );
+
+			Eigen::VectorXd L( _fineDim );
+			for( unsigned int n=0 ; n<_coarseDim ; n++ )
+			{
+				for( unsigned int i=0 ; i<_fineDim ; i++ ) L[i] = _L[ _fineDim*n+i ];
+				Eigen::VectorXd x = _image * solver.solve( -image_t * L ); 
+				for( unsigned int i=0 ; i<_fineDim ; i++ ) _x[ _fineDim*n+i ] = x[i];
+			}
+		}
+
+		// Now solve for the offset in the kernel that minimizes the kernel energy
+		if( _hasKernel )
+		{
+			Eigen::MatrixXd kernel_t = _kernel.transpose();
+			Solver solver( kernel_t * _kQ * _kernel );
+
+			Eigen::VectorXd kL( _fineDim ) , x( _fineDim );
+
+			for( unsigned int n=0 ; n<_coarseDim ; n++ )
+			{
+				for( unsigned int i=0 ; i<_fineDim ; i++ ) kL[i] = _kL[ _fineDim*n+i ] , x[i] = _x[ _fineDim*n+i ];
+				Eigen::VectorXd __x = _kernel * solver.solve( - kernel_t * ( kL + _kQ * x ) ); 
+				for( unsigned int i=0 ; i<_fineDim ; i++ ) _x[ _fineDim*n+i ] += __x[i];
+			}
+		}
+	}
+	else
+	{
+		unsigned int dim = _coarseDim * _fineDim;
+
+		// Set the system matrix
+		Eigen::SparseMatrix< double > Q( dim , dim );
+		{
+			std::vector< Eigen::Triplet< double > > qEntries;
+			qEntries.reserve( _fineDim * _fineDim * _coarseDim );
+			for( unsigned int j=0 ; j<_fineDim ; j++ ) for( unsigned int k=0 ; k<_fineDim ; k++ ) if( _Q(j,k) )
+				for( unsigned int i=0 ; i<_coarseDim ; i++ ) qEntries.push_back( Eigen::Triplet< double >( _index(j,i) , _index(k,i) , _Q(j,k) ) );
+			Q.setFromTriplets( qEntries.begin() , qEntries.end() );
+		}
+
+		try{ _x = LCQO( Q , _L , _dependentSystem.C , _dependentSystem.c , true ).solve< true >(); }
+		catch( Misha::Exception &e )
+		{
+			std::cout << e.what() << std::endl;
+			ERROR_OUT( "Failed to solve initial" );
+		}
+
+		// Adjust within the kernel
+		if( _hasKernel )
+		{
+			unsigned int blockDim = (unsigned int)_kernel.cols();
+			unsigned int dim = _coarseDim * blockDim;
+			Eigen::MatrixXd kernel_t = _kernel.transpose();
+			Eigen::MatrixXd kQ = kernel_t * _kQ * _kernel;
+
+			Eigen::VectorXd L( dim );
+			Eigen::SparseMatrix< double > Q( dim , dim );
+			{
+				std::vector< Eigen::Triplet< double > > qEntries;
+				qEntries.reserve( blockDim * blockDim * _coarseDim );
+				for( unsigned int j=0 ; j<blockDim ; j++ ) for( unsigned int k=0 ; k<blockDim ; k++ ) if( kQ(j,k) )
+					for( unsigned int i=0 ; i<_coarseDim ; i++ ) qEntries.push_back( Eigen::Triplet< double >( i*blockDim+j , i*blockDim+k , kQ(j,k) ) );
+				Q.setFromTriplets( qEntries.begin() , qEntries.end() );
+
+				Eigen::VectorXd x( _fineDim ) , kL( _fineDim );
+				for( unsigned int i=0 ; i<_coarseDim ; i++ )
+				{
+					for( unsigned int j=0 ; j<_fineDim ; j++ ) x[j] = _x[ i*_fineDim + j ] , kL[j] = _kL[ i*_fineDim + j ];
+					Eigen::VectorXd l = kernel_t * ( kL + _kQ * x );
+					for( unsigned int j=0 ; j<blockDim ; j++ ) L[ i*blockDim + j ] = l[j];
+				}
+			}
+
+			Eigen::SparseMatrix< double > C( _dependentSystem.C.rows() , dim );
+			{
+				Eigen::MatrixXd kernel = Eigen::MatrixXd::Zero( _coarseDim*_fineDim , _coarseDim*blockDim );
+				for( unsigned int j=0 ; j<_kernel.rows() ; j++ ) for( unsigned int k=0 ; k<_kernel.cols() ; k++ ) for( unsigned int i=0 ; i<_coarseDim ; i++ )
+					kernel( i*_fineDim+j , i*blockDim+k ) = _kernel(j,k);
+				Eigen::MatrixXd _C = _dependentSystem.C * kernel;
+				std::vector< Eigen::Triplet< double > > cEntries;
+				cEntries.reserve( _C.rows() * _C.cols() );
+				for( unsigned int j=0 ; j<_C.rows() ; j++ ) for( unsigned int k=0 ; k<_C.cols() ; k++ ) if( _C(j,k) )
+					cEntries.push_back( Eigen::Triplet< double >( j , k , _C(j,k) ) );
+				C.setFromTriplets( cEntries.begin() , cEntries.end() );
+			}
+			Eigen::VectorXd c = Eigen::VectorXd::Zero( C.rows() );
+
+			try
+			{
+				Eigen::VectorXd __x = LCQO( Q , L , C , c , true ).solve< true >();
+
+				Eigen::VectorXd x( blockDim );
+				for( unsigned int i=0 ; i<_coarseDim ; i++ )
+				{
+					for( unsigned int j=0 ; j<blockDim ; j++ ) x[j] = __x[ i*blockDim + j ];
+					Eigen::VectorXd kx = _kernel * x;
+					for( unsigned int j=0 ; j<_fineDim ; j++ ) _x[ i*_fineDim + j ] += kx[j];
+				}
+			}
+			catch( Misha::Exception &e )
+			{
+				std::cout << e.what() << std::endl;
+				ERROR_OUT( "Failed to solve kernel" );
+			}
+		}
+	}
+
+	return _toMatrix( _x );
 }
 
-template< bool PoU >
-double InterpolatingProlongationSystem< PoU >::energy( const Eigen::MatrixXd &P ) const
+double InterpolatingProlongationSystem::energy( const Eigen::MatrixXd &P ) const
 {
 	if( P.rows()!=(_fineDim+_coarseDim) || P.cols()!=_coarseDim ) ERROR_OUT( "Bad dimensions: " , P.rows() , " x " , P.cols() , " != " , (_fineDim+_coarseDim) , " x " , _coarseDim );
-	Eigen::VectorXd v = _toVector( P );
-	Eigen::VectorXd Qv = _Q * v;
+	Eigen::VectorXd _v = _toVector( P );
+	Eigen::VectorXd v( _fineDim );
+
 	double e = 0;
-	for( unsigned int i=0 ; i<v.size() ; i++ ) e += v[i] * Qv[i] + 2 * v[i] * _q[i];
+	for( unsigned int n=0 ; n<_coarseDim ; n++ )
+	{
+		for( unsigned int i=0 ; i<_fineDim ; i++ ) v[i] = _v[ n*_fineDim+i ];
+		Eigen::VectorXd Qv = _Q * v;
+		for( unsigned int i=0 ; i<v.size() ; i++ ) e += v[i] * Qv[i] + 2 * v[i] * _L[ n*_fineDim+i ];
+	}
 	return e;
 }
 
-template< bool PoU >
+double InterpolatingProlongationSystem::kernelEnergy( const Eigen::MatrixXd &P ) const
+{
+	if( P.rows()!=(_fineDim+_coarseDim) || P.cols()!=_coarseDim ) ERROR_OUT( "Bad dimensions: " , P.rows() , " x " , P.cols() , " != " , (_fineDim+_coarseDim) , " x " , _coarseDim );
+	Eigen::VectorXd _v = _toVector( P );
+	Eigen::VectorXd v( _fineDim );
+
+	double e = 0;
+	for( unsigned int n=0 ; n<_coarseDim ; n++ )
+	{
+		for( unsigned int i=0 ; i<_fineDim ; i++ ) v[i] = _v[ n*_fineDim+i ];
+		Eigen::VectorXd kQv = _kQ * v;
+		for( unsigned int i=0 ; i<v.size() ; i++ ) e += v[i] * kQv[i] + 2 * v[i] * _kL[ n*_fineDim+i ];
+	}
+	return e;
+}
 template< unsigned int Dim , unsigned int Degree >
-void InterpolatingProlongationSystem< PoU >::HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim )
+void InterpolatingProlongationSystem::HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim )
 {
 	SimplexRefinableElements< Dim , Degree > sre( simplexRefinableCell );
-	_HierarchicalProlongation< Dim , Degree >( simplexRefinableCell , sre , eWeights , &pInfo[0] , finestDim );
+	_HierarchicalProlongation< Dim , Degree >( simplexRefinableCell , sre , eWeights , forcePoU , &pInfo[0] , finestDim );
 }
 
-template< bool PoU >
 template< unsigned int Dim , unsigned int Degree , unsigned int EmbeddingDimension >
-void InterpolatingProlongationSystem< PoU >::HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim )
+void InterpolatingProlongationSystem::HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim )
 {
 	SimplexRefinableElements< Dim , Degree > sre( simplexRefinableCell );
-	_HierarchicalProlongation< Dim , Degree , EmbeddingDimension >( simplexRefinableCell , sre , eWeights , positionFunctor , planarityEpsilon , &pInfo[0] , finestDim );
+	_HierarchicalProlongation< Dim , Degree , EmbeddingDimension >( simplexRefinableCell , sre , eWeights , forcePoU , positionFunctor , planarityEpsilon , &pInfo[0] , finestDim );
 }
 
-template< bool PoU >
 template< unsigned int Dim , unsigned int Degree >
-void InterpolatingProlongationSystem< PoU >::_HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , ProlongationInfo< Degree > *pInfo , unsigned int finestDim )
+void InterpolatingProlongationSystem::_HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , ProlongationInfo< Degree > *pInfo , unsigned int finestDim )
 {
 	typedef typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
 	static const unsigned int CoarseDim = Dim-1;
@@ -545,7 +711,7 @@ void InterpolatingProlongationSystem< PoU >::_HierarchicalProlongation( const Si
 
 			// Compute the prolongation information for the coarser resolutions
 			_pInfo[f].resize( finestDim+1 );
-			_HierarchicalProlongation( _simplexRefinableCell , _sre , eWeights , &_pInfo[f][0] , finestDim );
+			_HierarchicalProlongation( _simplexRefinableCell , _sre , eWeights , forcePoU , &_pInfo[f][0] , finestDim );
 
 			// Merge the list of node multi-indices
 			for( unsigned int d=0 ; d<CoarseDim && d<=finestDim ; d++ )	for( auto nmi : _pInfo[f][d].coarseMultiIndices ) nodeMaps[d][nmi] = 0;
@@ -625,13 +791,12 @@ void InterpolatingProlongationSystem< PoU >::_HierarchicalProlongation( const Si
 	// Then compute the prolongation at the finest level
 	std::vector< unsigned int > coarseIndices( coarseMultiIndices.size() );
 	for( unsigned int i=0 ; i<coarseMultiIndices.size() ; i++ ) coarseIndices[i] = sre.nodeIndex( coarseMultiIndices[i] );
-	if( CoarseDim<=finestDim ) pInfo[CoarseDim].P = _BoundaryProlongation( simplexRefinableCell , sre , eWeights , coarseIndices );
-	else                       pInfo[finestDim].P = _BoundaryProlongation( simplexRefinableCell , sre , eWeights , coarseIndices , pInfo[finestDim].P );
+	if( CoarseDim<=finestDim ) pInfo[CoarseDim].P = _BoundaryProlongation( simplexRefinableCell , sre , eWeights , forcePoU , coarseIndices );
+	else                       pInfo[finestDim].P = _BoundaryProlongation( simplexRefinableCell , sre , eWeights , forcePoU , coarseIndices , pInfo[finestDim].P );
 }
 
-template< bool PoU >
 template< unsigned int Dim , unsigned int Degree >
-Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , const std::vector< unsigned int > &coarseIndices )
+Eigen::MatrixXd InterpolatingProlongationSystem::_BoundaryProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , const std::vector< unsigned int > &coarseIndices )
 {
 	typedef typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
 
@@ -646,15 +811,15 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 	};
 
 	// Get the energy matrix
-	Eigen::MatrixXd E = sre.systemMatrix( eType );
+	Eigen::MatrixXd E = sre.systemMatrix( eType.weights.weights , eType.isIntegrationFaceFunctor );
+	Eigen::MatrixXd kE = sre.systemMatrix( eType.weights.kWeights , eType.isIntegrationFaceFunctor );
 
 	// Get the prolongation
-	return InterpolatingProlongationSystem( E , coarseIndices ).prolongation< false >();
+	return InterpolatingProlongationSystem( E , kE , coarseIndices , forcePoU ).prolongation();
 }
 
-template< bool PoU >
 template< unsigned int Dim , unsigned int Degree >
-Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , const std::vector< unsigned int > &coarseIndices , const Eigen::MatrixXd &coarseP )
+Eigen::MatrixXd InterpolatingProlongationSystem::_BoundaryProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , const std::vector< unsigned int > &coarseIndices , const Eigen::MatrixXd &coarseP )
 {
 	// Conceptually, we can break up the set of nodes into three parts:
 	// 1. base nodes (# = coarseP.cols)
@@ -675,7 +840,8 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 		return false;
 	};
 
-	Eigen::MatrixXd fineE = sre.systemMatrix( eType );
+	Eigen::MatrixXd fineE = sre.systemMatrix( eType.weights.weights , eType.isIntegrationFaceFunctor );
+	Eigen::MatrixXd fineKE = sre.systemMatrix( eType.weights.kWeights , eType.isIntegrationFaceFunctor );
 
 	// Compute the subset of element indices that are not in the coarse index set.
 	std::vector< unsigned int > fineIndices;
@@ -693,11 +859,12 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 
 	// Get the energy matrix for: base + fine
 	Eigen::MatrixXd E = _P.transpose() * fineE * _P;
+	Eigen::MatrixXd kE = _P.transpose() * fineKE * _P;
 
 	// Get the relative prolongation: coarse -> coase + fine
 	std::vector< unsigned int > _coarseIndices( coarseP.cols() );
 	for( unsigned int i=0 ; i<_coarseIndices.size() ; i++ ) _coarseIndices[i] = i;
-	_P = InterpolatingProlongationSystem( E , _coarseIndices ).prolongation< false >();
+	_P = InterpolatingProlongationSystem( E , kE , _coarseIndices , forcePoU ).prolongation();
 
 	// Extend to the complete prolongation: coarse -> coarse + middle + fine
 	Eigen::MatrixXd P = Eigen::MatrixXd::Zero( sre.size() , _P.cols() );
@@ -710,9 +877,8 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 	return P;
 }
 
-template< bool PoU >
 template< unsigned int Dim , unsigned int Degree , unsigned int EmbeddingDimension >
-void InterpolatingProlongationSystem< PoU >::_HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , ProlongationInfo< Degree > *pInfo , unsigned int finestDim )
+void InterpolatingProlongationSystem::_HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , ProlongationInfo< Degree > *pInfo , unsigned int finestDim )
 {
 	typedef typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
 	static const unsigned int CoarseDim = Dim-1;
@@ -745,7 +911,7 @@ void InterpolatingProlongationSystem< PoU >::_HierarchicalProlongation( const Si
 
 			// Compute the prolongation information for the coarser resolutions
 			_pInfo[f].resize( finestDim+1 );
-			_HierarchicalProlongation( _simplexRefinableCell , _sre , eWeights , positionFunctor , planarityEpsilon , &_pInfo[f][0] , finestDim );
+			_HierarchicalProlongation( _simplexRefinableCell , _sre , eWeights , forcePoU , positionFunctor , planarityEpsilon , &_pInfo[f][0] , finestDim );
 
 			// Merge the list of node multi-indices
 			for( unsigned int d=0 ; d<CoarseDim && d<=finestDim ; d++ )	for( auto nmi : _pInfo[f][d].coarseMultiIndices ) nodeMaps[d][nmi] = 0;
@@ -825,14 +991,12 @@ void InterpolatingProlongationSystem< PoU >::_HierarchicalProlongation( const Si
 	// Then compute the prolongation at the finest level
 	std::vector< unsigned int > coarseIndices( coarseMultiIndices.size() );
 	for( unsigned int i=0 ; i<coarseMultiIndices.size() ; i++ ) coarseIndices[i] = sre.nodeIndex( coarseMultiIndices[i] );
-	if( CoarseDim<=finestDim ) pInfo[CoarseDim].P = _BoundaryProlongation( simplexRefinableCell , sre , eWeights , positionFunctor , planarityEpsilon , coarseIndices );
-	else                       pInfo[finestDim].P = _BoundaryProlongation( simplexRefinableCell , sre , eWeights , positionFunctor , planarityEpsilon , coarseIndices , pInfo[finestDim].P );
+	if( CoarseDim<=finestDim ) pInfo[CoarseDim].P = _BoundaryProlongation( simplexRefinableCell , sre , eWeights , forcePoU , positionFunctor , planarityEpsilon , coarseIndices );
+	else                       pInfo[finestDim].P = _BoundaryProlongation( simplexRefinableCell , sre , eWeights , forcePoU , positionFunctor , planarityEpsilon , coarseIndices , pInfo[finestDim].P );
 }
 
-template< bool PoU >
 template< unsigned int Dim , unsigned int Degree , unsigned int EmbeddingDimension >
-Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , const std::vector< unsigned int > &coarseIndices )
-
+Eigen::MatrixXd InterpolatingProlongationSystem::_BoundaryProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , const std::vector< unsigned int > &coarseIndices )
 {
 	typedef typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
 
@@ -847,67 +1011,21 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 	};
 
 	// Get the energy matrix
-	Eigen::MatrixXd E = sre.template systemMatrix< EmbeddingDimension >( eType , positionFunctor );
+	Eigen::MatrixXd E = sre.systemMatrix( eType.weights.weights , eType.isIntegrationFaceFunctor );
+	Eigen::MatrixXd kE = sre.systemMatrix( eType.weights.kWeights , eType.isIntegrationFaceFunctor );
 
 	// Get the prolongation
-	if constexpr( Dim<EmbeddingDimension )
+	if( IsPlanar( simplexRefinableCell , positionFunctor , planarityEpsilon ) ) return InterpolatingProlongationSystem( E , kE , coarseIndices , forcePoU ).prolongation();
+	else
 	{
-		if( planarityEpsilon>0 )
-		{
-			unsigned int count = 0;
-			Point< double , EmbeddingDimension > c;
-			SquareMatrix< double , EmbeddingDimension > cov;
-			for( unsigned int i=0 ; i<simplexRefinableCell.size() ; i++ )
-			{
-				SimplexIndex< Dim , unsigned int > si = simplexRefinableCell[i];
-				for( unsigned int d=0 ; d<=Dim ; d++ ) c += positionFunctor( si[d] ) , count++;
-			}
-			c /= (double) count;
-			for( unsigned int i=0 ; i<simplexRefinableCell.size() ; i++ )
-			{
-				SimplexIndex< Dim , unsigned int > si = simplexRefinableCell[i];
-				for( unsigned int d=0 ; d<=Dim ; d++ )
-				{
-					Point< double , EmbeddingDimension > p = positionFunctor( si[d] ) - c;
-					for( unsigned int j=0 ; j<EmbeddingDimension ; j++ ) for( unsigned int k=0 ; k<EmbeddingDimension ; k++ ) cov(j,k) += p[j] * p[k];
-				}
-			}
-			Polynomial::Polynomial< 1 , Dim , double > cPoly = cov.characteristicPolynomial();
-			bool planar = true;
-			for( unsigned int i=0 ; i<(EmbeddingDimension-Dim) ; i++ ) if( fabs( cPoly.coefficient(i) )>planarityEpsilon ) planar = false;
-			if( planar ) return InterpolatingProlongationSystem( E , coarseIndices ).prolongation< false >();
-			else
-			{
-				std::vector< Point< double , EmbeddingDimension > > interpolationConstraints( sre.size() );
-				for( unsigned int i=0 ; i<sre.size() ; i++ )
-				{
-					const NodeMultiIndex &nmi = sre[i];
-					Point< double , EmbeddingDimension > p;
-					for( unsigned int d=0 ; d<Degree ; d++ ) p += positionFunctor( nmi[d] );
-					interpolationConstraints[i] = p / Degree;
-				}
-				return InterpolatingProlongationSystem( E , coarseIndices , &interpolationConstraints[0] ).prolongation< true >();
-			}
-		}
-		else
-		{
-			std::vector< Point< double , EmbeddingDimension > > interpolationConstraints( sre.size() );
-			for( unsigned int i=0 ; i<sre.size() ; i++ )
-			{
-				const NodeMultiIndex &nmi = sre[i];
-				Point< double , EmbeddingDimension > p;
-				for( unsigned int d=0 ; d<Degree ; d++ ) p += positionFunctor( nmi[d] );
-				interpolationConstraints[i] = p / Degree;
-			}
-			return InterpolatingProlongationSystem( E , coarseIndices , &interpolationConstraints[0] ).prolongation< true >();
-		}
+		if( !forcePoU ) WARN_ONCE( "Forcing partition of unity for non-planar cell with linear interpolation" );
+		std::vector< Point< double , EmbeddingDimension > > interpolationConstraints = _InterpolationConstraints( sre , positionFunctor );
+		return InterpolatingProlongationSystem( E , kE , coarseIndices , true , &interpolationConstraints[0] ).prolongation();
 	}
-	else return InterpolatingProlongationSystem( E , coarseIndices ).prolongation< false >();
 }
 
-template< bool PoU >
 template< unsigned int Dim , unsigned int Degree , unsigned int EmbeddingDimension >
-Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , const std::vector< unsigned int > &coarseIndices , const Eigen::MatrixXd &coarseP )
+Eigen::MatrixXd InterpolatingProlongationSystem::_BoundaryProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , const SimplexRefinableElements< Dim , Degree > &sre , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , const std::vector< unsigned int > &coarseIndices , const Eigen::MatrixXd &coarseP )
 {
 	typedef typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
 	if( coarseP.rows()!=coarseIndices.size() ) ERROR_OUT( "Dimensional mismatch: " , coarseP.rows() , " != "  , coarseIndices.size() );
@@ -922,7 +1040,8 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 		return false;
 	};
 
-	Eigen::MatrixXd fineE = sre.systemMatrix( eType , positionFunctor );
+	Eigen::MatrixXd fineE = sre.systemMatrix( eType.weights.weights , eType.isIntegrationFaceFunctor );
+	Eigen::MatrixXd fineKE = sre.systemMatrix( eType.weights.kWeights , eType.isIntegrationFaceFunctor );
 
 	// Compute the subset of element indices that are not in the coarse index set.
 	// [NOTE] The set of indices in the coarse index set can be larger than the number of columns in coarseP
@@ -941,11 +1060,12 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 
 	// Get the energy matrix
 	Eigen::MatrixXd E = _P.transpose() * fineE * _P;
+	Eigen::MatrixXd kE = _P.transpose() * fineKE * _P;
 
 	// Get the relative prolongation
 	std::vector< unsigned int > _coarseIndices( coarseP.cols() );
 	for( unsigned int i=0 ; i<_coarseIndices.size() ; i++ ) _coarseIndices[i] = i;
-	_P = InterpolatingProlongationSystem( E , _coarseIndices ).prolongation< false >();
+	_P = InterpolatingProlongationSystem( E , kE , _coarseIndices , forcePoU ).prolongation();
 
 	// Extend the relative prolongation to the complete prolongation
 	Eigen::MatrixXd P = Eigen::MatrixXd::Zero( sre.size() , _P.cols() );
@@ -958,9 +1078,8 @@ Eigen::MatrixXd InterpolatingProlongationSystem< PoU >::_BoundaryProlongation( c
 	return P;
 }
 
-template< bool PoU >
 template< unsigned int Dim , unsigned int Degree >
-void InterpolatingProlongationSystem< PoU >::_SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , std::map< typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex , unsigned int > nodeMaps[Dim+1] )
+void InterpolatingProlongationSystem::_SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , std::map< typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex , unsigned int > nodeMaps[Dim+1] )
 {
 	__SetNodeMaps< Dim , Degree >( simplexRefinableCell , nodeMaps );
 
@@ -973,9 +1092,8 @@ void InterpolatingProlongationSystem< PoU >::_SetNodeMaps( const SimplexRefinabl
 	}
 }
 
-template< bool PoU >
 template< unsigned int Dim , unsigned int Degree >
-void InterpolatingProlongationSystem< PoU >::__SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , std::map< typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex , unsigned int > nodeMaps[Dim+1] )
+void InterpolatingProlongationSystem::__SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , std::map< typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex , unsigned int > nodeMaps[Dim+1] )
 {
 	typedef typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
 

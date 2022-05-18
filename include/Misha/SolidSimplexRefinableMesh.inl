@@ -30,25 +30,25 @@ DAMAGE.
 // HierarchicalSolidSimplexRefinableCellMesh //
 ///////////////////////////////////////////////
 template< unsigned int Dim , unsigned int Degree >
-template< bool PoU , typename SimplexRefinableCellType >
-HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree > HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool linearPrecision , double planarityEpsilon , bool verbose )
+template< typename SimplexRefinableCellType >
+HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree > HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , bool linearPrecision , double planarityEpsilon , bool verbose )
 {
-	return Init< PoU >( cellList , vFunction , eWeights , Dim , linearPrecision , planarityEpsilon , verbose );
+	return Init( cellList , vFunction , eWeights , Dim , forcePoU , linearPrecision , planarityEpsilon , verbose );
 }
 
 template< unsigned int Dim , unsigned int Degree >
-template< bool PoU , typename SimplexRefinableCellType >
-HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree > HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool linearPrecision , double planarityEpsilon , bool verbose )
+template< typename SimplexRefinableCellType >
+HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree > HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool forcePoU , bool linearPrecision , double planarityEpsilon , bool verbose )
 {
 	static_assert( std::is_base_of< SimplexRefinable< Dim > , SimplexRefinableCellType >::value , "[ERROR] SimplexRefinableCellType must derive from SimplexRefinable" );
 	HierarchicalSolidSimplexRefinableCellMesh ssrcm;
-	ssrcm.template _init< PoU >( cellList , vFunction , eWeights , finestDim , linearPrecision , planarityEpsilon , verbose );
+	ssrcm._init( cellList , vFunction , eWeights , finestDim , forcePoU , linearPrecision , planarityEpsilon , verbose );
 	return ssrcm;
 }
 
 template< unsigned int Dim , unsigned int Degree >
-template< bool PoU , typename SimplexRefinableCellType >
-void HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::_init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool linearPrecision , double planarityEpsilon , bool verbose )
+template< typename SimplexRefinableCellType >
+void HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::_init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool forcePoU , bool linearPrecision , double planarityEpsilon , bool verbose )
 {
 	// Start by constructing the underlying SolidSimplexMesh
 	{
@@ -74,8 +74,8 @@ void HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::_init( const Cel
 	{
 		Timer timer;
 		HierarchicalSimplexRefinableCellMesh< Dim , Degree > srm;
-		if( linearPrecision ) srm = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< PoU >( cellList , eWeights , vFunction , planarityEpsilon , finestDim , verbose );
-		else                  srm = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< PoU >( cellList , eWeights , finestDim , verbose );
+		if( linearPrecision ) srm = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , forcePoU , vFunction , planarityEpsilon , finestDim , verbose );
+		else srm = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , forcePoU , finestDim , verbose );
 		if( verbose ) std::cout << "Got simplex refinable cell mesh: " << timer.elapsed() << std::endl;
 		_prolongationAndNodeMap.resize( srm.maxLevel() );
 		for( unsigned int l=0 ; l<srm.maxLevel() ; l++ )

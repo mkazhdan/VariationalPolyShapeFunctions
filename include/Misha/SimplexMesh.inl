@@ -149,7 +149,6 @@ Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::crossFaceGradientEner
 	//	NodesPerSimplex nodes associated with each simplex (some of which will be double-counted)
 	entries.reserve( _simplices.size() * (Dim+1) * ( 2 * NodesPerSimplex ) * ( 2 * NodesPerSimplex ) );
 
-#if 1
 	// Functionality for returning the multi-index associated with a face of a simplex
 	auto GetFaceMultiIndex = [&]( unsigned int s , unsigned int f , Permutation< Dim > &p )
 	{
@@ -212,69 +211,7 @@ Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::crossFaceGradientEner
 			for( unsigned int d=0 ; d<Dim ; d++ ) value += RightSimplex< Dim-1 >::Integral( g1[d] * g2[d] , faceMetrics[f] );
 			entries.push_back( Eigen::Triplet< double >( i1 , i2 , value ) );
 		}
-#else
-	// Functionality for returning the multi-index associated with a face of a simplex
-	auto GetFaceMultiIndex = [&]( unsigned int s , unsigned int f , bool &evenParity )
-	{
-		SimplexIndex< Dim-1 , unsigned int > faceIndex = RightSimplex< Dim >::Face( f );
-		evenParity = faceIndex.sort( &_simplices[s][0] );
-		for( unsigned int d=0 ; d<Dim ; d++ ) faceIndex[d] = _simplices[s][ faceIndex[d] ];
-		return FaceMultiIndex( &faceIndex[0] );
-	};
 
-	// A mapping from simplex faces to indices
-	std::map< FaceMultiIndex , unsigned int > faceMap;
-	{
-		bool evenParity;
-		for( unsigned int s=0 ; s<_simplices.size() ; s++ )	for( unsigned int f=0 ; f<=Dim ; f++ ) faceMap[ GetFaceMultiIndex( s , f , evenParity ) ] = 0;
-
-		unsigned int faceCount = 0;
-		for( auto & [ mIdx , idx ] : faceMap ) idx = faceCount++;
-	}
-
-	// The per face gradient components of the node functions
-	std::vector< std::map< unsigned int , Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > > > faceGradientComponents( faceMap.size() );
-	// The per face metrics
-	std::vector< SquareMatrix< double , Dim-1 > > faceMetrics( faceMap.size() );
-
-	for( unsigned int s=0 ; s<_simplices.size() ; s++ )
-	{
-		// Compute the gradient components and metrics for the faces
-		Matrix< Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > , SimplexElements< Dim , Degree >::NodeNum , Dim+1 > _faceGradientComponents;
-		Point< SquareMatrix< double , Dim-1 > , Dim+1 > _faceMetrics;
-
-		_faceGradientComponents = SimplexElements< Dim , Degree >::FaceGradientComponents( _g[s] , &_simplices[s][0] );
-		_faceMetrics = SimplexElements< Dim , Degree >::FaceMetrics( _g[s] , &_simplices[s][0] );
-
-		for( unsigned int f=0 ; f<=Dim ; f++ )
-		{
-			bool evenParity;
-			FaceMultiIndex fmi = GetFaceMultiIndex( s , f , evenParity );
-			if( useFaceFunctor(fmi) )
-			{
-				unsigned int fi = faceMap[fmi];
-
-				// Accumulate the metrices and (signed) gradient components
-				faceMetrics[fi] += _faceMetrics[f]/2;
-				for( unsigned int n=0 ; n<SimplexElements< Dim , Degree >::NodeNum ; n++ )
-				{
-					Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > &gComponents = faceGradientComponents[fi][ nodeIndex( s , n ) ];
-					for( unsigned int d=0 ; d<Dim ; d++ )
-						if( evenParity ) gComponents[d] += _faceGradientComponents(n,f)[d];
-						else             gComponents[d] -= _faceGradientComponents(n,f)[d];
-				}
-			}
-		}
-	}
-
-	for( unsigned int f=0 ; f<faceGradientComponents.size() ; f++ )
-		for( const auto & [ i1 , g1 ]: faceGradientComponents[f] ) for( const auto & [ i2 , g2 ] : faceGradientComponents[f] )
-		{
-			double value = 0;
-			for( unsigned int d=0 ; d<Dim ; d++ ) value += RightSimplex< Dim-1 >::Integral( g1[d] * g2[d] , faceMetrics[f] );
-			entries.push_back( Eigen::Triplet< double >( i1 , i2 , value ) );
-		}
-#endif
 	Eigen::SparseMatrix< double > E( nodes() , nodes() );
 	E.setFromTriplets( entries.begin() , entries.end() );
 	return E;

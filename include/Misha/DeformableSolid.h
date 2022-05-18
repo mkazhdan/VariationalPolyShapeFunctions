@@ -124,7 +124,6 @@ DeformableSolid< Dim , Degree , SolidMesh , Hierarchical >::DeformableSolid( con
 
 //	timer.reset();
 
-#ifdef NEW_SOLID_SYSTEM_MATRIX
 	if constexpr( Hierarchical )
 	{
 		_P = _solidMesh.P( _solidMesh.maxLevel() , _solidMesh.maxLevel()-1 );
@@ -138,11 +137,6 @@ DeformableSolid< Dim , Degree , SolidMesh , Hierarchical >::DeformableSolid( con
 		_traceS = _Pt * traceS * _P;
 	}
 	else _solidMesh.setMassFrobeniusStiffnessAndTraceStiffnessMatrices( _M , _frobeniusS , _traceS );
-#else // !NEW_SOLID_SYSTEM_MATRIX
-	_M = _solidMesh.massMatrix();
-	_frobeniusS = _solidMesh.frobeniusStiffnessMatrix();
-	_traceS = _solidMesh.traceStiffnessMatrix();
-#endif // NEW_SOLID_SYSTEM_MATRIX
 //	if( verbose ) std::cout << "Got deformable solid system matrices: " << timer.elapsed() << std::endl;
 	if constexpr( Hierarchical )
 	{

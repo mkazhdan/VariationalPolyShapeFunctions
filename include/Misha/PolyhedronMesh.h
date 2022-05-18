@@ -222,12 +222,8 @@ namespace Meshes
 		{
 			std::function< SimplexRefinablePolyhedron (unsigned int) > cellFunctor = [&]( unsigned int c ){ return simplexRefinable( c , fullVertexPositionFunction ); };
 			typename HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template CellList< SimplexRefinablePolyhedron > cellList( (unsigned int)_polyhedra.size() , cellFunctor );
-			if( forceLinearPrecision )
-				if( pou ) return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , eWeights , fullVertexPositionFunction , planarityEpsilon , finestNodeDim , verbose );
-				else      return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , eWeights , fullVertexPositionFunction , planarityEpsilon , finestNodeDim , verbose );
-			else
-				if( pou ) return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , eWeights , finestNodeDim , verbose );
-				else      return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , eWeights , finestNodeDim , verbose );
+			if( forceLinearPrecision ) return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , pou , fullVertexPositionFunction , planarityEpsilon , finestNodeDim , verbose );
+			else                       return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , pou , finestNodeDim , verbose );
 		}
 
 		template< unsigned int Degree , unsigned int EmbeddingDimension >
@@ -244,12 +240,8 @@ namespace Meshes
 		{
 			std::function< SimplexRefinablePolyhedron (unsigned int) > cellFunctor = [&]( unsigned int c ){ return simplexRefinable( c , fullVertexPositionFunction ); };
 			typename HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template CellList< SimplexRefinablePolyhedron > cellList( (unsigned int)_polyhedra.size() , cellFunctor );
-			if( forceLinearPrecision )
-				if( pou ) return SimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , eWeights , fullVertexPositionFunction , planarityEpsilon , finestNodeDim , verbose );
-				else      return SimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , eWeights , fullVertexPositionFunction , planarityEpsilon , finestNodeDim , verbose );
-			else
-				if( pou ) return SimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , eWeights , finestNodeDim , verbose );
-				else      return SimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , eWeights , finestNodeDim , verbose );
+			if( forceLinearPrecision ) return SimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , pou , fullVertexPositionFunction , planarityEpsilon , finestNodeDim , verbose );
+			else                       return SimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , pou , finestNodeDim , verbose );
 		}
 
 		// Create a solid simplex-refinable cell mesh, with:
@@ -271,8 +263,7 @@ namespace Meshes
 		{
 			std::function< SimplexRefinablePolyhedron (unsigned int) > cellFunctor = [&]( unsigned int c ){ return simplexRefinable( c , fullVertexPositionFunction ); };
 			typename HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template CellList< SimplexRefinablePolyhedron > cellList( (unsigned int)_polyhedra.size() , cellFunctor );
-			if( pou ) return HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , forceLinearPrecision , planarityEpsilon , verbose );
-			else      return HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , forceLinearPrecision , planarityEpsilon , verbose );
+			return HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , pou , forceLinearPrecision , planarityEpsilon , verbose );
 		}
 
 		template< unsigned int Degree >
@@ -289,8 +280,7 @@ namespace Meshes
 		{
 			std::function< SimplexRefinablePolyhedron (unsigned int) > cellFunctor = [&]( unsigned int c ){ return simplexRefinable( c , fullVertexPositionFunction ); };
 			typename HierarchicalSimplexRefinableCellMesh< Dim , Degree >::template CellList< SimplexRefinablePolyhedron > cellList( (unsigned int)_polyhedra.size() , cellFunctor );
-			if( pou ) return SolidSimplexRefinableCellMesh< Dim , Degree >::template Init< true  >( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , forceLinearPrecision , planarityEpsilon , verbose );
-			else      return SolidSimplexRefinableCellMesh< Dim , Degree >::template Init< false >( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , forceLinearPrecision , planarityEpsilon , verbose );
+			return SolidSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , fullVertexPositionFunction , eWeights , finestNodeDim , pou , forceLinearPrecision , planarityEpsilon , verbose );
 		}
 
 	protected:

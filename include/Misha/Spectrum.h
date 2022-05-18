@@ -157,14 +157,6 @@ Spectrum< Real >::Spectrum( const Eigen::SparseMatrix< Real > &M , const Eigen::
 		std::vector< Real > w( M.rows() );
 		for( int j=0 ; j<evecs.rows() ; j++ ) w[j] = evecs(j,i);
 		op.perform_op( &w[0] , &_eigenvectors[i][0] );
-#if 0
-		Real l2Norm = 0;
-#pragma omp parallel for reduction( + : l2Norm )
-		for( int j=0 ; j<M.rows() ; j++ ) for( int k=0 ; k<M.rowSizes[j] ; k++ ) l2Norm += M[j][k].Value * _eigenvectors[i][j] * _eigenvectors[i][ M[j][k].N ];
-		l2Norm = (Real)sqrt( l2Norm );
-#pragma omp parallel for
-		for( int j=0 ; j<_eigenvectors[i].size() ; j++ ) _eigenvectors[i][j] /= l2Norm;
-#endif
 	}
 }
 #endif // SPECTRUM_INCLUDED

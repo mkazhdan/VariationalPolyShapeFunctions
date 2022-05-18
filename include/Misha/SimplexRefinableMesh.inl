@@ -2,53 +2,53 @@
 // HierarchicalSimplexRefinableCellMesh //
 //////////////////////////////////////////
 template< unsigned int Dim , unsigned int Degree >
-template< bool PoU , typename SimplexRefinableCellType >
-HierarchicalSimplexRefinableCellMesh< Dim , Degree > HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool verbose )
+template< typename SimplexRefinableCellType >
+HierarchicalSimplexRefinableCellMesh< Dim , Degree > HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , bool verbose )
 {
-	return Init< PoU >( cellList , eWeights , Dim , verbose );
+	return Init( cellList , eWeights , pou , Dim , verbose );
 }
 
 template< unsigned int Dim , unsigned int Degree >
-template< bool PoU , typename SimplexRefinableCellType >
-HierarchicalSimplexRefinableCellMesh< Dim , Degree > HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool verbose )
+template< typename SimplexRefinableCellType >
+HierarchicalSimplexRefinableCellMesh< Dim , Degree > HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , unsigned int finestDim , bool verbose )
 {
 	static_assert( std::is_base_of< SimplexRefinableCell< Dim > , SimplexRefinableCellType >::value , "[ERROR] SimplexRefinableCellType must derive from SimplexRefinableCell" );
 	HierarchicalSimplexRefinableCellMesh srcm;
-	srcm.template _init< PoU >( cellList , eWeights , finestDim , verbose );
+	srcm._init( cellList , eWeights , pou , finestDim , verbose );
 	return srcm;
 }
 
 template< unsigned int Dim , unsigned int Degree >
-template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
-HierarchicalSimplexRefinableCellMesh< Dim , Degree > HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , bool verbose )
+template< typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
+HierarchicalSimplexRefinableCellMesh< Dim , Degree > HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , bool verbose )
 {
-	return Init< PoU >( cellList , eWeights , positionFunctor , planarityEpsilon , Dim , verbose );
+	return Init( cellList , eWeights , pou , positionFunctor , planarityEpsilon , Dim , verbose );
 }
 
 template< unsigned int Dim , unsigned int Degree >
-template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
-HierarchicalSimplexRefinableCellMesh< Dim , Degree > HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose )
+template< typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
+HierarchicalSimplexRefinableCellMesh< Dim , Degree > HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose )
 {
 	static_assert( std::is_base_of< SimplexRefinableCell< Dim > , SimplexRefinableCellType >::value , "[ERROR] SimplexRefinableCellType must derive from SimplexRefinableCell" );
 	HierarchicalSimplexRefinableCellMesh srcm;
-	srcm.template _init< PoU >( cellList , eWeights , positionFunctor , planarityEpsilon , finestDim , verbose );
+	srcm._init( cellList , eWeights , pou , positionFunctor , planarityEpsilon , finestDim , verbose );
 	return srcm;
 }
 
 template< unsigned int Dim , unsigned int Degree >
-template< bool PoU , typename SimplexRefinableCellType >
-void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool verbose )
+template< typename SimplexRefinableCellType >
+void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , unsigned int finestDim , bool verbose )
 {
-	_setSimplexMesh           <       SimplexRefinableCellType >( cellList ,                        verbose );
-	_setProlongationAndNodeMap< PoU , SimplexRefinableCellType >( cellList , eWeights , finestDim , verbose );
+	_setSimplexMesh           < SimplexRefinableCellType >( cellList ,                              verbose );
+	_setProlongationAndNodeMap< SimplexRefinableCellType >( cellList , eWeights , pou , finestDim , verbose );
 }
 
 template< unsigned int Dim , unsigned int Degree >
-template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
-void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose )
+template< typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
+void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose )
 {
-	_setSimplexMesh           <       SimplexRefinableCellType >( cellList ,                                                             verbose );
-	_setProlongationAndNodeMap< PoU , SimplexRefinableCellType >( cellList , eWeights , positionFunctor , planarityEpsilon , finestDim , verbose );
+	_setSimplexMesh           < SimplexRefinableCellType >( cellList ,                                                                   verbose );
+	_setProlongationAndNodeMap< SimplexRefinableCellType >( cellList , eWeights , pou , positionFunctor , planarityEpsilon , finestDim , verbose );
 }
 
 template< unsigned int Dim , unsigned int Degree >
@@ -91,8 +91,8 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setSimplexMesh( cons
 }
 
 template< unsigned int Dim , unsigned int Degree >
-template< bool PoU , typename SimplexRefinableCellType >
-void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestDim , bool verbose )
+template< typename SimplexRefinableCellType >
+void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , unsigned int finestDim , bool verbose )
 {
 	_prolongationAndNodeMap.resize( finestDim+1 );
 
@@ -118,8 +118,8 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 			unsigned int tIdx = omp_get_thread_num();
 			SimplexRefinableCellType simplexRefinable = cellList[c];
 			SimplexRefinableElements< Dim , Degree > sre( simplexRefinable );
-			typename InterpolatingProlongationSystem< PoU >::template ProlongationInfo< Degree > pInfo[Dim];
-			InterpolatingProlongationSystem< PoU >::template HierarchicalProlongation< Dim , Degree >( simplexRefinable , eWeights , pInfo , finestDim );
+			typename InterpolatingProlongationSystem::template ProlongationInfo< Degree > pInfo[Dim];
+			InterpolatingProlongationSystem::template HierarchicalProlongation< Dim , Degree >( simplexRefinable , eWeights , pou , pInfo , finestDim );
 			for( unsigned int d=0 ; d<Dim && d<=finestDim ; d++ )
 			{
 				const std::vector< NodeMultiIndex > &coarseMultiIndices = pInfo[d].coarseMultiIndices;
@@ -172,8 +172,8 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 }
 
 template< unsigned int Dim , unsigned int Degree >
-template< bool PoU , typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
-void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose )
+template< typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
+void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose )
 {
 	_prolongationAndNodeMap.resize( finestDim+1 );
 
@@ -199,8 +199,8 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 			unsigned int tIdx = omp_get_thread_num();
 			SimplexRefinableCellType simplexRefinable = cellList[c];
 			SimplexRefinableElements< Dim , Degree > sre( simplexRefinable );
-			typename InterpolatingProlongationSystem< PoU >::template ProlongationInfo< Degree > pInfo[Dim];
-			InterpolatingProlongationSystem< PoU >::template HierarchicalProlongation< Dim , Degree >( simplexRefinable , eWeights , positionFunctor, planarityEpsilon , pInfo , finestDim );
+			typename InterpolatingProlongationSystem::template ProlongationInfo< Degree > pInfo[Dim];
+			InterpolatingProlongationSystem::template HierarchicalProlongation< Dim , Degree >( simplexRefinable , eWeights , pou , positionFunctor, planarityEpsilon , pInfo , finestDim );
 			for( unsigned int d=0 ; d<Dim && d<=finestDim ; d++ )
 			{
 				const std::vector< NodeMultiIndex > &coarseMultiIndices = pInfo[d].coarseMultiIndices;

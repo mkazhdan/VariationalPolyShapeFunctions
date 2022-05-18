@@ -429,7 +429,6 @@ template< unsigned int Dim , unsigned int Degree , typename Real >
 Polynomial< Dim , (Degree>1) ? Degree-1 : 0 , Real > Polynomial< Dim , Degree , Real >::d( int dim ) const
 {
 	Polynomial< Dim , (Degree>1) ? Degree-1 : 0 , Real > derivative;
-#if 1
 	if( dim==0 ) 
 	{
 		for( int d=0 ; d<Degree ; d++ )
@@ -439,9 +438,6 @@ Polynomial< Dim , (Degree>1) ? Degree-1 : 0 , Real > Polynomial< Dim , Degree , 
 			derivative._polynomials[d] *= scale;
 		}
 	}
-#else
-	if( dim==0 ) derivative._polynomials[d] = _polynomials[d+1] * (Real)(d+1);
-#endif
 	else for( int d=0 ; d<Degree ; d++ ) derivative._polynomials[d] = _polynomials[d].d( dim-1 );
 	return derivative;
 }

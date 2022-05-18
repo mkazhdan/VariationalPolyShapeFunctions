@@ -87,7 +87,7 @@ void Execute( const std::vector< RGBVertex > &vertices , const std::vector< std:
 	Meshes::VertexPositionFunction< 3 , unsigned int > vertexPositionFunction = [&]( unsigned int v ){ return Point3D< double >( vertices[v].get<0>() ); };
 
 	SimplexRefinableElements<>::EnergyWeights eWeights( SimplexRefinableElements<>::EnergyWeights::CROSS_FACE_GRADIENT_DIFFERENCE );
-	eWeights[ SimplexRefinableElements<>::EnergyWeights::GRADIENT_SQUARE_NORM ] = 1e-8;
+	eWeights.kWeights[ SimplexRefinableElements<>::EnergyWeights::GRADIENT_SQUARE_NORM ] = 1;
 
 	Meshes::PolygonMesh< unsigned int > polygonMesh = Meshes::PolygonMesh< unsigned int >( polygons );
 	Meshes::FullVertexPositionFunction< 3 > fullVertexPositionFunction = polygonMesh.fullVertexPositionFunction( vertexPositionFunction , true );
@@ -137,21 +137,9 @@ void Execute( const std::vector< RGBVertex > &vertices , const std::vector< std:
 	if( Ps.size() )
 	{
 		MGSolver::Solver< MGSolver::ParallelGaussSeidelRelaxer< 20u > > mgSolver( L , Ps , false );
-#if 1
 		PointVector< 3 > b;
 		b = M * nodeValues + S * nodeValues * GradientWeight.value * GradientScale.value;
 		nodeValues = mgSolver.solve( b , nodeValues , VCycles.value , GSIters.value , GSIters.value , false );
-#else
-		Eigen::VectorXd x( pMesh.nodes() ) , b;
-
-		for( unsigned int d=0 ; d<3 ; d++ )
-		{
-			for( unsigned int i=0 ; i<pMesh.nodes() ; i++ ) x[i] = nodeValues[i][d];
-			b = M * x + S * x * GradientWeight.value * GradientScale.value;
-			x = mgSolver.solve( b , x , VCycles.value , GSIters.value , GSIters.value , false );
-			for( unsigned int i=0 ; i<pMesh.nodes() ; i++ ) nodeValues[i][d] = x[i];
-		}
-#endif
 	}
 	else
 	{

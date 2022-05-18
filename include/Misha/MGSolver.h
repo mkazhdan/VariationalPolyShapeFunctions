@@ -532,41 +532,7 @@ namespace MGSolver
 			}
 		}
 #endif // USE_PARALLEL_GS_SORT
-#if 0
-		// Using the Welsh-Powell algorithm [https://en.wikipedia.org/wiki/Graph_coloring]
-		std::vector< unsigned int > colors( M.rows() , -1 );
-		std::vector< unsigned int > rowSizes( M.rows() , 0 );
-#ifdef USE_PARALLEL_GS_SORT
-#else // !USE_PARALLEL_GS_SORT
-		std::vector< unsigned int > indices( M.rows() );
-		for( unsigned int i=0 ; i<M.rows() ; i++ )
-		{
-			indices[i] = i;
-			for( Eigen::SparseMatrix< double >::InnerIterator iter(M,i) ; iter ; ++iter ) rowSizes[i]++;
-		}
-		std::sort( indices.begin() , indices.end() , [&]( unsigned int i , unsigned int j ){ return rowSizes[i]>rowSizes[j]; } );
-#endif // USE_PARALLEL_GS_SORT
 
-		for( unsigned int i=0 ; i<indices.size() ; i++ )
-		{
-			std::set< unsigned int > usedColors;
-			unsigned int j=0 ;
-			for( Eigen::SparseMatrix< double >::InnerIterator iter(M,indices[i]) ; iter ; ++iter ) usedColors.insert( colors[ iter.row() ] );
-			unsigned int c;
-			for( c=0 ; usedColors.find(c)!=usedColors.end() ; c++ ) ;
-			colors[ indices[i] ] = c;
-		}
-
-		unsigned int maxColor = 0;
-		for( unsigned int i=0 ; i<colors.size() ; i++ ) maxColor = std::max< unsigned int >( maxColor , colors[i] );
-		std::vector< unsigned int > colorSizes( maxColor+1 , 0 );
-		for( unsigned int i=0 ; i<indices.size() ; i++ ) colorSizes[ colors[i] ]++;
-
-		_multiColorIndices.resize( colorSizes.size() );
-		for( unsigned int i=0 ; i<colorSizes.size() ; i++ ) _multiColorIndices[i].reserve( colorSizes[i] );
-
-		for( unsigned int i=0 ; i<indices.size() ; i++ ) _multiColorIndices[ colors[i] ].push_back( i );
-#else
 		// Repeatedly:
 		//		Iterate through unmarked and unprocessed nodes
 		//		Add each such node to the next color groups
@@ -615,7 +581,7 @@ namespace MGSolver
 			_multiColorIndices.push_back( colorIndices );
 			colorIndices.clear();
 		}
-#endif
+
 		// Merge the small color groups into a single color group that will be processed serially
 		{
 			// The count indices to be processed serially

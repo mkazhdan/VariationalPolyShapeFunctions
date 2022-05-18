@@ -227,30 +227,7 @@ namespace Misha
 			}
 		}
 		else if( button==GLUT_RIGHT_BUTTON )
-#if 1
 			scaling = true;
-#else
-			if( glutGetModifiers() & GLUT_ACTIVE_CTRL && state==GLUT_DOWN )
-			{
-				Point3D< float > p;
-				if( select( x , y , p ) )
-				{
-					int tIdx = -1;
-					float d;
-					for( int i=0 ; i<triangles.size() ; i++ )
-					{
-						Point3D< float > c = ( vertices[ triangles[i][0] ] + vertices[ triangles[i][1] ] + vertices[ triangles[i][2] ] ) / 3.f;
-						float _d = ( p - c ).squareNorm();
-						if( tIdx==-1 || _d<d ) tIdx = i , d = _d;
-					}
-					printf( "Triangle: %d\n" , tIdx );
-					//				for( int i=0 ; i<vertices.size() ; i++ ) vertices[i] = ( vertices[i]+translate ) * scale;
-
-					for( int i=0 ; i<3 ; i++ ) printf( "\tVertex[%d]: %f %f %f\n" , i , vertices[ triangles[tIdx][i] ][0]/scale-translate[0] , vertices[ triangles[tIdx][i] ][1]/scale-translate[1] , vertices[ triangles[tIdx][i] ][2]/scale-translate[2] );
-				}
-	}
-			else scaling = true;
-#endif
 	}
 
 	template< typename DerivedViewableType >

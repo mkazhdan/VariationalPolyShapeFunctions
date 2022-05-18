@@ -261,7 +261,7 @@ void DeformablePolygonMeshVisualization< Degree , RefinementLevels , Hierarchica
 	_polygonMesh = Meshes::PolygonMesh< unsigned int >( _polygons );
 
 	SimplexRefinableElements<>::EnergyWeights eWeights( SimplexRefinableElements<>::EnergyWeights::CROSS_FACE_GRADIENT_DIFFERENCE );
-	eWeights[ SimplexRefinableElements<>::EnergyWeights::GRADIENT_SQUARE_NORM ] = 1e-8;
+	eWeights.kWeights[ SimplexRefinableElements<>::EnergyWeights::GRADIENT_SQUARE_NORM ] = 1;
 
 	_vertexPositionFunction = [&]( unsigned int idx )
 	{

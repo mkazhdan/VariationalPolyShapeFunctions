@@ -360,9 +360,7 @@ template< class Real , int Cols >
 class Matrix< Real , Cols , 0 > : public InnerProductSpace< Real , Matrix< Real , Cols , 0 > >
 {
 	static const unsigned int Rows = 0;
-#if 1
 	static Real _nullReferenceSource;
-#endif
 public:
 	//////////////////////////
 	// Vector space methods //
@@ -379,13 +377,8 @@ public:
 	template< int C , int R >
 	Matrix( const Matrix< Real , C , R > &m ){}
 
-#if 1
 	Real& operator () ( int c , int r ) { ERROR_OUT( "Should not be accessing the entries of this matrix" ) ; return _nullReferenceSource; }
 	const Real& operator () ( int c , int r ) const { ERROR_OUT( "Should not be accessing the entries of this matrix" ) ; _nullReferenceSource; }
-#else
-	Real& operator () ( int c , int r ) { ERROR_OUT( "Should not be accessing the entries of this matrix" ) ; return (Real&)*(Real*)NULL; }
-	const Real& operator () ( int c , int r ) const { ERROR_OUT( "Should not be accessing the entries of this matrix" ) ; return (Real&)*(Real*)NULL; }
-#endif
 
 	template< int Cols1 >
 	Matrix< Real , Cols1 , Rows > operator * ( const Matrix< Real , Cols1 , Cols >& m ) const { return Matrix< Real , Cols1 , Rows >(); }
@@ -400,10 +393,8 @@ public:
 
 	friend std::ostream &operator << ( std::ostream &os , const Matrix &m ){ return os <<  "{ }"; }
 };
-#if 1
 template< class Real , int Cols >
 Real Matrix< Real , Cols , 0 >::_nullReferenceSource;
-#endif
 
 template< class Real >
 class Matrix< Real , 0 , 0 > : public InnerProductSpace< Real , Matrix< Real , 0 , 0 > >
@@ -1115,16 +1106,8 @@ protected:
 };
 
 
-#if 1
 template< typename Real , unsigned int Dim > Point< Real , Dim > RandomBallPoint( void );
 template< typename Real , unsigned int Dim > Point< Real , Dim > RandomSpherePoint( void );
-#else
-template< class Real > Point2D< Real > RandomDiskPoint( void );
-template< class Real > Point3D< Real > RandomBallPoint( void );
-
-template< class Real > Point2D< Real > RandomCirclePoint( void );
-template< class Real > Point3D< Real > RandomSpherePoint( void );
-#endif
 
 template<class Real>
 XForm3x3<Real> RotationMatrix( Real a , Real b , Real c , Real d );

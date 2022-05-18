@@ -37,8 +37,6 @@ DAMAGE.
 #include "SolidSimplexBasis.h"
 #include "SimplexMesh.h"
 
-#define NEW_SOLID_SYSTEM_MATRIX
-
 template< unsigned int BlockSize >
 Eigen::SparseMatrix< double > BlockExpand( const Eigen::SparseMatrix< double > &A );
 
@@ -59,9 +57,7 @@ struct SolidSimplexMesh : protected SimplexMesh< Dim , Degree >
 	Eigen::SparseMatrix< double > massMatrix( void ) const;
 	Eigen::SparseMatrix< double > frobeniusStiffnessMatrix( void ) const;
 	Eigen::SparseMatrix< double > traceStiffnessMatrix( void ) const;
-#ifdef NEW_SOLID_SYSTEM_MATRIX
 	void setMassFrobeniusStiffnessAndTraceStiffnessMatrices( Eigen::SparseMatrix< double > &M , Eigen::SparseMatrix< double > &F , Eigen::SparseMatrix< double > &T ) const;
-#endif // NEW_SOLID_SYSTEM_MATRIX
 
 	Eigen::VectorXd dcVector( Point< double , Dim > v ) const;
 	Eigen::VectorXd stiffnessVector( void ) const;

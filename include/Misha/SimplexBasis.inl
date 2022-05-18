@@ -218,15 +218,6 @@ template< unsigned int Dim >
 template< unsigned int Degree , typename Real >
 typename RightSimplex< Dim >::template PMatrixField< (Degree>2) ? Degree-2 : 0 , Real > RightSimplex< Dim >::Hessian( const PFunction< Degree , Real > &P , SquareMatrix< double , Dim > g )
 {
-#if 0
-	PMatrixField< (Degree>2) ? Degree-2 : 0 , Real > H;
-	PVectorField< (Degree>1) ? Degree-1 : 0 , Real > G = Gradient( P , g );
-	for( unsigned int d=0 ; d<Dim ; d++ )
-	{
-		PVectorField< (Degree>2) ? Degree-2 : 0 , Real > _G = Gradient( G[d] );
-		for( unsigned int _d=0 ; _d<Dim ; _d++ ) H(d,_d) = _G[_d];
-	}
-#else
 	PMatrixField< (Degree>2) ? Degree-2 : 0 , Real > H , D2;
 	SquareMatrix< double , Dim > gInv = g.inverse();
 	for( int i=0 ; i<Dim ; i++ ) for( int j=0 ; j<Dim ; j++ ) D2(i,j) = P.d(i).d(j);
@@ -237,7 +228,6 @@ typename RightSimplex< Dim >::template PMatrixField< (Degree>2) ? Degree-2 : 0 ,
 	for( int i=0 ; i<Dim ; i++ ) for( int j=0 ; j<Dim ; j++ )
 		for( int k=0 ; k<Dim ; k++ ) for( int l=0 ; l<Dim ; l++ )
 			H(i,j) += gInv(k,j) * D2(k,l) * gInv(i,l);
-#endif
 	return H;
 }
 

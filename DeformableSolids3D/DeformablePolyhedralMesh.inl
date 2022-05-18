@@ -203,7 +203,7 @@ void DeformablePolyhedralMeshVisualization< Degree , Hierarchical >::init( const
 	g[1] = gravity;
 
 	SimplexRefinableElements<>::EnergyWeights eWeights( SimplexRefinableElements<>::EnergyWeights::CROSS_FACE_GRADIENT_DIFFERENCE );
-	eWeights[ SimplexRefinableElements<>::EnergyWeights::GRADIENT_SQUARE_NORM ] = 1e-8;
+	eWeights.kWeights[ SimplexRefinableElements<>::EnergyWeights::GRADIENT_SQUARE_NORM ] = 1;
 
 	_polyMesh = Meshes::PolyhedronMesh< unsigned int >( polyhedra , polygons );
 	_vertexPositionFunction = [&]( unsigned int idx )

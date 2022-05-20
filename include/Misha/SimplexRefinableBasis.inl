@@ -131,8 +131,10 @@ Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::_systemMatrix( SystemM
 	{
 		SimplexIndex< Dim , unsigned int > subSimplexIndex = _simplexRefinable[s];
 		SquareMatrix< double , SimplexElements< Dim , Degree >::NodeNum > _A = F( _simplexRefinable.metric(s) );
+		unsigned int nodeIndices[ SimplexElements< Dim , Degree >::NodeNum ];
+		for( unsigned int i=0 ; i<SimplexElements< Dim , Degree >::NodeNum ; i++ ) nodeIndices[i] = nodeIndex( NodeMultiIndex_Index::NodeMultiIndex( subSimplexIndex , i ) );
 		for( unsigned int i=0 ; i<SimplexElements< Dim , Degree >::NodeNum ; i++ ) for( unsigned int j=0 ; j<SimplexElements< Dim , Degree >::NodeNum ; j++ )
-			A( nodeIndex( NodeMultiIndex_Index::NodeMultiIndex( subSimplexIndex , i ) ) , nodeIndex( NodeMultiIndex_Index::NodeMultiIndex( subSimplexIndex , j ) ) ) += _A(i,j);
+			A( nodeIndices[i] , nodeIndices[j] ) += _A(i,j);
 	}
 	return A;
 }
@@ -179,11 +181,7 @@ Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::crossFaceGradientDiffe
 {
 	typedef Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > FaceD;
 	Eigen::MatrixXd C = Eigen::MatrixXd::Zero( size() , size() );
-	if constexpr( Dim==1 )
-	{
-//		WARN_ONCE( "Shouldn't be called for Dim==1" );
-		return C;
-	}
+	if constexpr( Dim==1 ) return C;
 	else
 	{
 		// Functionality for returning the multi-index (and parity) associated with a face of a simplex
@@ -220,6 +218,8 @@ Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::crossFaceGradientDiffe
 		{
 			SimplexIndex< Dim , unsigned int > simplexIndex = _simplexRefinable[i];
 			SquareMatrix< double , Dim > g = _simplexRefinable.metric(i);
+			unsigned int nodeIndices[ SimplexElements< Dim , Degree >::NodeNum ];
+			for( unsigned int i=0 ; i<SimplexElements< Dim , Degree >::NodeNum ; i++ ) nodeIndices[i] = nodeIndex( simplexIndex , i );
 
 			// Compute the gradient components and metrics for the faces of the simplex
 			Matrix< FaceD , SimplexElements< Dim , Degree >::NodeNum , Dim+1 > _faceGradientOrthogonalComponents;
@@ -242,7 +242,7 @@ Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::crossFaceGradientDiffe
 					faceMetrics[fi] += _faceMetrics[f]/2;
 					for( unsigned int n=0 ; n<SimplexElements< Dim , Degree >::NodeNum ; n++ )
 					{
-						Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > &gOrthoComponents = faceGradientOrthogonalComponents[fi][ nodeIndex( simplexIndex , n ) ];
+						Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > &gOrthoComponents = faceGradientOrthogonalComponents[fi][ nodeIndices[n] ];
 						for( unsigned int d=0 ; d<Dim ; d++ )
 							if( evenParity ) gOrthoComponents[d] += _faceGradientOrthogonalComponents(n,f)[d].template operator()< Dim >(A);
 							else             gOrthoComponents[d] -= _faceGradientOrthogonalComponents(n,f)[d].template operator()< Dim >(A);

@@ -287,7 +287,7 @@ struct GeodesicsInHeatVisualization : public Misha::Viewable3D< GeodesicsInHeatV
 
 protected:
 	typedef typename std::conditional< Hierarchical , HierarchicalSimplexRefinableCellMesh< Dim , Degree > , SimplexRefinableCellMesh< Dim , Degree > >::type SimplexRefinableMesh;
-	typedef typename std::conditional< Hierarchical , MGSolver::Solver< MGSolver::ParallelGaussSeidelRelaxer< 20u > > , Eigen::SimplicialLLT< Eigen::SparseMatrix< double > > >::type SolverType;
+	typedef typename std::conditional< Hierarchical , MGSolver::Solver< MGSolver::ParallelGaussSeidelRelaxer< 20u > > , SparseSolver::LLT >::type SolverType;
 
 	bool _verbose , _iterate;
 	GLuint _valueTextureHandle , _stripeTextureHandle;

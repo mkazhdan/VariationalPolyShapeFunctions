@@ -29,7 +29,7 @@ DAMAGE.
 #ifndef LINEARLY_CONSTRAINED_QUADRATIC_OPTIMIZATION_INCLUDED
 #define LINEARLY_CONSTRAINED_QUADRATIC_OPTIMIZATION_INCLUDED
 
-#include <Eigen/Sparse>
+#include "Misha/PreProcess.h"
 #include <Eigen/Dense>
 
 struct LCQO
@@ -255,7 +255,7 @@ Eigen::VectorXd LCQO::solve( void ) const
 	}
 	else
 	{
-		typedef typename std::conditional< StableSolve , Eigen::SparseQR< Eigen::SparseMatrix< double > , Eigen::COLAMDOrdering< int > > , Eigen::SimplicialLDLT< Eigen::SparseMatrix< double > > >::type Solver;
+		typedef typename std::conditional< StableSolve , Eigen::SparseQR< Eigen::SparseMatrix< double > , Eigen::COLAMDOrdering< int > > , SparseSolver::LDLT >::type Solver;
 
 		Solver solver( _M );
 

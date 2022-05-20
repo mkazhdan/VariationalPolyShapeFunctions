@@ -31,7 +31,7 @@ DAMAGE.
 
 #include <omp.h>
 #include <list>
-#include "Eigen/Sparse"
+#include "Misha/PreProcess.h"
 #include "Miscellany.h"
 
 //#define USE_PARALLEL_GS_SORT
@@ -389,7 +389,7 @@ namespace MGSolver
 		template< typename V > V solve( const V &b , const V &x , unsigned int vCycles , unsigned int rIters , unsigned int pIters , bool verbose );
 	protected:
 		std::vector< Eigen::SparseMatrix< double > > _S , _P , _Pt;
-		Eigen::SimplicialLLT< Eigen::SparseMatrix< double > > _solver;
+		SparseSolver::LLT _solver;
 		RelaxerType *_relaxers;
 
 		template< typename V >

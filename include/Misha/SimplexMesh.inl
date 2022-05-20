@@ -182,6 +182,9 @@ Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::crossFaceGradientEner
 		_faceGradientComponents = SimplexElements< Dim , Degree >::FaceGradientOrthogonalComponents( _g[s] , &_simplices[s][0] );
 		_faceMetrics = SimplexElements< Dim , Degree >::FaceMetrics( _g[s] , &_simplices[s][0] );
 
+		unsigned int indices[ SimplexElements< Dim , Degree >::NodeNum ];
+		for( unsigned int i=0 ; i<SimplexElements< Dim , Degree >::NodeNum ; i++ ) indices[i] = nodeIndex( s , i );
+
 		for( unsigned int f=0 ; f<=Dim ; f++ )
 		{
 			Permutation< Dim > p;
@@ -195,7 +198,7 @@ Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::crossFaceGradientEner
 				faceMetrics[fi] += _faceMetrics[f]/2;
 				for( unsigned int n=0 ; n<SimplexElements< Dim , Degree >::NodeNum ; n++ )
 				{
-					Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > &gComponents = faceGradientComponents[fi][ nodeIndex( s , n ) ];
+					Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > &gComponents = faceGradientComponents[fi][ indices[n] ];
 					for( unsigned int d=0 ; d<Dim ; d++ )
 						if( evenParity ) gComponents[d] += _faceGradientComponents(n,f)[d].template operator()< Dim >(A);
 						else             gComponents[d] -= _faceGradientComponents(n,f)[d].template operator()< Dim >(A);

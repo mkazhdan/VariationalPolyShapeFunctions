@@ -29,6 +29,7 @@ DAMAGE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
+#include "Misha/PreProcess.h"
 #include "Misha/Ply.h"
 #include "Misha/PlyVertexData.h"
 #include <GL/glew.h>

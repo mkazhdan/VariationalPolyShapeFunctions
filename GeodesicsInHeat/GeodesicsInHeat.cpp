@@ -31,6 +31,7 @@ DAMAGE.
 #include <map>
 #include <set>
 #include <omp.h>
+#include "Misha/PreProcess.h"
 #include "Misha/CmdLineParser.h"
 #include "Misha/PlyVertexData.h"
 #include "Misha/Miscellany.h"

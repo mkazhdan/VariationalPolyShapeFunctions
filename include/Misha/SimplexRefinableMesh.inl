@@ -98,11 +98,23 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 
 	struct PEntry
 	{
-		NodeMultiIndex coarse , fine;
+		unsigned int thread , coarse , fine , sIdx;
 		double value;
 		PEntry( void ) : value(0) {}
-		PEntry( NodeMultiIndex c , NodeMultiIndex f , double v ) : coarse(c) , fine(f) , value(v) {}
+		PEntry( unsigned int t , unsigned int c , unsigned int f , unsigned int i , double v ) : thread(t) , coarse(c) , fine(f) , sIdx(i) , value(v) {}
 	};
+
+	struct NodeMultiIndex_Index
+	{
+		NodeMultiIndex_Index( void ) : idx(-1) {}
+		NodeMultiIndex_Index( NodeMultiIndex nmi ) : nmi(nmi) , idx(-1) {}
+		NodeMultiIndex nmi;
+		unsigned int idx;
+	};
+
+	// Minimize the calls to nodeIndex by caching the values for the different columns and rows separately 
+	std::vector< std::vector< NodeMultiIndex_Index > > _coarseIndices[Dim] , _fineIndices[Dim];
+	for( unsigned int d=0 ; d<Dim ; d++ ) _coarseIndices[d].resize( omp_get_max_threads() ) , _fineIndices[d].resize( omp_get_max_threads() );
 
 	// The prolongation entries (represented using MultiNodeIndex)
 	std::vector< PEntry > pEntries[Dim];
@@ -125,7 +137,12 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 				const std::vector< NodeMultiIndex > &coarseMultiIndices = pInfo[d].coarseMultiIndices;
 				const Eigen::MatrixXd &P = pInfo[d].P;
 				for( unsigned int i=0 ; i<coarseMultiIndices.size() ; i++ ) _nodeMaps[d][tIdx][ coarseMultiIndices[i] ] = 0;
-				for( unsigned int r=0 ; r<P.rows() ; r++ ) for( unsigned int c=0 ; c<P.cols() ; c++ ) if( P(r,c) ) _pEntries[d][tIdx].push_back( PEntry( coarseMultiIndices[c] , sre[r] , P(r,c) ) );
+				std::vector< unsigned int > simplexIndices( P.rows() );
+				for( unsigned int r=0 ; r<P.rows() ; r++ ) simplexIndices[r] = _simplexMesh.nodeIndex( sre[r] );
+				unsigned int cStart = (unsigned int)_coarseIndices[d][tIdx].size() , fStart = (unsigned int)_fineIndices[d][tIdx].size();
+				for( unsigned int c=0 ; c<P.cols() ; c++ ) _coarseIndices[d][tIdx].push_back( NodeMultiIndex_Index( coarseMultiIndices[c] ) );
+				for( unsigned int r=0 ; r<P.rows() ; r++ )   _fineIndices[d][tIdx].push_back( NodeMultiIndex_Index( sre[r] ) );
+				for( unsigned int r=0 ; r<P.rows() ; r++ ) for( unsigned int c=0 ; c<P.cols() ; c++ ) if( P(r,c) ) _pEntries[d][tIdx].push_back( PEntry( tIdx , cStart+c , fStart +r , simplexIndices[r] , P(r,c) ) );
 			}
 		}
 
@@ -134,10 +151,11 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 			unsigned int count=0;
 			for( unsigned int t=0 ; t<_pEntries[d].size() ; t++ ) count += (unsigned int)_pEntries[d][t].size();
 			pEntries[d].reserve( count );
-			for( unsigned int t=0 ; t<_pEntries[d].size() ; t++ )
+			for( unsigned int t=0 ; t<_pEntries[d].size() ; t++ ) for( unsigned int i=0 ; i<_pEntries[d][t].size() ; i++ ) pEntries[d].push_back( _pEntries[d][t][i] );
+			for( unsigned int t=0 ; t<_coarseIndices[d].size() ; t++ )
 			{
-				for( unsigned int i=0 ; i<_pEntries[d][t].size() ; i++ ) pEntries[d].push_back( _pEntries[d][t][i] );
-				for( const auto &[nmi,idx] : _nodeMaps[d][t] ) _prolongationAndNodeMap[d].second[ nmi ] = 0;
+				const std::vector< NodeMultiIndex_Index > &coarseIndices = _coarseIndices[d][t];
+				for( unsigned int i=0 ; i<coarseIndices.size() ; i++ ) _prolongationAndNodeMap[d].second[ coarseIndices[i].nmi ] = 0;
 			}
 		}
 	}
@@ -155,14 +173,24 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 		_prolongationAndNodeMap[Dim].first.setIdentity();
 	}
 
+	for( unsigned int d=0 ; d<Dim ; d++ )
+#pragma omp parallel for
+		for( int t=0 ; (int)t<_coarseIndices[d].size() ; t++ )
+		{
+			std::vector< NodeMultiIndex_Index > &coarseIndices = _coarseIndices[d][t];
+			std::vector< NodeMultiIndex_Index > &  fineIndices =   _fineIndices[d][t];
+			for( unsigned int i=0 ; i<(int)coarseIndices.size() ; i++ ) coarseIndices[i].idx = nodeIndex( d , coarseIndices[i].nmi );
+			for( unsigned int i=0 ; i<(int)  fineIndices.size() ; i++ )   fineIndices[i].idx = nodeIndex( d+1 , fineIndices[i].nmi );
+		}
+
 	for( unsigned int d=0 ; d<Dim && d<=finestDim ; d++ )
 	{
 		std::vector< double > rowSums( _simplexMesh.nodes() , 0. );
-		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) rowSums[ _simplexMesh.nodeIndex( pEntries[d][i].fine ) ] += pEntries[d][i].value;
-		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) pEntries[d][i].value /= rowSums[ _simplexMesh.nodeIndex( pEntries[d][i].fine ) ];
+		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) rowSums[ pEntries[d][i].sIdx ] += pEntries[d][i].value;
+		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) pEntries[d][i].value /= rowSums[ pEntries[d][i].sIdx ];
 
 		std::vector< Eigen::Triplet< double > > entries( pEntries[d].size() );
-		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) entries[i] = Eigen::Triplet< double >( nodeIndex( d+1 , pEntries[d][i].fine ) , nodeIndex( d , pEntries[d][i].coarse ) , pEntries[d][i].value );
+		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) entries[i] = Eigen::Triplet< double >( _fineIndices[d][ pEntries[d][i].thread ][ pEntries[d][i].fine ].idx , _coarseIndices[d][ pEntries[d][i].thread ][ pEntries[d][i].coarse ].idx , pEntries[d][i].value );
 
 		_prolongationAndNodeMap[d].first.resize( nodes(d+1) , nodes(d) );
 		_prolongationAndNodeMap[d].first.setFromTriplets( entries.begin() , entries.end() );		
@@ -179,11 +207,23 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 
 	struct PEntry
 	{
-		NodeMultiIndex coarse , fine;
+		unsigned int thread , coarse , fine , sIdx;
 		double value;
 		PEntry( void ) : value(0) {}
-		PEntry( NodeMultiIndex c , NodeMultiIndex f , double v ) : coarse(c) , fine(f) , value(v) {}
+		PEntry( unsigned int t , unsigned int c , unsigned int f , unsigned int i , double v ) : thread(t) , coarse(c) , fine(f) , sIdx(i) , value(v) {}
 	};
+
+	struct NodeMultiIndex_Index
+	{
+		NodeMultiIndex_Index( void ) : idx(-1) {}
+		NodeMultiIndex_Index( NodeMultiIndex nmi ) : nmi(nmi) , idx(-1) {}
+		NodeMultiIndex nmi;
+		unsigned int idx;
+	};
+
+	// Minimize the calls to nodeIndex by caching the values for the different columns and rows separately 
+	std::vector< std::vector< NodeMultiIndex_Index > > _coarseIndices[Dim] , _fineIndices[Dim];
+	for( unsigned int d=0 ; d<Dim ; d++ ) _coarseIndices[d].resize( omp_get_max_threads() ) , _fineIndices[d].resize( omp_get_max_threads() );
 
 	// The prolongation entries (represented using MultiNodeIndex)
 	std::vector< PEntry > pEntries[Dim];
@@ -206,7 +246,12 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 				const std::vector< NodeMultiIndex > &coarseMultiIndices = pInfo[d].coarseMultiIndices;
 				const Eigen::MatrixXd &P = pInfo[d].P;
 				for( unsigned int i=0 ; i<coarseMultiIndices.size() ; i++ ) _nodeMaps[d][tIdx][ coarseMultiIndices[i] ] = 0;
-				for( unsigned int r=0 ; r<P.rows() ; r++ ) for( unsigned int c=0 ; c<P.cols() ; c++ ) if( P(r,c) ) _pEntries[d][tIdx].push_back( PEntry( coarseMultiIndices[c] , sre[r] , P(r,c) ) );
+				std::vector< unsigned int > simplexIndices( P.rows() );
+				for( unsigned int r=0 ; r<P.rows() ; r++ ) simplexIndices[r] = _simplexMesh.nodeIndex( sre[r] );
+				unsigned int cStart = (unsigned int)_coarseIndices[d][tIdx].size() , fStart = (unsigned int)_fineIndices[d][tIdx].size();
+				for( unsigned int c=0 ; c<P.cols() ; c++ ) _coarseIndices[d][tIdx].push_back( NodeMultiIndex_Index( coarseMultiIndices[c] ) );
+				for( unsigned int r=0 ; r<P.rows() ; r++ )   _fineIndices[d][tIdx].push_back( NodeMultiIndex_Index( sre[r] ) );
+				for( unsigned int r=0 ; r<P.rows() ; r++ ) for( unsigned int c=0 ; c<P.cols() ; c++ ) if( P(r,c) ) _pEntries[d][tIdx].push_back( PEntry( tIdx , cStart+c , fStart +r , simplexIndices[r] , P(r,c) ) );
 			}
 		}
 
@@ -215,10 +260,11 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 			unsigned int count=0;
 			for( unsigned int t=0 ; t<_pEntries[d].size() ; t++ ) count += (unsigned int)_pEntries[d][t].size();
 			pEntries[d].reserve( count );
-			for( unsigned int t=0 ; t<_pEntries[d].size() ; t++ )
+			for( unsigned int t=0 ; t<_pEntries[d].size() ; t++ ) for( unsigned int i=0 ; i<_pEntries[d][t].size() ; i++ ) pEntries[d].push_back( _pEntries[d][t][i] );
+			for( unsigned int t=0 ; t<_coarseIndices[d].size() ; t++ )
 			{
-				for( unsigned int i=0 ; i<_pEntries[d][t].size() ; i++ ) pEntries[d].push_back( _pEntries[d][t][i] );
-				for( const auto &[nmi,idx] : _nodeMaps[d][t] ) _prolongationAndNodeMap[d].second[ nmi ] = 0;
+				const std::vector< NodeMultiIndex_Index > &coarseIndices = _coarseIndices[d][t];
+				for( unsigned int i=0 ; i<coarseIndices.size() ; i++ ) _prolongationAndNodeMap[d].second[ coarseIndices[i].nmi ] = 0;
 			}
 		}
 	}
@@ -236,14 +282,24 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 		_prolongationAndNodeMap[Dim].first.setIdentity();
 	}
 
+	for( unsigned int d=0 ; d<Dim ; d++ )
+#pragma omp parallel for
+		for( int t=0 ; (int)t<_coarseIndices[d].size() ; t++ )
+		{
+			std::vector< NodeMultiIndex_Index > &coarseIndices = _coarseIndices[d][t];
+			std::vector< NodeMultiIndex_Index > &  fineIndices =   _fineIndices[d][t];
+			for( unsigned int i=0 ; i<(int)coarseIndices.size() ; i++ ) coarseIndices[i].idx = nodeIndex( d , coarseIndices[i].nmi );
+			for( unsigned int i=0 ; i<(int)  fineIndices.size() ; i++ )   fineIndices[i].idx = nodeIndex( d+1 , fineIndices[i].nmi );
+		}
+
 	for( unsigned int d=0 ; d<Dim && d<=finestDim ; d++ )
 	{
 		std::vector< double > rowSums( _simplexMesh.nodes() , 0. );
-		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) rowSums[ _simplexMesh.nodeIndex( pEntries[d][i].fine ) ] += pEntries[d][i].value;
-		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) pEntries[d][i].value /= rowSums[ _simplexMesh.nodeIndex( pEntries[d][i].fine ) ];
+		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) rowSums[ pEntries[d][i].sIdx ] += pEntries[d][i].value;
+		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) pEntries[d][i].value /= rowSums[ pEntries[d][i].sIdx ];
 
 		std::vector< Eigen::Triplet< double > > entries( pEntries[d].size() );
-		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) entries[i] = Eigen::Triplet< double >( nodeIndex( d+1 , pEntries[d][i].fine ) , nodeIndex( d , pEntries[d][i].coarse ) , pEntries[d][i].value );
+		for( unsigned int i=0 ; i<pEntries[d].size() ; i++ ) entries[i] = Eigen::Triplet< double >( _fineIndices[d][ pEntries[d][i].thread ][ pEntries[d][i].fine ].idx , _coarseIndices[d][ pEntries[d][i].thread ][ pEntries[d][i].coarse ].idx , pEntries[d][i].value );
 
 		_prolongationAndNodeMap[d].first.resize( nodes(d+1) , nodes(d) );
 		_prolongationAndNodeMap[d].first.setFromTriplets( entries.begin() , entries.end() );		

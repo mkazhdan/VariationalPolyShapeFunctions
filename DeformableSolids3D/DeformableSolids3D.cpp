@@ -31,6 +31,7 @@ DAMAGE.
 #include <omp.h>
 #include <fstream>
 #include <iostream>
+#include "Misha/PreProcess.h"
 #include <GL/glew.h>
 #include <GL/glut.h>
 #include <Misha/CmdLineParser.h>

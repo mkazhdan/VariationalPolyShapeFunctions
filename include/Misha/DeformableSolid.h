@@ -28,7 +28,6 @@ DAMAGE.
 
 #ifndef DEFORMABLE_SOLID_INCLUDED
 #define DEFORMABLE_SOLID_INCLUDED
-#include "Eigen/Sparse"
 #include "Meshes.h"
 #include "Misha/MGSolver.h"
 
@@ -85,7 +84,7 @@ struct DeformableSolid
 	unsigned int vCycles , gsIters;
 	bool verbose;
 protected:
-	typedef typename std::conditional< Hierarchical , MGSolver::Solver< MGSolver::ParallelGaussSeidelRelaxer< 20u > > , Eigen::SimplicialLLT< Eigen::SparseMatrix< double > > >::type SolverType;
+	typedef typename std::conditional< Hierarchical , MGSolver::Solver< MGSolver::ParallelGaussSeidelRelaxer< 20u > > , SparseSolver::LLT >::type SolverType;
 
 	const SolidMesh &_solidMesh;
 	double _timeStep , _fWeight , _tWeight;

@@ -35,7 +35,6 @@ DAMAGE.
 #include <type_traits>
 #include <atomic>
 #include <omp.h>
-#include "Eigen/Sparse"
 #include "Misha/Geometry.h"
 #include "Misha/Timer.h"
 #include "SimplexMesh.h"

@@ -30,7 +30,7 @@ DAMAGE.
 #include <stdlib.h>
 #include <map>
 #include <set>
-#include "Eigen/Sparse"
+#include "Misha/PreProcess.h"
 #include "Misha/Exceptions.h"
 #include "Misha/Geometry.h"
 #include "Misha/CmdLineParser.h"
@@ -125,7 +125,7 @@ void ExecuteDirect
 		if( lockedNodes[ iter.row() ] ) iter.valueRef() = iter.row()==iter.col() ? 1. : 0.;
 		else if( lockedNodes[ iter.col() ] ) iter.valueRef() = 0;
 
-	Eigen::SimplicialLLT< Eigen::SparseMatrix< double > > solver;
+	SparseSolver::LLT solver;
 
 	// Compute the Cholesky factorization
 	timer.reset();

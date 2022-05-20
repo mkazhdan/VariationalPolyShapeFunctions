@@ -32,7 +32,6 @@ DAMAGE.
 #include <map>
 #include <vector>
 #include <functional>
-#include "Eigen/Sparse"
 #include "Misha/Geometry.h"
 #include "SolidSimplexBasis.h"
 #include "SimplexMeshElements.h"

@@ -33,7 +33,6 @@ DAMAGE.
 #include <set>
 #include <vector>
 #include <functional>
-#include "Eigen/Sparse"
 #include "Misha/Geometry.h"
 #include "SimplexBasis.h"
 

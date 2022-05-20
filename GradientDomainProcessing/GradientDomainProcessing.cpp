@@ -31,7 +31,7 @@ DAMAGE.
 #include <map>
 #include <set>
 #include <omp.h>
-#include "Eigen/Sparse"
+#include "Misha/PreProcess.h"
 #include "Misha/Exceptions.h"
 #include "Misha/Geometry.h"
 #include "Misha/CmdLineParser.h"
@@ -143,7 +143,7 @@ void Execute( const std::vector< RGBVertex > &vertices , const std::vector< std:
 	}
 	else
 	{
-		Eigen::SimplicialLLT< Eigen::SparseMatrix< double > > solver( L );
+		SparseSolver::LLT solver( L );
 		Eigen::VectorXd x( pMesh.nodes() ) , b;
 		for( unsigned int d=0 ; d<3 ; d++ )
 		{

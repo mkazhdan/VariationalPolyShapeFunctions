@@ -138,6 +138,7 @@ void ExecuteDirect
 			case Eigen::NumericalIssue: ERROR_OUT( "SparseLLT failed to factorize matrix -- numerical issue" );
 			case Eigen::NoConvergence:  ERROR_OUT( "SparseLLT failed to factorize matrix -- no convergence" );
 			case Eigen::InvalidInput:   ERROR_OUT( "SparseLLT failed to factorize matrix -- invalid input" );
+			case Eigen::Success: ;
 		}
 		if( Verbose.set ) std::cout << "DoFs / Non-zero matrix entries / Entries per row: " << S.rows() << " / " << S.nonZeros() << " / " << S.nonZeros()/S.rows() << std::endl;
 	}

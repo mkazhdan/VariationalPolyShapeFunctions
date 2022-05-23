@@ -1,4 +1,4 @@
-<center><h2>Variational Polygonal/Polyhedral Shape Functions (Version 2.00)</h2></center>
+<center><h2>Variational Polygonal/Polyhedral Shape Functions (Version 2.5)</h2></center>
 <center>
 <a href="#LINKS">links</a>
 <a href="#EXECUTABLES">executables</a>
@@ -31,7 +31,8 @@ This software supports finite-elements-type calculations over polygonal and poly
 <B>Data:</B>
 <A HREF="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/VPSF.Data.zip">ZIP</A><br>
 <b>Older Versions:</b>
-<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version1.00/">V1.00</a>
+<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.00/">V2</a>
+<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version1.00/">V1</a>
 </ul>
 <hr>
 <a name="EXECUTABLES"><b>EXECUTABLES</b></a><br>
@@ -168,7 +169,7 @@ Supports the gradient domain smoothing and sharpening of surface geometry by sol
 The polygonal mesh is assumed to be in <a href="http://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, giving the set of vertices with the x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i> and the set of polygons encoded by a list of vertex indices.
 </dd>
 
-<dt><b>[--out</b> &lt;<i>output polygonal mesh</i>&gt;]</dt>
+<dt>[<b>--out</b> &lt;<i>output polygonal mesh</i>&gt;]</dt>
 <dd> This string specifies the the name of the output (processed) polygonal mesh.<br>
 The polygonal mesh is assumed to be in <a href="http://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, giving the set of vertices with the x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i> and the set of polygons encoded by a list of vertex indices.
 </dd>
@@ -193,17 +194,91 @@ The default value for this parameter is 3.
 </dd>
 
 <dt>[<b>--gsIters</b> &lt;<i>number of Gauss-Seidel iterations per level</i>&gt;]</dt>
-<dd> If a multigrid solver is used, ths integer value specifies the number of Gauss-Seidel iterations to be done within each level of the v-cycle.<BR>
+<dd> If a multigrid solver is used, this integer value specifies the number of Gauss-Seidel iterations to be done within each level of the v-cycle.<BR>
 The default value for this parameter is 5.
 </dd>
 
-</dd><dt>[<b>--color</B>]</dt>
-<dd> If enabled and the mesh contains per-vertex color information, this flag specifies that the color at the vertices, not the position, should be processed.
+</dd><dt>[<b>--value</b> &lt;<i>data type</i>&gt;]</dt>
+<dd> This integer value specifies which type of per-vertex-data is to be processed. If the value is <B>0</B>, the vertices' positions will be processed. If the value is <B>1</B>, the vertices' normals will be processed. If the value is <B>2</B>, the vertices' colors will be processed. (Note that if the value is <B>1</B> and the vertices do not have normals, the code will synthesize them by averaging from the indicent faces.)<BR>
+The default value for this parameter is 0.
 </dd>
 
 </details>
 </dl>
 </ul>
+
+
+
+
+<ul>
+<dl>
+<details>
+<summary>
+<font size="+1"><b>PrincipalCurvature</b></font>:
+Supports the computation of per-face, extrinsic principal curvature directions by approximating the derivative of the normals across edges.
+</summary>
+
+<dt><b>--in</b> &lt;<i>input polygonal mesh</i>&gt;</dt>
+<dd> This string specifies the the name of the input polygonal mesh.<br>
+The polygonal mesh is assumed to be in <a href="http://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, giving the set of vertices with the x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i>, the x-, y-, and z-coordinates of the normals encoded by the properties <i>nx</i>, <i>ny</i>, and <i>nz</i>, and the set of polygons encoded by a list of vertex indices.
+</dd>
+
+<dt>[<b>--out</b> &lt;<i>output principal curvature directions</i>&gt;]</dt>
+<dd> This string specifies the the name of the file to which the (extrinsic) principal curvature directions will be written, scaled by the associated curvature values.
+</dd>
+
+<dt>[<b>--kMin</b>]</dt>
+<dd> If enabled, this flag specifies that the output tangent vectors will correspond to the directions of minimal curvature. Otherwise they will correspond to the directions of maximal curvature.
+</dd>
+
+</details>
+</dl>
+</ul>
+
+
+
+
+<ul>
+<dl>
+<details>
+<summary>
+<font size="+1"><b>LineIntegralConvolution</b></font>:
+Supports the generation of a line-integral-convolution visualization of a tangent vector field by diffusing a random scalar field with respect to an anisotropic metric that compresses distances along the the prescribed tangent directions.
+</summary>
+
+<dt><b>--in</b> &lt;<i>input polygonal mesh</i>&gt;</dt>
+<dd> This string specifies the the name of the input polygonal mesh.<br>
+The polygonal mesh is assumed to be in <a href="http://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, giving the set of vertices with the x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i> and the set of polygons encoded by a list of vertex indices.
+</dd>
+
+<dt><b>--inVF</b> &lt;<i>input tangent vector field</i>&gt;</dt>
+<dd> This string specifies the the name of the file prescribing the per-face tangent vectors.
+</dd>
+
+<dt>[<b>--out</b> &lt;<i>output polygonal mesh</i>&gt;]</dt>
+<dd> This string specifies the the name of the output polygonal mesh.<br>
+The polygonal mesh is assumed to be in <a href="http://www.cc.gatech.edu/projects/large_models/ply.html">PLY</a> format, giving the set of vertices with the x-, y-, and z-coordinates of the positions encoded by the properties <i>x</i>, <i>y</i>, and <i>z</i>, the colors encoded by the properties <i>red</i>, <i>green</i>, and <i>blue</i>, and the set of polygons encoded by a list of vertex indices.
+</dd>
+
+</dd><dt>[<b>--mg</B>]</dt>
+<dd> If enabled, this flag specifies that a multigrid solver should be used (instead of the default sparse Cholesky solver).
+</dd>
+
+<dt>[<b>--vCycles</b> &lt;<i>number of v-cycles per animation step</i>&gt;]</dt>
+<dd> If a multigrid solver is used, ths integer value specifies the number of v-cycles to be performed at each step of the animation.<BR>
+The default value for this parameter is 20.
+</dd>
+
+<dt>[<b>--gsIters</b> &lt;<i>number of Gauss-Seidel iterations per level</i>&gt;]</dt>
+<dd> If a multigrid solver is used, ths integer value specifies the number of Gauss-Seidel iterations to be done within each level of the v-cycle.<BR>
+The default value for this parameter is 5.
+</dd>
+
+</details>
+</dl>
+</ul>
+
+
 
 
 <hr>
@@ -298,6 +373,27 @@ To sharpen the Armadillo Man model using a hierarchical solver, execute:
 </dl>
 
 
+<dl>
+<details>
+<summary>
+<font size="+1"><b>Line Integral Convolution</b></font>
+</summary>
+Generating a line-integral-convolution visualizing the maximal curvature directions requires three steps -- defining a smooth normal field, computing the maximal curvature direction, and diffusing a random noise signal using a metric defined by the maximal curvature directions. We provide the steps for synthesizing a visualization of the maximal curvature directions on the Fertility model, using a multigrid solver.
+<OL>
+<LI> To compute a smoothed normal field, execute:
+<blockquote><code>% Bin/*/GradientDomainProcessing --in ../VPSF.Data/fertility.ply --gScale 0 --gWeight 1e-3 --out fertility.normal.ply --value 1 --mg</code></blockquote>
+(For this example we smooth more aggressively, setting <i>--gWeight=1e-3</i>.)
+<LI> To compute the maximal curvature directions, execute:
+<blockquote><code>% Bin/*/PrincipalCurvature --in fertility.normal.ply --out fertility.kmax</code></blockquote>
+<LI> To generate the line-integral-convolution visualization, execute:
+<blockquote><code>% Bin/*/LineIntegralConvolution --in fertility.normal.ply --inVF fertility.kmax --out fertility.lic.ply --mg</code></blockquote>
+</OL>
+We make two observations about this executable. First, to compute the smooth normal field we diffuse more aggressively, using a gradient weight of <i>--gWeight=1e-3</i>, ten times larger than the default value. (This is neccessary for capturing a more global notion of curvature.) Second, the default number of v-cycles for the multigrid solver is 20. (This is necessary because the severe anisotropy makes the multigrid solver converge less efficiently.)
+
+</details>
+</dl>
+
+
 </ul>
 
 <hr>
@@ -308,6 +404,7 @@ To sharpen the Armadillo Man model using a hierarchical solver, execute:
 <UL>
 <LI>The Windows executables require both the <B>glew</B> and <B>glut</B> dynamically linked libraries to run. These can be found <A HREF="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/VPSF.DLLs.zip">here</A> and should be included either in the directory with the executables, or in the directory from which the executables are run.</LI>
 <LI>Compiling under Windows requires both the <B>glew</B> and <B>glut</B> libraries. These can be found <A HREF="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/VPSF.LIBs.zip">here</A> and should be placed in the output directory for linkage.</LI></LI>
+<LI> The implementation uses the standard <A HREF="https://eigen.tuxfamily.org/">Eigen</A> source code. If your system supports MKL it may be possible to develop faster executables by <CODE>#define</CODE>'ing the <B>EIGEN_USE_MKL_ALL</B> flag in <I>Misha/PreProcess.h</I> and ensuring that the associated include/library directories are set correctly.
 </UL>
 </details>
 
@@ -317,11 +414,9 @@ To sharpen the Armadillo Man model using a hierarchical solver, execute:
 <a name="CHANGES"><b>HISTORY OF CHANGES</b></a><br>
 </summary>
 <a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.00/">Version 2</a>:
-<ul><li> Added support for regularizing within the kerenl.</li></ul>
-<!--
-<a href="http://www.cs.jhu.edu/~misha/Code/TextureSignalProcessing/Version3.00/">Version 3</a>:
-<ul><li> Added support for texture stitching.</li></ul>
--->
+<ul><li> Added support for regularizing within the kernel.</li></ul>
+<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.50/">Version 2.5</a>:
+<ul><li> Added line-integral-convolution code.</li></ul>
 </details>
 
 

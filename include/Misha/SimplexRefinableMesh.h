@@ -37,6 +37,7 @@ DAMAGE.
 #include <omp.h>
 #include "Misha/Geometry.h"
 #include "Misha/Timer.h"
+#include "Misha/Miscellany.h"
 #include "SimplexMesh.h"
 #include "SimplexRefinableBasis.h"
 

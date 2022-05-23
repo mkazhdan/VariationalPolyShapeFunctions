@@ -68,27 +68,27 @@ void ShowUsage( const char* ex )
 template< unsigned int Degree , unsigned int RefinementLevels >
 void Execute( int argc , char *argv[] , const std::vector< Point< double , Dim > > &vertices , const std::vector< std::vector< unsigned int > > &polygons , const std::vector< bool > &lockedVertices , SquareMatrix< double , Dim > xForm , unsigned int width , unsigned int height , unsigned int refinementResolution )
 {
-	char windowName[1024];
+	std::stringstream sStream;
 
 	if( Multigrid.set )
 	{
-		sprintf( windowName , "Deformable Polygon Mesh Viewer (Degree=%d, multigrid)" , Degree );
+		sStream << "Deformable Polygon Mesh Viewer: Degree=" << Degree << ", multigrid (v. " << VERSION << ")]";
 		DeformablePolygonMeshVisualization< Degree , RefinementLevels , true > v;
 		v.vCycles = VCycles.value;
 		v.gsIters = GSIterations.value;
 		v.init( vertices , polygons , lockedVertices , xForm , width , height , Gravity.value , CoarseNodeDimension.value );
 		if( TimeStep.set ) v.setTimeStep( TimeStep.value );
 
-		Misha::Viewable< DeformablePolygonMeshVisualization< Degree , RefinementLevels , true > >::Viewer::Run( &v , argc , argv , windowName );
+		Misha::Viewable< DeformablePolygonMeshVisualization< Degree , RefinementLevels , true > >::Viewer::Run( &v , argc , argv , sStream.str().c_str() );
 	}
 	else
 	{
-		sprintf( windowName , "Deformable Polygon Mesh Viewer (Degree=%d, direct)" , Degree );
+		sStream << "Deformable Polygon Mesh Viewer: Degree=" << Degree << ", direct (v. " << VERSION << ")]";
 		DeformablePolygonMeshVisualization< Degree , RefinementLevels , false > v;
 		v.init( vertices , polygons , lockedVertices , xForm , width , height , Gravity.value , CoarseNodeDimension.value );
 		if( TimeStep.set ) v.setTimeStep( TimeStep.value );
 
-		Misha::Viewable< DeformablePolygonMeshVisualization< Degree , RefinementLevels , false > >::Viewer::Run( &v , argc , argv , windowName );
+		Misha::Viewable< DeformablePolygonMeshVisualization< Degree , RefinementLevels , false > >::Viewer::Run( &v , argc , argv , sStream.str().c_str() );
 	}
 }
 

@@ -68,17 +68,17 @@ void Execute( int argc , char *argv[] , std::vector< Point3D< double > > &vertic
 	{
 		GeodesicsInHeatVisualization< Degree , true > v( vertices , polygons , CoarseNodeDimension.value , TimeStep.value , StiffnessRegularizer.value , SubdivisionIterations.value , Width.value , Height.value );
 
-		char windowName[1024];
-		sprintf( windowName , "Geodesics in heat (Degree=%d, multigrid solver)" , Degree );
-		Misha::Viewable< GeodesicsInHeatVisualization< Degree , true > >::Viewer::Run( &v , argc , argv , windowName );
+		std::stringstream sStream;
+		sStream << "Geodesics in Heat: Degree=" << Degree << ", multigrid (v. " << VERSION << ")]";
+		Misha::Viewable< GeodesicsInHeatVisualization< Degree , true > >::Viewer::Run( &v , argc , argv , sStream.str().c_str() );
 	}
 	else
 	{
 		GeodesicsInHeatVisualization< Degree , false > v( vertices , polygons , CoarseNodeDimension.value , TimeStep.value , StiffnessRegularizer.value , SubdivisionIterations.value , Width.value , Height.value );
 
-		char windowName[1024];
-		sprintf( windowName , "Geodesics in heat (Degree=%d, direct solver)" , Degree );
-		Misha::Viewable< GeodesicsInHeatVisualization< Degree , false > >::Viewer::Run( &v , argc , argv , windowName );
+		std::stringstream sStream;
+		sStream << "Geodesics in Heat: Degree=" << Degree << ", direct (v. " << VERSION << ")]";
+		Misha::Viewable< GeodesicsInHeatVisualization< Degree , false > >::Viewer::Run( &v , argc , argv , sStream.str().c_str() );
 	}
 }
 

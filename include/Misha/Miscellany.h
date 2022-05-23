@@ -137,10 +137,15 @@ namespace Miscellany
 		{
 			if( _verbose )
 			{
-				for( unsigned int n=0 ; n<Nesting ; n++ ) std::cout << "  ";
-				std::cout << _text << ": " << _timer.elapsed() << "(s)" << std::endl;
 				Nesting--;
+				std::cout << inset() << _text << ": " << _timer.elapsed() << "(s)" << std::endl;
 			}
+		}
+		std::string inset( void ) const
+		{
+			std::stringstream sstream;
+			for( unsigned int n=0 ; n<Nesting ; n++ ) sstream << "  ";
+			return sstream.str();
 		}
 	protected:
 		Timer _timer;

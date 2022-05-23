@@ -55,12 +55,13 @@ template< unsigned int Dim , unsigned int Degree >
 template< typename SimplexRefinableCellType >
 void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setSimplexMesh( const CellList< SimplexRefinableCellType > &cellList , bool verbose )
 {
+	Miscellany::NestedTimer timer( "Got simplicial mesh" , verbose );
+
 	// The total list of simplices
 	std::vector< SimplexIndex< Dim , unsigned int > > simplices;
 	// The total list of metrics
 	std::vector< SquareMatrix< double , Dim > > metrics;
 
-	Timer timer;
 	unsigned int sCount = 0;
 	for( unsigned int c=0 ; c<cellList.size() ; c++ ) sCount += cellList[c].size();
 	simplices.resize( sCount );
@@ -86,14 +87,14 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setSimplexMesh( cons
 	}
 	std::function< SquareMatrix< double , Dim > ( unsigned int ) > gFunction = [&]( unsigned int idx ){ return metrics[idx]; };
 	_simplexMesh = SimplexMesh< Dim , Degree >::Init( simplices , gFunction );
-
-	if( verbose ) std::cout << "Got simplicial mesh: " << timer.elapsed() << std::endl;
 }
 
 template< unsigned int Dim , unsigned int Degree >
 template< typename SimplexRefinableCellType >
 void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , unsigned int finestDim , bool verbose )
 {
+	Miscellany::NestedTimer timer( "Got prolongation/restriction" , verbose );
+
 	_prolongationAndNodeMap.resize( finestDim+1 );
 
 	struct PEntry
@@ -119,7 +120,6 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 	// The prolongation entries (represented using MultiNodeIndex)
 	std::vector< PEntry > pEntries[Dim];
 
-	Timer timer;
 	{
 		std::vector< std::vector< PEntry > > _pEntries[Dim];
 		std::vector< std::map< NodeMultiIndex , unsigned int > > _nodeMaps[Dim];
@@ -195,14 +195,14 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 		_prolongationAndNodeMap[d].first.resize( nodes(d+1) , nodes(d) );
 		_prolongationAndNodeMap[d].first.setFromTriplets( entries.begin() , entries.end() );		
 	}
-
-	if( verbose ) std::cout << "Got prolongation/restriction: " << timer.elapsed() << std::endl;
 }
 
 template< unsigned int Dim , unsigned int Degree >
 template< typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose )
 {
+	Miscellany::NestedTimer timer( "Got restriction/prolongation" , verbose );
+
 	_prolongationAndNodeMap.resize( finestDim+1 );
 
 	struct PEntry
@@ -228,7 +228,6 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 	// The prolongation entries (represented using MultiNodeIndex)
 	std::vector< PEntry > pEntries[Dim];
 
-	Timer timer;
 	{
 		std::vector< std::vector< PEntry > > _pEntries[Dim];
 		std::vector< std::map< NodeMultiIndex , unsigned int > > _nodeMaps[Dim];
@@ -304,8 +303,6 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 		_prolongationAndNodeMap[d].first.resize( nodes(d+1) , nodes(d) );
 		_prolongationAndNodeMap[d].first.setFromTriplets( entries.begin() , entries.end() );		
 	}
-
-	if( verbose ) std::cout << "Got prolongation/restriction: " << timer.elapsed() << std::endl;
 }
 
 template< unsigned int Dim , unsigned int Degree >

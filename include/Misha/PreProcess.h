@@ -1,6 +1,7 @@
 #ifndef PRE_PROCESS_INCLUDED
 #define PRE_PROCESS_INCLUDED
 
+#define VERSION 2.5
 
 #undef EIGEN_USE_MKL_ALL			// Enabling this lets Eigen use the MKL library for efficiency
 									// [NOTE] That this requires setting the include and liner directories accordingly

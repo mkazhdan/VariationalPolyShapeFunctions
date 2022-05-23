@@ -69,26 +69,26 @@ void ShowUsage( const char* ex )
 template< unsigned int Degree >
 void Execute( int argc , char *argv[] , const std::vector< Point< double , Dim > > &vertices , const std::vector< std::vector< unsigned int > > &polygons , const std::vector< std::vector< std::pair< unsigned int , bool > > > &polyhedra , const std::vector< bool > &lockedVertices , SquareMatrix< double , Dim > xForm , unsigned int width , unsigned int height , unsigned int refinementResolution )
 {
-	char windowName[1024];
+	std::stringstream sStream;
 	if( Multigrid.set )
 	{
-		sprintf( windowName , "Deformable Polyhedral Mesh Viewer (Degree=%d, multigrid)" , Degree );
+		sStream << "Deformable Polyhedral Mesh Viewer: Degree=" << Degree << ", multigrid (v. " << VERSION << ")]";
 		DeformablePolyhedralMeshVisualization< Degree , true > v;
 		v.vCycles = VCycles.value;
 		v.gsIters = GSIterations.value;
 		v.init( vertices , polygons , polyhedra , lockedVertices , xForm , width , height , Gravity.value , refinementResolution , CoarseNodeDimension.value , !NoLinearPrecision.set );
 		if( TimeStep.set ) v.setTimeStep( TimeStep.value );
 
-		Misha::Viewable< DeformablePolyhedralMeshVisualization< Degree , true > >::Viewer::Run( &v , argc , argv , windowName );
+		Misha::Viewable< DeformablePolyhedralMeshVisualization< Degree , true > >::Viewer::Run( &v , argc , argv , sStream.str().c_str() );
 	}
 	else
 	{
-		sprintf( windowName , "Deformable Polyhedral Mesh Viewer (Degree=%d, direct)" , Degree );
+		sStream << "Deformable Polyhedral Mesh Viewer: Degree=" << Degree << ", direct (v. " << VERSION << ")]";
 		DeformablePolyhedralMeshVisualization< Degree , false > v;
 		v.init( vertices , polygons , polyhedra , lockedVertices , xForm , width , height , Gravity.value , refinementResolution , CoarseNodeDimension.value , !NoLinearPrecision.set );
 		if( TimeStep.set ) v.setTimeStep( TimeStep.value );
 
-		Misha::Viewable< DeformablePolyhedralMeshVisualization< Degree , false > >::Viewer::Run( &v , argc , argv , windowName );
+		Misha::Viewable< DeformablePolyhedralMeshVisualization< Degree , false > >::Viewer::Run( &v , argc , argv , sStream.str().c_str() );
 	}
 }
 

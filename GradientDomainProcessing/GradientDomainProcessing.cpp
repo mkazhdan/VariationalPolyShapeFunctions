@@ -44,11 +44,20 @@ DAMAGE.
 
 const unsigned int ManifoldDimension = 2;
 
+enum
+{
+	VALUE_POSITION=0 ,
+	VALUE_NORMAL ,
+	VALUE_COLOR ,
+	VALUE_COUNT
+};
+const std::string ValueNames[] = { "position" , "normal" , "color" };
+
 Misha::CmdLineParameter< std::string > In( "in" ) , Out( "out" );
-Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , CoarseNodeDimension( "coarseDim" , 1 ) , VCycles( "vCycles" , 3 ) , GSIters( "gsIters" , 5 );
+Misha::CmdLineParameter< int > Degree( "degree" , 2 ) , CoarseNodeDimension( "coarseDim" , 1 ) , VCycles( "vCycles" , 3 ) , GSIters( "gsIters" , 5 ) , ValueType( "value" , VALUE_POSITION );
 Misha::CmdLineParameter< double > GradientWeight( "gWeight" , 1.e-5 ) , GradientScale( "gScale" , 1. );
-Misha::CmdLineReadable Multigrid( "mg" ) , Verbose( "verbose" ) , Color( "color" );
-Misha::CmdLineReadable* params[] = { &In , &Out , &GradientScale , &Degree , &GradientWeight , &Verbose , &CoarseNodeDimension , &Multigrid , &VCycles , &GSIters , &Color , NULL };
+Misha::CmdLineReadable Multigrid( "mg" ) , Verbose( "verbose" );
+Misha::CmdLineReadable* params[] = { &In , &Out , &GradientScale , &Degree , &GradientWeight , &Verbose , &CoarseNodeDimension , &Multigrid , &VCycles , &GSIters , &ValueType , NULL };
 
 void ShowUsage( const char* ex )
 {
@@ -61,19 +70,17 @@ void ShowUsage( const char* ex )
 	printf( "\t[--%s <gradient scale>=%e]\n" , GradientScale.name.c_str() , GradientScale.value );
 	printf( "\t[--%s <v-cycles>=%d]\n" , VCycles.name.c_str() , VCycles.value );
 	printf( "\t[--%s <Gauss-Seidel iterations>=%d]\n" , GSIters.name.c_str() , GSIters.value );
+	printf( "\t[--%s <value type>=%d]\n" , ValueType.name.c_str() , ValueType.value );
+	for( unsigned int i=0 ; i<VALUE_COUNT ; i++ ) printf( "\t\t%d] %s\n" , i , ValueNames[i].c_str() );
 	printf( "\t[--%s]\n" , Multigrid.name.c_str() );
-	printf( "\t[--%s]\n" , Color.name.c_str() );
 	printf( "\t[--%s]\n" , Verbose.name.c_str() );
 }
 
-typedef VertexFactory::PositionFactory< double , 3 > Factory;
-typedef typename Factory::VertexType Vertex;
-
-typedef VertexFactory::Factory< double , VertexFactory::PositionFactory< double , 3 > , VertexFactory::RGBColorFactory< double > > RGBFactory;
-typedef typename RGBFactory::VertexType RGBVertex;
+typedef VertexFactory::Factory< double , VertexFactory::PositionFactory< double , 3 > , VertexFactory::NormalFactory< double , 3 > , VertexFactory::RGBColorFactory< double > > OrientedRGBFactory;
+typedef typename OrientedRGBFactory::VertexType OrientedRGBVertex;
 
 template< unsigned int Degree , bool Hierarchical >
-void Execute( const std::vector< RGBVertex > &vertices , const std::vector< std::vector< unsigned int > > &polygons , std::vector< Point< double , 3 > > &values )
+void Execute( const std::vector< OrientedRGBVertex > &vertices , const std::vector< std::vector< unsigned int > > &polygons , std::vector< Point< double , 3 > > &values , bool normalize )
 {
 	using MGSolver::PointVector;
 	using MGSolver::operator +;
@@ -105,62 +112,65 @@ void Execute( const std::vector< RGBVertex > &vertices , const std::vector< std:
 
 	const SimplexMesh< ManifoldDimension , Degree > &sMesh = pMesh.simplexMesh();
 
-	Miscellany::Timer timer;
 	Eigen::SparseMatrix< double > S , Pt , P;
 	std::vector< Eigen::SparseMatrix< double > > Ps;
+	PointVector< 3 > nodeValues;
 
-	if constexpr( Hierarchical )
+	Eigen::SparseMatrix< double > M , L;
 	{
-		P = pMesh.P( pMesh.maxLevel() , CoarseNodeDimension.value );
-		Ps.resize( CoarseNodeDimension.value );
-		for( unsigned int d=0 ; d<(unsigned int)CoarseNodeDimension.value ; d++ ) Ps[d] = pMesh.P( d+1 , d );
-	}
-	else P = pMesh.P();
-	Pt = P.transpose();
-	S = Pt * pMesh.simplexMesh().stiffness() * P;
-
-	Eigen::SparseMatrix< double > M = Pt * pMesh.simplexMesh().mass() * P;
-	Eigen::SparseMatrix< double > L = M + S * GradientWeight.value;
-	PointVector< 3 > nodeValues( pMesh.nodes() );
-
-	// Use the vertex normals to set the node coefficients
-	for( auto iter=pMesh.nodeMap().begin() ; iter!=pMesh.nodeMap().end() ; iter++ )
-	{
-		NodeMultiIndex nmi = iter->first;
-		Point3D< double > v;
-		for( unsigned int i=0 ; i<Degree ; i++ ) v += values[ nmi[i] ];
-		nodeValues[iter->second] = v / Degree;
-	}
-	if( Verbose.set ) std::cout << "Got system: " << timer.elapsed() << " (s)" << std::endl;
-
-	timer.reset();
-	if( Ps.size() )
-	{
-		MGSolver::Solver< MGSolver::ParallelGaussSeidelRelaxer< 20u > > mgSolver( L , Ps , false );
-		PointVector< 3 > b;
-		b = M * nodeValues + S * nodeValues * GradientWeight.value * GradientScale.value;
-		nodeValues = mgSolver.solve( b , nodeValues , VCycles.value , GSIters.value , GSIters.value , false );
-	}
-	else
-	{
-		SparseSolver::LLT solver( L );
-		Eigen::VectorXd x( pMesh.nodes() ) , b;
-		for( unsigned int d=0 ; d<3 ; d++ )
+		Miscellany::NestedTimer timer( "Got system" , Verbose.set );
+		if constexpr( Hierarchical )
 		{
-			for( unsigned int i=0 ; i<pMesh.nodes() ; i++ ) x[i] = nodeValues[i][d];
-			b = M * x + S * x * GradientWeight.value * GradientScale.value;
-			x = solver.solve( b );
-			for( unsigned int i=0 ; i<pMesh.nodes() ; i++ ) nodeValues[i][d] = x[i];
+			P = pMesh.P( pMesh.maxLevel() , CoarseNodeDimension.value );
+			Ps.resize( CoarseNodeDimension.value );
+			for( unsigned int d=0 ; d<(unsigned int)CoarseNodeDimension.value ; d++ ) Ps[d] = pMesh.P( d+1 , d );
+		}
+		else P = pMesh.P();
+		Pt = P.transpose();
+		S = Pt * pMesh.simplexMesh().stiffness() * P;
+
+		M = Pt * pMesh.simplexMesh().mass() * P;
+		L = M + S * GradientWeight.value;
+		nodeValues.resize( pMesh.nodes() );
+
+		// Use the vertex normals to set the node coefficients
+		for( auto iter=pMesh.nodeMap().begin() ; iter!=pMesh.nodeMap().end() ; iter++ )
+		{
+			NodeMultiIndex nmi = iter->first;
+			Point3D< double > v;
+			for( unsigned int i=0 ; i<Degree ; i++ ) v += values[ nmi[i] ];
+			if( normalize ) nodeValues[ iter->second ] = v / Point< double , 3 >::Length( v );
+			else            nodeValues[ iter->second ] = v / Degree;
 		}
 	}
-	for( unsigned int i=0 ; i<values.size() ; i++ )
 	{
-		unsigned int idx[Degree];
-		for( unsigned int d=0 ; d<Degree ; d++ ) idx[d] = i;
-		values[i] = nodeValues[ pMesh.nodeIndex( NodeMultiIndex(idx) ) ];
+		Miscellany::NestedTimer timer( "Solved system" , Verbose.set );
+		if( Ps.size() )
+		{
+			MGSolver::Solver< MGSolver::ParallelGaussSeidelRelaxer< 20u > > mgSolver( L , Ps , false );
+			PointVector< 3 > b;
+			b = M * nodeValues + S * nodeValues * GradientWeight.value * GradientScale.value;
+			nodeValues = mgSolver.solve( b , nodeValues , VCycles.value , GSIters.value , GSIters.value , false );
+		}
+		else
+		{
+			SparseSolver::LLT solver( L );
+			Eigen::VectorXd x( pMesh.nodes() ) , b;
+			for( unsigned int d=0 ; d<3 ; d++ )
+			{
+				for( unsigned int i=0 ; i<pMesh.nodes() ; i++ ) x[i] = nodeValues[i][d];
+				b = M * x + S * x * GradientWeight.value * GradientScale.value;
+				x = solver.solve( b );
+				for( unsigned int i=0 ; i<pMesh.nodes() ; i++ ) nodeValues[i][d] = x[i];
+			}
+		}
+		for( unsigned int i=0 ; i<values.size() ; i++ )
+		{
+			unsigned int idx[Degree];
+			for( unsigned int d=0 ; d<Degree ; d++ ) idx[d] = i;
+			values[i] = nodeValues[ pMesh.nodeIndex( NodeMultiIndex(idx) ) ];
+		}
 	}
-
-	if( Verbose.set ) std::cout << "Solved system: " << timer.elapsed() << " (s)" << std::endl;
 }
 
 int main( int argc , char* argv[] )
@@ -172,55 +182,80 @@ int main( int argc , char* argv[] )
 		return EXIT_FAILURE;
 	}
 
-	auto Random = []( void ){ return 1.-2.*(double)rand()/RAND_MAX; };
-	auto RandomBallPoint = [&]( void )
-	{
-		Point3D< double > r;
-		while( true )
-		{
-			r = Point3D< double >( Random() , Random() , Random() );
-			if( r.squareNorm()<1 ) return r;
-		}
-	};
-
+	std::stringstream sStream;
+	sStream << "Running Time [Gradient Domain Process (v. " << VERSION << ")]";
+	Miscellany::NestedTimer timer( sStream.str() , Verbose.set );
 
 	std::vector< std::vector< unsigned int > > polygons;
-	std::vector< RGBVertex > vertices;
-	std::vector< Point< double , 3 > > vectorField;
+	std::vector< OrientedRGBVertex > vertices;
 
-	RGBFactory factory;
+	OrientedRGBFactory factory;
 	int file_type;
 
 	bool *readFlags = new bool[ factory.plyReadNum() ];
-	PLY::ReadPolygons< RGBFactory >( In.value , factory , vertices , polygons , readFlags , file_type );
-	bool hasColor = factory.plyValidReadProperties<1>( readFlags );
+	PLY::ReadPolygons< OrientedRGBFactory >( In.value , factory , vertices , polygons , readFlags , file_type );
+	bool hasNormal = factory.plyValidReadProperties<1>( readFlags );
+	bool hasColor = factory.plyValidReadProperties<2>( readFlags );
 	delete[] readFlags;
-	if( !hasColor && Color.set ) ERROR_OUT( "Could not read in color" );
-
+	if( ValueType.value==VALUE_COLOR && !hasColor ) ERROR_OUT( "Could not read in color" );
+	else if( ValueType.value==VALUE_NORMAL && !hasNormal )
+	{
+		WARN( "No normals found. Setting from face normals" );
+		for( unsigned int i=0 ; i<vertices.size() ; i++ ) vertices[i].get<1>() = Point< double , 3 >();
+		for( unsigned int i=0 ; i<polygons.size() ; i++ )
+		{
+			Point< double , 3 > n;
+			const std::vector< unsigned int > &p = polygons[i];
+			Point< double , 3 > center;
+			for( unsigned int j=0 ; j<p.size() ; j++ ) center += vertices[ p[j] ].get<0>();
+			center /= (double)p.size();
+			for( unsigned int j=0 ; j<p.size() ; j++ )
+			{
+				Point< double , 3 > v1 = vertices[ p[j] ].get<0>() , v2 = vertices[ p[(j+1)%p.size()] ].get<0>();
+				n += Point< double , 3 >::CrossProduct( v1-center , v2-center );
+			}
+			for( unsigned int j=0 ; j<p.size() ; j++ ) vertices[ p[j] ].get<1>() += n;
+		}
+		for( unsigned int i=0 ; i<vertices.size() ; i++ ) vertices[i].get<1>() = vertices[i].get<1>() / Point< double , 3 >::Length( vertices[i].get<1>() );
+		hasNormal = true;
+	}
 	if( Verbose.set ) std::cout << "Vertices / Polygons: " << vertices.size() << " / " << polygons.size() << std::endl;
 
 	std::vector< Point< double , 3 > > values( vertices.size() );
-	if( Color.set ) for( unsigned int i=0 ; i<vertices.size() ; i++ ) values[i] = vertices[i].get<1>();
-	else            for( unsigned int i=0 ; i<vertices.size() ; i++ ) values[i] = vertices[i].get<0>();
+
+	switch( ValueType.value )
+	{
+	case VALUE_POSITION:
+		for( unsigned int i=0 ; i<vertices.size() ; i++ ) values[i] = vertices[i].get<0>();
+		break;
+	case VALUE_NORMAL:
+		for( unsigned int i=0 ; i<vertices.size() ; i++ ) values[i] = vertices[i].get<1>();
+		break;
+	case VALUE_COLOR:
+		for( unsigned int i=0 ; i<vertices.size() ; i++ ) values[i] = vertices[i].get<2>();
+		break;
+	default:
+		ERROR_OUT( "Unrecognized value type: " , ValueType.value );
+	}
 
 	if( Multigrid.set )
 	{
 		switch( Degree.value )
 		{
-		case 1: Execute< 1 , true >( vertices , polygons , values ) ; break;
-		case 2: Execute< 2 , true >( vertices , polygons , values ) ; break;
-		case 3: Execute< 3 , true >( vertices , polygons , values ) ; break;
-		default: ERROR_OUT( "Only degrees 1, 2, and 3 supported" );
+			case 1: Execute< 1 , true >( vertices , polygons , values , ValueType.value==VALUE_NORMAL ) ; break;
+			case 2: Execute< 2 , true >( vertices , polygons , values , ValueType.value==VALUE_NORMAL ) ; break;
+			case 3: Execute< 3 , true >( vertices , polygons , values , ValueType.value==VALUE_NORMAL ) ; break;
+			default: ERROR_OUT( "Only degrees 1, 2, and 3 supported" );
 		}
 	}
 	else
 	{
 		switch( Degree.value )
 		{
-		case 1: Execute< 1 , false >( vertices , polygons , values ) ; break;
-		case 2: Execute< 2 , false >( vertices , polygons , values ) ; break;
-		case 3: Execute< 3 , false >( vertices , polygons , values ) ; break;
-		default: ERROR_OUT( "Only degrees 1, 2, and 3 supported" );
+			case 1: Execute< 1 , false >( vertices , polygons , values , ValueType.value==VALUE_NORMAL ) ; break;
+			case 2: Execute< 2 , false >( vertices , polygons , values , ValueType.value==VALUE_NORMAL ) ; break;
+			case 3: Execute< 3 , false >( vertices , polygons , values , ValueType.value==VALUE_NORMAL ) ; break;
+			default: ERROR_OUT( "Only degrees 1, 2, and 3 supported" );
 		}
 	}
 
@@ -231,16 +266,49 @@ int main( int argc , char* argv[] )
 	};
 
 
-	if( Color.set ) for( unsigned int i=0 ; i<vertices.size() ; i++ ) vertices[i].get<1>() = ClampColor( values[i] );
-	else            for( unsigned int i=0 ; i<vertices.size() ; i++ ) vertices[i].get<0>() = values[i];
+	switch( ValueType.value )
+	{
+	case VALUE_POSITION:
+		for( unsigned int i=0 ; i<vertices.size() ; i++ ) vertices[i].get<0>() = values[i];
+		break;
+	case VALUE_NORMAL:
+		for( unsigned int i=0 ; i<vertices.size() ; i++ ) vertices[i].get<1>() = values[i] = values[i] / Point< double , 3 >::Length( values[i] );
+		break;
+	case VALUE_COLOR:
+		for( unsigned int i=0 ; i<vertices.size() ; i++ ) vertices[i].get<2>() = ClampColor( values[i] );
+		break;
+	}
 
 	if( Out.set )
 	{
-		if( hasColor ) PLY::WritePolygons( Out.value , factory , vertices , polygons , file_type );
+		if( hasColor && hasNormal ) PLY::WritePolygons( Out.value , factory , vertices , polygons , file_type );
+		else if( hasColor )
+		{
+			typedef VertexFactory::Factory< double , VertexFactory::PositionFactory< double , 3 > , VertexFactory::RGBColorFactory< double > > _Factory;
+			typedef typename _Factory::VertexType _Vertex;
+
+			_Factory _factory;
+			std::vector< _Vertex > _vertices( vertices.size() );
+			for( unsigned int i=0 ; i<vertices.size() ; i++ ) _vertices[i].get<0>() = vertices[i].get<0>() , _vertices[i].get<1>() = vertices[i].get<2>();
+			PLY::WritePolygons( Out.value , _factory , _vertices , polygons , file_type );
+		}
+		else if( hasNormal )
+		{
+			typedef VertexFactory::Factory< double , VertexFactory::PositionFactory< double , 3 > , VertexFactory::NormalFactory< double , 3 > > _Factory;
+			typedef typename _Factory::VertexType _Vertex;
+
+			_Factory _factory;
+			std::vector< _Vertex > _vertices( vertices.size() );
+			for( unsigned int i=0 ; i<vertices.size() ; i++ ) _vertices[i].get<0>() = vertices[i].get<0>() , _vertices[i].get<1>() = vertices[i].get<1>();
+			PLY::WritePolygons( Out.value , _factory , _vertices , polygons , file_type );
+		}
 		else
 		{
-			Factory _factory;
-			std::vector< Vertex > _vertices( vertices.size() );
+			typedef VertexFactory::PositionFactory< double , 3 > _Factory;
+			typedef typename _Factory::VertexType _Vertex;
+
+			_Factory _factory;
+			std::vector< _Vertex > _vertices( vertices.size() );
 			for( unsigned int i=0 ; i<vertices.size() ; i++ ) _vertices[i] = vertices[i].get<0>();
 			PLY::WritePolygons( Out.value , _factory , _vertices , polygons , file_type );
 		}

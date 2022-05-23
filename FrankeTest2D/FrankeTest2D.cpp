@@ -74,7 +74,6 @@ void ExecuteDirect
 {
 	typedef typename SimplexMesh< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
 	Eigen::SparseMatrix< double > M , S;
-	Timer timer;
 
 	auto Franke = [&]( Point< double , Dim > p )
 	{
@@ -92,10 +91,11 @@ void ExecuteDirect
 	};
 
 	// Get the system matrices
-	timer.reset();
-	M = simplexRefinableCellMesh.Pt() * simplexRefinableCellMesh.simplexMesh().mass() * simplexRefinableCellMesh.P();
-	S = simplexRefinableCellMesh.Pt() * simplexRefinableCellMesh.simplexMesh().stiffness() * simplexRefinableCellMesh.P();
-	if( Verbose.set ) std::cout << "Got system matrices: " << timer.elapsed() << std::endl;
+	{
+		Miscellany::NestedTimer timer( "GotSystemMatrices" , Verbose.set );
+		M = simplexRefinableCellMesh.Pt() * simplexRefinableCellMesh.simplexMesh().mass() * simplexRefinableCellMesh.P();
+		S = simplexRefinableCellMesh.Pt() * simplexRefinableCellMesh.simplexMesh().stiffness() * simplexRefinableCellMesh.P();
+	}
 
 	// Get the list of node multi-indices
 	std::vector< NodeMultiIndex > nodeMultiIndices( simplexRefinableCellMesh.nodes() );
@@ -128,30 +128,29 @@ void ExecuteDirect
 	SparseSolver::LLT solver;
 
 	// Compute the Cholesky factorization
-	timer.reset();
-	solver.compute( S );
-	switch( solver.info() )
 	{
-		case Eigen::NumericalIssue: ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- numerical issue" );
-		case Eigen::NoConvergence:  ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- no convergence" );
-		case Eigen::InvalidInput:   ERROR_OUT( "Eigen::SimplicialLDLT failed to factorize matrix -- invalid input" );
-		case Eigen::Success: ;
-	}
-	if( Verbose.set )
-	{
-		std::cout << "Performed Cholesky (LDLt) factorization: " << timer.elapsed() << std::endl;
-		std::cout << "DoFs / Non-zero matrix entries / Entries per row: " << S.rows() << " / " << S.nonZeros() << " / " << S.nonZeros()/S.rows() << std::endl;
+		Miscellany::NestedTimer timer( "Performed Cholesky (LLt) factorization" , Verbose.set );
+		solver.compute( S );
+		switch( solver.info() )
+		{	
+		case Eigen::NumericalIssue: ERROR_OUT( "SparseLLT failed to factorize matrix -- numerical issue" );
+		case Eigen::NoConvergence:  ERROR_OUT( "SparseLLT failed to factorize matrix -- no convergence" );
+		case Eigen::InvalidInput:   ERROR_OUT( "SparseLLT failed to factorize matrix -- invalid input" );
+		}
+		if( Verbose.set ) std::cout << "DoFs / Non-zero matrix entries / Entries per row: " << S.rows() << " / " << S.nonZeros() << " / " << S.nonZeros()/S.rows() << std::endl;
 	}
 
-	timer.reset();
-	Eigen::VectorXd x = solver.solve( b );
-	if( Verbose.set )
+	Eigen::VectorXd x;
 	{
-		std::cout << "Solved direct system: " << timer.elapsed() << std::endl;
-		double eIn = 0 , eOut = 0;
-		Eigen::VectorXd r = b - S* x;
-		for( unsigned int i=0 ; i<S.rows() ; i++ ) eIn += b[i] * b[i] , eOut += r[i] * r[i];
-		std::cout << "Error: " << sqrt(eIn) << " -> " << sqrt(eOut) << std::endl;
+		Miscellany::NestedTimer timer( "Solved direct system"  , Verbose.set );
+		x = solver.solve( b );
+		if( Verbose.set )
+		{
+			double eIn = 0 , eOut = 0;
+			Eigen::VectorXd r = b - S* x;
+			for( unsigned int i=0 ; i<S.rows() ; i++ ) eIn += b[i] * b[i] , eOut += r[i] * r[i];
+			std::cout << "Error: " << sqrt(eIn) << " -> " << sqrt(eOut) << std::endl;
+		}
 	}
 
 	double rms = 0;
@@ -175,7 +174,6 @@ void ExecuteMG
 	typedef typename SimplexMesh< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
 	Eigen::SparseMatrix< double > M , S;
 	std::vector< Eigen::SparseMatrix< double > > P( CoarseNodeDimension.value );
-	Timer timer;
 
 	auto Franke = [&]( Point< double , Dim > p )
 	{
@@ -193,16 +191,17 @@ void ExecuteMG
 	};
 
 	// Get the system matrices
-	timer.reset();
-	for( unsigned int d=0 ; d<(unsigned int)CoarseNodeDimension.value ; d++ ) P[d] = simplexRefinableCellMesh.P( d+1 , d );
 	{
-		Eigen::SparseMatrix< double > _P , _Pt;
-		_P = simplexRefinableCellMesh.P( simplexRefinableCellMesh.maxLevel() , CoarseNodeDimension.value );
-		_Pt = _P.transpose();
-		M = _Pt * simplexRefinableCellMesh.simplexMesh().mass() * _P;
-		S = _Pt * simplexRefinableCellMesh.simplexMesh().stiffness() * _P;
+		Miscellany::NestedTimer timer( "Got system matrices" , Verbose.set );
+		for( unsigned int d=0 ; d<(unsigned int)CoarseNodeDimension.value ; d++ ) P[d] = simplexRefinableCellMesh.P( d+1 , d );
+		{
+			Eigen::SparseMatrix< double > _P , _Pt;
+			_P = simplexRefinableCellMesh.P( simplexRefinableCellMesh.maxLevel() , CoarseNodeDimension.value );
+			_Pt = _P.transpose();
+			M = _Pt * simplexRefinableCellMesh.simplexMesh().mass() * _P;
+			S = _Pt * simplexRefinableCellMesh.simplexMesh().stiffness() * _P;
+		}
 	}
-	if( Verbose.set ) std::cout << "Got system matrices: " << timer.elapsed() << std::endl;
 
 
 	// Get the list of node multi-indices
@@ -234,21 +233,25 @@ void ExecuteMG
 		else if( lockedNodes[ iter.col() ] ) iter.valueRef() = 0;
 
 	// Compute the hierarchy of systems
-	timer.reset();
-	MGSolver::Solver< RelaxerType > mgSolver( S , P , FullVerbose.set );
-	if( Verbose.set ) std::cout << "Constructed multigrid system: " << timer.elapsed() << std::endl;
+	MGSolver::Solver< RelaxerType > *mgSolver = nullptr;
+	{
+		Miscellany::NestedTimer timer( "Constructed multigrid system" , Verbose.set );
+		mgSolver = new MGSolver::Solver< RelaxerType >( S , P , FullVerbose.set );
+	}
 
 	if( Verbose.set && !FullVerbose.set ) std::cout << "DoFs / Non-zero matrix entries / Entries per row: " << S.rows() << " / " << S.nonZeros() << " / " << S.nonZeros()/S.rows() << std::endl;
 
-	timer.reset();
-	Eigen::VectorXd x = mgSolver.solve( b , vCycles , gsIters , gsIters , FullVerbose.set );
-	if( Verbose.set )
+	Eigen::VectorXd x;
 	{
-		std::cout << "Solved multigrid system: " << timer.elapsed() << std::endl;
-		double eIn = 0 , eOut = 0;
-		Eigen::VectorXd r = b - S* x;
-		for( unsigned int i=0 ; i<S.rows() ; i++ ) eIn += b[i] * b[i] , eOut += r[i] * r[i];
-		std::cout << "Error: " << sqrt(eIn) << " -> " << sqrt(eOut) << std::endl;
+		Miscellany::NestedTimer timer( "Solved multigrid system" , Verbose.set );
+		x = mgSolver->solve( b , vCycles , gsIters , gsIters , FullVerbose.set );
+		if( Verbose.set )
+		{
+			double eIn = 0 , eOut = 0;
+			Eigen::VectorXd r = b - S* x;
+			for( unsigned int i=0 ; i<S.rows() ; i++ ) eIn += b[i] * b[i] , eOut += r[i] * r[i];
+			std::cout << "Error: " << sqrt(eIn) << " -> " << sqrt(eOut) << std::endl;
+		}
 	}
 
 	double rms = 0;
@@ -257,13 +260,14 @@ void ExecuteMG
 		Miscellany::StreamFloatPrecision sfp( std::cout , 3 , true );
 		std::cout << "RMS: " << sqrt( rms / simplexRefinableCellMesh.nodes( CoarseNodeDimension.value ) ) << std::endl;
 	}
+
+	delete mgSolver;
 }
 
 template< unsigned int Degree , typename TestFunction >
 void Execute( const Meshes::PolygonMesh< unsigned int > &polyMesh , const std::vector< Point< double , Dim > > &vertices , const TestFunction &franke )
 {
 	typedef typename SimplexMesh< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
-	Timer timer;
 
 	std::set< unsigned int > boundaryVertices;
 	{
@@ -322,7 +326,6 @@ void Execute( const Meshes::PolygonMesh< unsigned int > &polyMesh , const std::v
 
 int main( int argc , char* argv[] )
 {
-	if( argc<1 ){ ShowUsage( argv[0] ) ; return EXIT_FAILURE; }
 	Misha::CmdLineParse( argc-1 , argv+1 , params );
 
 	if( !Input.set )
@@ -332,6 +335,10 @@ int main( int argc , char* argv[] )
 	}
 
 	Verbose.set |= FullVerbose.set;
+
+	std::stringstream sStream;
+	sStream << "Running Time [Franke Test 2D (v. " << VERSION << ")]";
+	Miscellany::NestedTimer timer( sStream.str() , Verbose.set );
 
 	std::vector< Meshes::Polygon< unsigned int > > polygons;
 	std::vector< Point< double , Dim > > vertices;

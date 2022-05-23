@@ -611,9 +611,12 @@ GeodesicsInHeatVisualization< Degree , Hierarchical >::GeodesicsInHeatVisualizat
 template< unsigned int Degree , bool Hierarchical >
 void GeodesicsInHeatVisualization< Degree , Hierarchical >::_setSamplingMesh( unsigned int res )
 {
+	std::stringstream sstream;
+	sstream << "Set sampling mesh (" << res << ")";
+	Miscellany::NestedTimer timer( sstream.str() , true );
+
 	const SimplexMesh< Dim , Degree > &simplexMesh = _simplexRefinableCellMesh.simplexMesh();
 
-	Miscellany::Timer timer;
 	MeshRefiner refiner(res);
 	std::vector< typename SimplexMesh< 2 >::Sample > vertexSamples;
 
@@ -629,8 +632,6 @@ void GeodesicsInHeatVisualization< Degree , Hierarchical >::_setSamplingMesh( un
 		_verticesAndNormals[ i+vertexSamples.size() ] = _polygonNormals[ _triangleToPolygon[ vertexSamples[i].sIdx ] ];
 	}
 	_eMatrix = simplexMesh.evaluationMatrix( vertexSamples );
-
-	std::cout << "Set sampling mesh (" << res << "): " << timer.elapsed() << std::endl;
 }
 
 template< unsigned int Degree , bool Hierarchical >

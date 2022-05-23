@@ -52,7 +52,8 @@ void HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::_init( const Cel
 {
 	// Start by constructing the underlying SolidSimplexMesh
 	{
-		Timer timer;
+		Miscellany::NestedTimer timer( "Got solid simplex mesh" , verbose );
+
 		std::vector< SimplexIndex< Dim , unsigned int > > simplices;
 
 		unsigned int sCount = 0;
@@ -67,21 +68,24 @@ void HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::_init( const Cel
 		}
 
 		_solidSimplexMesh = SolidSimplexMesh< Dim , Degree >::Init( simplices , vFunction );
-		if( verbose ) std::cout << "Got solid simplex mesh: " << timer.elapsed() << std::endl;
 	}
 
 	// Next, compute the prolongation information
 	{
-		Timer timer;
 		HierarchicalSimplexRefinableCellMesh< Dim , Degree > srm;
-		if( linearPrecision ) srm = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , forcePoU , vFunction , planarityEpsilon , finestDim , verbose );
-		else srm = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , forcePoU , finestDim , verbose );
-		if( verbose ) std::cout << "Got simplex refinable cell mesh: " << timer.elapsed() << std::endl;
-		_prolongationAndNodeMap.resize( srm.maxLevel() );
-		for( unsigned int l=0 ; l<srm.maxLevel() ; l++ )
 		{
-			_prolongationAndNodeMap[l].first = BlockExpand< Dim >( srm.P(l+1,l) );
-			_prolongationAndNodeMap[l].second = srm.nodeMap(l);
+			Miscellany::NestedTimer( "Got simplex refinable cell mesh" , verbose );
+			if( linearPrecision ) srm = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , forcePoU , vFunction , planarityEpsilon , finestDim , verbose );
+			else srm = HierarchicalSimplexRefinableCellMesh< Dim , Degree >::Init( cellList , eWeights , forcePoU , finestDim , verbose );
+		}
+		{
+			Miscellany::NestedTimer( "Expanded solid prolongation and node map" , verbose );
+			_prolongationAndNodeMap.resize( srm.maxLevel() );
+			for( unsigned int l=0 ; l<srm.maxLevel() ; l++ )
+			{
+				_prolongationAndNodeMap[l].first = BlockExpand< Dim >( srm.P(l+1,l) );
+				_prolongationAndNodeMap[l].second = srm.nodeMap(l);
+			}
 		}
 	}
 }

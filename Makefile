@@ -1,4 +1,4 @@
-programs = DeformableSolids2D DeformableSolids3D FrankeTest2D FrankeTest3D GeodesicsInHeat GradientDomainProcessing
+programs = DeformableSolids2D DeformableSolids3D FrankeTest2D FrankeTest3D GeodesicsInHeat GradientDomainProcessing PrincipalCurvature LineIntegralConvolution
 
 COMPILER ?= gcc
 #COMPILER ?= clang

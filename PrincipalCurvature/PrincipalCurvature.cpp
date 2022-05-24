@@ -111,9 +111,7 @@ int main( int argc , char* argv[] )
 			}
 			for( unsigned int k=0 ; k<2 ; k++ ) for( unsigned int l=0 ; l<2 ; l++ ) A(k,l) += dv[k] * dv[l] , b(k,l) += dn[k] * dv[l];
 		}
-//		A = A.inverse() * b.transpose();
-		A = A.inverse() * ( b + b.transpose() );
-//		A = A.inverse() * b;
+		A = A.inverse() * b;
 		A = ( A + A.transpose() ) / 2.;
 
 		Eigen::Matrix< double , 2 , 2 > D;

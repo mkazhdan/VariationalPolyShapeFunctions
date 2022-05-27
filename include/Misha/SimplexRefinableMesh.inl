@@ -1,3 +1,31 @@
+/*
+Copyright (c) 2022, Michael Kazhdan
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of
+conditions and the following disclaimer. Redistributions in binary form must reproduce
+the above copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the distribution. 
+
+Neither the name of the Johns Hopkins University nor the names of its contributors
+may be used to endorse or promote products derived from this software without specific
+prior written permission. 
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO THE IMPLIED WARRANTIES 
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
+*/
+
 //////////////////////////////////////////
 // HierarchicalSimplexRefinableCellMesh //
 //////////////////////////////////////////
@@ -81,7 +109,8 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setSimplexMesh( cons
 		unsigned int idx = 0;
 		for( unsigned int t=0 ; t<_simplicesAndMetrics.size() ; t++ ) for( unsigned int i=0 ; i<_simplicesAndMetrics[t].size() ; i++ )
 		{
-			simplices[idx] = _simplicesAndMetrics[t][i].first , metrics[idx] = _simplicesAndMetrics[t][i].second;
+			simplices[idx] = _simplicesAndMetrics[t][i].first;
+			metrics[idx] = _simplicesAndMetrics[t][i].second;
 			idx++;
 		}
 	}
@@ -122,7 +151,7 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 
 	{
 		std::vector< std::vector< PEntry > > _pEntries[Dim];
-		std::vector< std::map< NodeMultiIndex , unsigned int > > _nodeMaps[Dim];
+		std::vector< typename NodeMultiIndex::map > _nodeMaps[Dim];
 		for( unsigned int d=0 ; d<Dim ; d++ ) _pEntries[d].resize( omp_get_max_threads() ) , _nodeMaps[d].resize( omp_get_max_threads() );
 #pragma omp parallel for
 		for( int c=0 ; c<(int)cellList.size() ; c++ )
@@ -202,7 +231,6 @@ template< typename SimplexRefinableCellType , unsigned int EmbeddingDimension >
 void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNodeMap( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon , unsigned int finestDim , bool verbose )
 {
 	Miscellany::NestedTimer timer( "Got restriction/prolongation" , verbose );
-
 	_prolongationAndNodeMap.resize( finestDim+1 );
 
 	struct PEntry
@@ -230,7 +258,7 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 
 	{
 		std::vector< std::vector< PEntry > > _pEntries[Dim];
-		std::vector< std::map< NodeMultiIndex , unsigned int > > _nodeMaps[Dim];
+		std::vector< typename NodeMultiIndex::map > _nodeMaps[Dim];
 		for( unsigned int d=0 ; d<Dim ; d++ ) _pEntries[d].resize( omp_get_max_threads() ) , _nodeMaps[d].resize( omp_get_max_threads() );
 #pragma omp parallel for
 		for( int c=0 ; c<(int)cellList.size() ; c++ )
@@ -240,6 +268,7 @@ void HierarchicalSimplexRefinableCellMesh< Dim , Degree >::_setProlongationAndNo
 			SimplexRefinableElements< Dim , Degree > sre( simplexRefinable );
 			typename InterpolatingProlongationSystem::template ProlongationInfo< Degree > pInfo[Dim];
 			InterpolatingProlongationSystem::template HierarchicalProlongation< Dim , Degree >( simplexRefinable , eWeights , pou , positionFunctor, planarityEpsilon , pInfo , finestDim );
+
 			for( unsigned int d=0 ; d<Dim && d<=finestDim ; d++ )
 			{
 				const std::vector< NodeMultiIndex > &coarseMultiIndices = pInfo[d].coarseMultiIndices;

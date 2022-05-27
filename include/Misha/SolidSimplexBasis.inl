@@ -197,7 +197,8 @@ void SolidSimplexElements< Dim , Degree >::SetMassFrobeniusStiffnessAndTraceStif
 		{
 			M( n1*Dim+d1 , n2*Dim+d2 ) = integrator.mass(n1,d1,n2,d2);
 			F( n1*Dim+d1 , n2*Dim+d2 ) = integrator.frobeniusStiffness(n1,d1,n2,d2);
-			T( n1*Dim+d1 , n2*Dim+d2 ) = integrator.traceStiffness(n1,d1,n2,d2);		}
+			T( n1*Dim+d1 , n2*Dim+d2 ) = integrator.traceStiffness(n1,d1,n2,d2);
+		}
 }
 
 template< unsigned int Dim , unsigned int Degree >

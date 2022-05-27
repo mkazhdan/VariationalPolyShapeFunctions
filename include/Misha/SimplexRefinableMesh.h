@@ -35,6 +35,7 @@ DAMAGE.
 #include <type_traits>
 #include <atomic>
 #include <omp.h>
+#include "Misha/PreProcess.h"
 #include "Misha/Geometry.h"
 #include "Misha/Timer.h"
 #include "Misha/Miscellany.h"
@@ -112,14 +113,14 @@ struct HierarchicalSimplexRefinableCellMesh
 
 	unsigned int maxLevel( void ) const { return (unsigned int)_prolongationAndNodeMap.size(); };
 	size_t nodes( unsigned int l ) const { return l<_prolongationAndNodeMap.size() ? _prolongationAndNodeMap[l].second.size() : _simplexMesh.nodes(); }
-	const std::map< NodeMultiIndex , unsigned int > &nodeMap( unsigned int l ) const { return l<_prolongationAndNodeMap.size() ? _prolongationAndNodeMap[l].second : _simplexMesh.nodeMap(); }
+	const typename NodeMultiIndex::map &nodeMap( unsigned int l ) const { return l<_prolongationAndNodeMap.size() ? _prolongationAndNodeMap[l].second : _simplexMesh.nodeMap(); }
 	const Eigen::SparseMatrix< double > &P( unsigned int l ) const { return _prolongationAndNodeMap[l].first; }
 	unsigned int nodeIndex( unsigned int l , NodeMultiIndex ni ) const;
 
 	Eigen::SparseMatrix< double > P( unsigned int lOut , unsigned int lIn ) const;
 
 	size_t nodes( void ) const { return nodes( maxLevel()-1 ); }
-	const std::map< NodeMultiIndex , unsigned int > &nodeMap( void ) const { return nodeMap( maxLevel()-1 ); }
+	const typename NodeMultiIndex::map &nodeMap( void ) const { return nodeMap( maxLevel()-1 ); }
 	unsigned int nodeIndex( NodeMultiIndex ni ) const { return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::nodeIndex( maxLevel()-1 , ni ); }
 
 	const SimplexMesh< Dim , Degree > &simplexMesh( void ) const { return _simplexMesh; }
@@ -131,7 +132,7 @@ struct HierarchicalSimplexRefinableCellMesh
 	void setMetric( std::function< SquareMatrix< double , Dim > (unsigned int) > metricFunction ){ _simplexMesh.setMetric( metricFunction ); }
 protected:
 	SimplexMesh< Dim , Degree > _simplexMesh;
-	std::vector< std::pair< Eigen::SparseMatrix< double > , std::map< NodeMultiIndex , unsigned int > > > _prolongationAndNodeMap;
+	std::vector< std::pair< Eigen::SparseMatrix< double > , typename NodeMultiIndex::map > > _prolongationAndNodeMap;
 
 	template< typename SimplexRefinableCellType >
 	void _init( const CellList< SimplexRefinableCellType > &cellList , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool pou , unsigned int finestDim , bool verbose );
@@ -178,7 +179,7 @@ struct SimplexRefinableCellMesh : protected HierarchicalSimplexRefinableCellMesh
 	}
 
 	size_t nodes( void ) const { return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::nodes( _level ); }
-	const std::map< NodeMultiIndex , unsigned int > &nodeMap( void ) const { return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::nodeMap( _level ); }
+	const typename NodeMultiIndex::map &nodeMap( void ) const { return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::nodeMap( _level ); }
 	const Eigen::SparseMatrix< double > &P ( void ) const { return _P ; }
 	const Eigen::SparseMatrix< double > &Pt( void ) const { return _Pt; }
 	unsigned int nodeIndex( NodeMultiIndex ni ) const { return HierarchicalSimplexRefinableCellMesh< Dim , Degree >::nodeIndex( _level , ni ); }

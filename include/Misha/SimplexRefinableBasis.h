@@ -71,7 +71,11 @@ struct SimplexRefinableCell<1> : public SimplexRefinable<1>
 	unsigned int size( void ) const { return 1u; }
 	SimplexIndex< Dim , unsigned int > operator[]( unsigned int ) const { return _si; }
 	SquareMatrix< double , Dim > metric( unsigned int ) const { return _metric; }
+#ifdef USE_UNORDERED_SET_MAP
+	void setNodeIndexSet( unsigned int cellDim , std::unordered_set< unsigned int > &nodeIndexSet ) const { nodeIndexSet.insert( _si[0] ) , nodeIndexSet.insert( _si[1] ); }
+#else // !USE_UNORDERED_SET_MAP
 	void setNodeIndexSet( unsigned int cellDim , std::set< unsigned int > &nodeIndexSet ) const { nodeIndexSet.insert( _si[0] ) , nodeIndexSet.insert( _si[1] ); }
+#endif // USE_UNORDERED_SET_MAP
 protected:
 	SimplexIndex< Dim , unsigned int > _si;
 	SquareMatrix< double , Dim > _metric;
@@ -92,7 +96,11 @@ struct SimplexRefinableCell : public SimplexRefinable< Dim >
 	// Implementation of SimplexRefinable::operator[]
 	SimplexIndex< Dim , unsigned int > operator[]( unsigned int idx ) const;
 	// Get the indices of the vertices by recursing through the faces
+#ifdef USE_UNORDERED_SET_MAP
+	void setNodeIndexSet( unsigned int cellDim , std::unordered_set< unsigned int > &nodeIndexSet ) const
+#else // !USE_UNORDERED_SET_MAP
 	void setNodeIndexSet( unsigned int cellDim , std::set< unsigned int > &nodeIndexSet ) const
+#endif // USE_UNORDERED_SET_MAP
 	{
 		if( Dim>cellDim ) for( unsigned int f=0 ; f<faces() ; f++ ) face(f).setNodeIndexSet( cellDim , nodeIndexSet );
 		else
@@ -190,16 +198,15 @@ struct SimplexRefinableElements< Dim , Degree >
 	{
 		template< typename SubSimplexIndexFunctor >
 		NodeMultiIndex_Index( SubSimplexIndexFunctor subSimplexIndexFunctor , unsigned int sz );
-		unsigned int fromMultiIndex( SimplexRefinableElements::NodeMultiIndex nmi ) const;
-		const SimplexRefinableElements::NodeMultiIndex &toMultiIndex( unsigned int idx ) const { return _nodeList[idx]; }
+		unsigned int fromMultiIndex( NodeMultiIndex nmi ) const;
+		const NodeMultiIndex &toMultiIndex( unsigned int idx ) const { return _nodeList[idx]; }
 		unsigned int size( void ) const { return (unsigned int)_nodeMap.size(); }
 
-		static SimplexRefinableElements::NodeMultiIndex NodeMultiIndex( SimplexIndex< Dim , unsigned int > subSimplexIndex , unsigned int n );
+		static NodeMultiIndex GetNodeMultiIndex( SimplexIndex< Dim , unsigned int > subSimplexIndex , unsigned int n );
 
 	protected:
-		std::map< SimplexRefinableElements::NodeMultiIndex , unsigned int > _nodeMap;
-		std::vector< SimplexRefinableElements::NodeMultiIndex > _nodeList;
-
+		typename NodeMultiIndex::map _nodeMap;
+		std::vector< NodeMultiIndex > _nodeList;
 	};
 
 protected:
@@ -276,9 +283,9 @@ protected:
 	Eigen::VectorXd _toVector( const Eigen::MatrixXd &P ) const;
 
 	template< unsigned int Dim , unsigned int Degree >
-	static void _SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , std::map< typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex , unsigned int > nodeMaps[Dim+1] );
+	static void _SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex::map nodeMaps[Dim+1] );
 	template< unsigned int Dim , unsigned int Degree >
-	static void __SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , std::map< typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex , unsigned int > nodeMaps[Dim+1] );
+	static void __SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex::map nodeMaps[Dim+1] );
 
 	template< unsigned int Dim , unsigned int Degree >
 	static void _HierarchicalProlongation

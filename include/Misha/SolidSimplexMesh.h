@@ -69,9 +69,9 @@ struct SolidSimplexMesh : protected SimplexMesh< Dim , Degree >
 	NodeMultiIndex nodeMultiIndex( unsigned int s , unsigned int n ) const { return SimplexMesh< Dim , Degree >::nodeMultiIndex(s,n); }
 	unsigned int nodeIndex( const NodeMultiIndex &multiIndex ) const { return SimplexMesh< Dim , Degree >::nodeIndex( multiIndex ); }
 	unsigned int nodeIndex( unsigned int s , unsigned int n ) const { return nodeIndex( nodeMultiIndex( s , n ) ); }
-	typename std::map< NodeMultiIndex , unsigned int >::const_iterator cbegin( void ) const { return SimplexMesh< Dim , Degree >::_nodeMap.cbegin(); }
-	typename std::map< NodeMultiIndex , unsigned int >::const_iterator cend  ( void ) const { return SimplexMesh< Dim , Degree >::_nodeMap.cend  (); }
-	const std::map< NodeMultiIndex , unsigned int > &nodeMap( void ) const{ return SimplexMesh< Dim , Degree >::_nodeMap; }
+	typename NodeMultiIndex::map::const_iterator cbegin( void ) const { return SimplexMesh< Dim , Degree >::_nodeMap.cbegin(); }
+	typename NodeMultiIndex::map::const_iterator cend  ( void ) const { return SimplexMesh< Dim , Degree >::_nodeMap.cend  (); }
+	const typename NodeMultiIndex::map &nodeMap( void ) const { return SimplexMesh< Dim , Degree >::_nodeMap; }
 
 protected:
 	using SimplexMesh< Dim , Degree >::_nodeMap;

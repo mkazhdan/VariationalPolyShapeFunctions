@@ -29,10 +29,9 @@ DAMAGE.
 #ifndef SIMPLEX_MESH_INCLUDED
 #define SIMPLEX_MESH_INCLUDED
 #include <iostream>
-#include <map>
-#include <set>
 #include <vector>
 #include <functional>
+#include "Misha/PreProcess.h"
 #include "Misha/Geometry.h"
 #include "SimplexBasis.h"
 
@@ -91,9 +90,9 @@ struct SimplexMesh< Dim , Degree >
 	NodeMultiIndex nodeMultiIndex( unsigned int s , unsigned int n ) const;
 	unsigned int nodeIndex( const NodeMultiIndex &multiIndex ) const;
 	unsigned int nodeIndex( unsigned int s , unsigned int n ) const { return _localToGlobalNodeIndex.size() ? _localToGlobalNodeIndex[ s*NodesPerSimplex+n ] : nodeIndex( nodeMultiIndex( s , n ) ); }
-	typename std::map< NodeMultiIndex , unsigned int >::const_iterator cbegin( void ) const { return _nodeMap.cbegin(); }
-	typename std::map< NodeMultiIndex , unsigned int >::const_iterator cend  ( void ) const { return _nodeMap.cend  (); }
-	const std::map< NodeMultiIndex , unsigned int > &nodeMap( void ) const{ return _nodeMap; }
+	typename NodeMultiIndex::map::const_iterator cbegin( void ) const { return _nodeMap.cbegin(); }
+	typename NodeMultiIndex::map::const_iterator cend  ( void ) const { return _nodeMap.cend  (); }
+	const typename NodeMultiIndex::map &nodeMap( void ) const { return _nodeMap; }
 
 	double volume( void ) const;
 	void makeUnitVolume( void );
@@ -108,7 +107,7 @@ protected:
 	void _init( const std::vector< SimplexIndex< Dim , Index > > &simplices , MetricFunctor< Index > gFunction );
 
 	std::vector< SimplexIndex< Dim , unsigned int > > _simplices;
-	std::map< NodeMultiIndex , unsigned int  > _nodeMap;
+	typename NodeMultiIndex::map _nodeMap;
 	std::vector< SquareMatrix< double , Dim > > _g;
 	std::vector< unsigned int > _localToGlobalNodeIndex;
 };

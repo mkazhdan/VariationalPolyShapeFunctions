@@ -205,7 +205,6 @@ void ExecuteMG
 		}
 	}
 
-
 	// Get the list of node multi-indices
 	std::vector< NodeMultiIndex > nodeMultiIndices( simplexRefinableCellMesh.nodes( CoarseNodeDimension.value ) );
 	for( auto const &[ nmi , idx ] : simplexRefinableCellMesh.nodeMap( CoarseNodeDimension.value ) ) nodeMultiIndices[idx] = nmi;

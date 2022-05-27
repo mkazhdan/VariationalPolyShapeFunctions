@@ -29,6 +29,13 @@ DAMAGE.
 #ifndef SIMPLEX_BASIS_INCLUDED
 #define SIMPLEX_BASIS_INCLUDED
 #include <mutex>
+#ifdef USE_UNORDERED_SET_MAP
+#include <unordered_map>
+#include <unordered_set>
+#else // !USE_UNORDERED_SET_MAP
+#include <map>
+#include <set>
+#endif // USE_UNORDERED_SET_MAP
 #include "Exceptions.h"
 #include "Polynomial.h"
 #include "Geometry.h"
@@ -43,6 +50,24 @@ struct MultiIndex
 	bool operator < ( const MultiIndex &idx ) const;
 	bool operator == ( const MultiIndex &idx ) const;
 	const Index &operator[] ( unsigned int idx ) const { return _indices[idx]; }
+#ifdef USE_UNORDERED_SET_MAP
+	struct Hasher
+	{
+		size_t operator()( const MultiIndex &mi ) const
+		{
+			// from boost::hash_combine
+			size_t hash = 0;
+			for( unsigned int i=0 ; i<Size ; i++ ) hash ^= std::hash< Index >()( mi._indices[i] ) + 0x9e3779b9 + (hash<<6) + (hash>>2);
+			return hash;
+		}
+	};
+	typedef std::unordered_map< MultiIndex , unsigned int , Hasher > map;
+	typedef std::unordered_set< MultiIndex ,                Hasher > set;
+#else // !USE_UNORDERED_SET_MAP
+	typedef std::          map< MultiIndex , unsigned int          > map;
+	typedef std::          set< MultiIndex                         > set;
+#endif // USE_UNORDERED_SET_MAP
+
 protected:
 	void _init( const Index indices[] );
 	Index _indices[ Size ];

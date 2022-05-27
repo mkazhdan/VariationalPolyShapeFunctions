@@ -52,20 +52,20 @@ struct HierarchicalSolidSimplexRefinableCellMesh
 
 	unsigned int maxLevel( void ) const { return (unsigned int)_prolongationAndNodeMap.size(); };
 	size_t nodes( unsigned int l ) const { return l<_prolongationAndNodeMap.size() ? _prolongationAndNodeMap[l].second.size() : _solidSimplexMesh.nodes(); }
-	const std::map< NodeMultiIndex , unsigned int > &nodeMap( unsigned int l ) const{ return l<_prolongationAndNodeMap.size() ? _prolongationAndNodeMap[l].second : _solidSimplexMesh.nodeMap(); }
+	const typename NodeMultiIndex::map &nodeMap( unsigned int l ) const{ return l<_prolongationAndNodeMap.size() ? _prolongationAndNodeMap[l].second : _solidSimplexMesh.nodeMap(); }
 	const Eigen::SparseMatrix< double > &P( unsigned int l ) const { return _prolongationAndNodeMap[l].first; }
 	unsigned int nodeIndex( unsigned int l , NodeMultiIndex ni ) const;
 
 	Eigen::SparseMatrix< double > P( unsigned int lOut , unsigned int lIn ) const;
 
 	size_t nodes( void ) const { return nodes( maxLevel()-1 ); }
-	const std::map< NodeMultiIndex , unsigned int > &nodeMap( void ) const { return nodeMap( maxLevel()-1 ); }
+	const typename NodeMultiIndex::map &nodeMap( void ) const { return nodeMap( maxLevel()-1 ); }
 	unsigned int nodeIndex( NodeMultiIndex ni ) const { return HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::nodeIndex( maxLevel()-1 , ni ); }
 
 	const SolidSimplexMesh< Dim , Degree > &solidSimplexMesh( void ) const { return _solidSimplexMesh; }
 protected:
 	SolidSimplexMesh< Dim , Degree > _solidSimplexMesh;
-	std::vector< std::pair< Eigen::SparseMatrix< double > , std::map< NodeMultiIndex , unsigned int > > > _prolongationAndNodeMap;
+	std::vector< std::pair< Eigen::SparseMatrix< double > , typename NodeMultiIndex::map > > _prolongationAndNodeMap;
 
 	template< typename SimplexRefinableCellType >
 	void _init( const CellList< SimplexRefinableCellType > &cellList , std::function< Point< double , Dim > ( unsigned int ) > vFunction , typename SimplexRefinableElements<>::EnergyWeights eWeights , unsigned int finestNodeDim , bool forcePoU , bool linearPrecision , double planarityEpsilon , bool verbose );
@@ -92,7 +92,7 @@ struct SolidSimplexRefinableCellMesh : protected HierarchicalSolidSimplexRefinab
 	}
 
 	size_t nodes( void ) const { return HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::nodes( _level ); }
-	const std::map< NodeMultiIndex , unsigned int > &nodeMap( void ) const { return HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::nodeMap( _level ); }
+	const typename NodeMultiIndex::map &nodeMap( void ) const { return HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::nodeMap( _level ); }
 	unsigned int nodeIndex( NodeMultiIndex ni ) const { return HierarchicalSolidSimplexRefinableCellMesh< Dim , Degree >::nodeIndex( _level , ni ); }
 
 	const Eigen::SparseMatrix< double > &P ( void ) const { return _P ; }

@@ -68,22 +68,28 @@ SimplexRefinableElements< Dim , Degree >::NodeMultiIndex_Index::NodeMultiIndex_I
 	for( unsigned int i=0 ; i<sz ; i++ )
 	{
 		SimplexIndex< Dim , unsigned int > subSimplexIndex = subSimplexIndexFunctor(i);
-		for( unsigned int n=0 ; n<SimplexElements< Dim , Degree >::NodeNum ; n++ ) _nodeMap[ NodeMultiIndex( subSimplexIndex , n ) ] = 0;
+		for( unsigned int n=0 ; n<SimplexElements< Dim , Degree >::NodeNum ; n++ ) _nodeMap[ GetNodeMultiIndex( subSimplexIndex , n ) ] = 0;
 	}
 	unsigned int nodeNum = 0;
 	for( auto & [ nodeMultiIndex , idx ] : _nodeMap ) idx = nodeNum++;
 
 	_nodeList.resize( nodeNum );
 	for( auto & [ nodeMultiIndex , idx ] : _nodeMap ) _nodeList[idx] = nodeMultiIndex;
+
+#ifdef USE_UNORDERED_SET_MAP
+	// Required because nodes entries are sorted from largest to smallest, and larger values correspond finer-resolution nodes
+	std::sort( _nodeList.begin() , _nodeList.end() );
+	for( unsigned int i=0 ; i<_nodeList.size() ; i++ ) _nodeMap[ _nodeList[i] ] = i;
+#endif // USE_UNORDERED_SET_MAP
 }
 
 template< unsigned int Dim , unsigned int Degree >
-typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex SimplexRefinableElements< Dim , Degree >::NodeMultiIndex_Index::NodeMultiIndex( SimplexIndex< Dim , unsigned int > subSimplexIndex , unsigned int n )
+typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex SimplexRefinableElements< Dim , Degree >::NodeMultiIndex_Index::GetNodeMultiIndex( SimplexIndex< Dim , unsigned int > subSimplexIndex , unsigned int n )
 {
 	unsigned int v[Degree];
 	SimplexElements< Dim , Degree >::FactorNodeIndex( n , v );
 	for( unsigned int d=0 ; d<Degree ; d++ ) v[d] = subSimplexIndex[ v[d] ];
-	return SimplexRefinableElements::NodeMultiIndex(v);
+	return NodeMultiIndex(v);
 }
 
 template< unsigned int Dim , unsigned int Degree >
@@ -119,7 +125,7 @@ unsigned int SimplexRefinableElements< Dim , Degree >::nodeIndex( NodeMultiIndex
 template< unsigned int Dim , unsigned int Degree >
 unsigned int SimplexRefinableElements< Dim , Degree >::nodeIndex( SimplexIndex< Dim , unsigned int > subSimplexIndex , unsigned int n ) const
 {
-	return nodeIndex( NodeMultiIndex_Index::NodeMultiIndex( subSimplexIndex , n ) );
+	return nodeIndex( NodeMultiIndex_Index::GetNodeMultiIndex( subSimplexIndex , n ) );
 }
 
 template< unsigned int Dim , unsigned int Degree >
@@ -132,7 +138,8 @@ Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::_systemMatrix( SystemM
 		SimplexIndex< Dim , unsigned int > subSimplexIndex = _simplexRefinable[s];
 		SquareMatrix< double , SimplexElements< Dim , Degree >::NodeNum > _A = F( _simplexRefinable.metric(s) );
 		unsigned int nodeIndices[ SimplexElements< Dim , Degree >::NodeNum ];
-		for( unsigned int i=0 ; i<SimplexElements< Dim , Degree >::NodeNum ; i++ ) nodeIndices[i] = nodeIndex( NodeMultiIndex_Index::NodeMultiIndex( subSimplexIndex , i ) );
+		for( unsigned int i=0 ; i<SimplexElements< Dim , Degree >::NodeNum ; i++ ) nodeIndices[i] = nodeIndex( NodeMultiIndex_Index::GetNodeMultiIndex( subSimplexIndex , i ) );
+
 		for( unsigned int i=0 ; i<SimplexElements< Dim , Degree >::NodeNum ; i++ ) for( unsigned int j=0 ; j<SimplexElements< Dim , Degree >::NodeNum ; j++ )
 			A( nodeIndices[i] , nodeIndices[j] ) += _A(i,j);
 	}
@@ -194,7 +201,7 @@ Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::crossFaceGradientDiffe
 		};
 
 		// A mapping from all simplex faces (including those we will not integrate over) to indices
-		std::map< FaceMultiIndex , unsigned int > faceMap;
+		typename FaceMultiIndex::map faceMap;
 		{
 			// Iterate over the simplices
 			for( unsigned int i=0 ; i<_simplexRefinable.size() ; i++ )
@@ -209,7 +216,11 @@ Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::crossFaceGradientDiffe
 		}
 
 		// Per face, a map giving the gradient components of a node
+#ifdef USE_UNORDERED_SET_MAP
+		std::vector< std::unordered_map< unsigned int , FaceD > > faceGradientOrthogonalComponents( faceMap.size() );
+#else // !USE_UNORDERED_SET_MAP
 		std::vector< std::map< unsigned int , FaceD > > faceGradientOrthogonalComponents( faceMap.size() );
+#endif // USE_UNORDERED_SET_MAP
 		// Per face, the metric on the face
 		std::vector< SquareMatrix< double , Dim-1 > > faceMetrics( faceMap.size() );
 
@@ -261,10 +272,10 @@ Eigen::MatrixXd SimplexRefinableElements< Dim , Degree >::crossFaceGradientDiffe
 	}
 }
 
+
 /////////////////////////////////////
 // InterpolatingProlongationSystem //
 /////////////////////////////////////
-
 template< unsigned int Dim , unsigned int EmbeddingDimension >
 bool InterpolatingProlongationSystem::IsPlanar( const SimplexRefinableCell< Dim > &simplexRefinableCell , std::function< Point< double , EmbeddingDimension > ( unsigned int ) > positionFunctor , double planarityEpsilon )
 {
@@ -663,6 +674,7 @@ double InterpolatingProlongationSystem::kernelEnergy( const Eigen::MatrixXd &P )
 	}
 	return e;
 }
+
 template< unsigned int Dim , unsigned int Degree >
 void InterpolatingProlongationSystem::HierarchicalProlongation( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements<>::EnergyWeights eWeights , bool forcePoU , ProlongationInfo< Degree > pInfo[Dim] , unsigned int finestDim )
 {
@@ -687,7 +699,7 @@ void InterpolatingProlongationSystem::_HierarchicalProlongation( const SimplexRe
 	// 2. Merge the prolongations from coarser dimensions
 
 	// The map mapping multi-indices to indices for nodes residing on the faces of the cell
-	std::map< NodeMultiIndex , unsigned int > boundaryNodeMap;
+	typename NodeMultiIndex::map boundaryNodeMap;
 
 	std::vector< NodeMultiIndex > _coarseMultiIndices;
 	std::vector< NodeMultiIndex > &coarseMultiIndices = CoarseDim<=finestDim ? pInfo[CoarseDim].coarseMultiIndices : _coarseMultiIndices;
@@ -699,7 +711,7 @@ void InterpolatingProlongationSystem::_HierarchicalProlongation( const SimplexRe
 		std::vector< std::vector< ProlongationInfo< Degree > > > _pInfo( simplexRefinableCell.faces() );
 
 		// The maps mapping multi-indices to indices for nodes residing on the sub-faces of the cell
-		std::vector< std::map< NodeMultiIndex , unsigned int > > nodeMaps( finestDim+1 );
+		std::vector< typename NodeMultiIndex::map > nodeMaps( finestDim+1 );
 
 		// For each face, the list of the nodes defined on that face
 		std::vector< std::vector< NodeMultiIndex > > boundaryMultiIndices( simplexRefinableCell.faces() );
@@ -741,15 +753,15 @@ void InterpolatingProlongationSystem::_HierarchicalProlongation( const SimplexRe
 		// Accumulate the prolongation matrix information
 		for( unsigned int d=0 ; d<CoarseDim && d<=finestDim ; d++ )
 		{
-			auto Index = []( const std::map< NodeMultiIndex , unsigned int > &nodeMap , NodeMultiIndex nmi )
+			auto Index = []( const typename NodeMultiIndex::map &nodeMap , NodeMultiIndex nmi )
 			{
 				auto iter = nodeMap.find(nmi);
 				if( iter==nodeMap.end() ) ERROR_OUT( "Could not find node multi index: " , nmi );
 				return iter->second;
 			};
 
-			const std::map< NodeMultiIndex , unsigned int > &coarseNodeMap = nodeMaps[d];
-			const std::map< NodeMultiIndex , unsigned int > &  fineNodeMap = ( ( d+1<CoarseDim && d+1<=finestDim ) ? nodeMaps[d+1] : boundaryNodeMap );
+			const typename NodeMultiIndex::map &coarseNodeMap = nodeMaps[d];
+			const typename NodeMultiIndex::map &  fineNodeMap = ( ( d+1<CoarseDim && d+1<=finestDim ) ? nodeMaps[d+1] : boundaryNodeMap );
 			unsigned int  lowDim = (unsigned int)coarseNodeMap.size();
 			unsigned int highDim = (unsigned int)  fineNodeMap.size();
 			Eigen::MatrixXd &P = pInfo[d].P;
@@ -887,7 +899,7 @@ void InterpolatingProlongationSystem::_HierarchicalProlongation( const SimplexRe
 	// 2. Merge the prolongations from coarser dimensions
 
 	// The map mapping multi-indices to indices for nodes residing on the faces of the cell
-	std::map< NodeMultiIndex , unsigned int > boundaryNodeMap;
+	typename NodeMultiIndex::map boundaryNodeMap;
 
 	std::vector< NodeMultiIndex > _coarseMultiIndices;
 	std::vector< NodeMultiIndex > &coarseMultiIndices = CoarseDim<=finestDim ? pInfo[CoarseDim].coarseMultiIndices : _coarseMultiIndices;
@@ -899,7 +911,7 @@ void InterpolatingProlongationSystem::_HierarchicalProlongation( const SimplexRe
 		std::vector< std::vector< ProlongationInfo< Degree > > > _pInfo( simplexRefinableCell.faces() );
 
 		// The maps mapping multi-indices to indices for nodes residing on the sub-faces of the cell
-		std::vector< std::map< NodeMultiIndex , unsigned int > > nodeMaps( finestDim+1 );
+		std::vector< typename NodeMultiIndex::map > nodeMaps( finestDim+1 );
 
 		// For each face, the list of the nodes defined on that face
 		std::vector< std::vector< NodeMultiIndex > > boundaryMultiIndices( simplexRefinableCell.faces() );
@@ -941,15 +953,15 @@ void InterpolatingProlongationSystem::_HierarchicalProlongation( const SimplexRe
 		// Accumulate the prolongation matrix information
 		for( unsigned int d=0 ; d<CoarseDim && d<=finestDim ; d++ )
 		{
-			auto Index = []( const std::map< NodeMultiIndex , unsigned int > &nodeMap , NodeMultiIndex nmi )
+			auto Index = []( const typename NodeMultiIndex::map &nodeMap , NodeMultiIndex nmi )
 			{
 				auto iter = nodeMap.find(nmi);
 				if( iter==nodeMap.end() ) ERROR_OUT( "Could not find node multi index: " , nmi );
 				return iter->second;
 			};
 
-			const std::map< NodeMultiIndex , unsigned int > &coarseNodeMap = nodeMaps[d];
-			const std::map< NodeMultiIndex , unsigned int > &  fineNodeMap = ( ( d+1<CoarseDim && d+1<=finestDim ) ? nodeMaps[d+1] : boundaryNodeMap );
+			const typename NodeMultiIndex::map &coarseNodeMap = nodeMaps[d];
+			const typename NodeMultiIndex::map &  fineNodeMap = ( ( d+1<CoarseDim && d+1<=finestDim ) ? nodeMaps[d+1] : boundaryNodeMap );
 			unsigned int  lowDim = (unsigned int)coarseNodeMap.size();
 			unsigned int highDim = (unsigned int)  fineNodeMap.size();
 			Eigen::MatrixXd &P = pInfo[d].P;
@@ -1018,7 +1030,6 @@ Eigen::MatrixXd InterpolatingProlongationSystem::_BoundaryProlongation( const Si
 	if( IsPlanar( simplexRefinableCell , positionFunctor , planarityEpsilon ) ) return InterpolatingProlongationSystem( E , kE , coarseIndices , forcePoU ).prolongation();
 	else
 	{
-		if( !forcePoU ) WARN_ONCE( "Forcing partition of unity for non-planar cell with linear interpolation" );
 		std::vector< Point< double , EmbeddingDimension > > interpolationConstraints = _InterpolationConstraints( sre , positionFunctor );
 		return InterpolatingProlongationSystem( E , kE , coarseIndices , true , &interpolationConstraints[0] ).prolongation();
 	}
@@ -1079,7 +1090,7 @@ Eigen::MatrixXd InterpolatingProlongationSystem::_BoundaryProlongation( const Si
 }
 
 template< unsigned int Dim , unsigned int Degree >
-void InterpolatingProlongationSystem::_SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , std::map< typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex , unsigned int > nodeMaps[Dim+1] )
+void InterpolatingProlongationSystem::_SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex::map nodeMaps[Dim+1] )
 {
 	__SetNodeMaps< Dim , Degree >( simplexRefinableCell , nodeMaps );
 
@@ -1093,7 +1104,7 @@ void InterpolatingProlongationSystem::_SetNodeMaps( const SimplexRefinableCell< 
 }
 
 template< unsigned int Dim , unsigned int Degree >
-void InterpolatingProlongationSystem::__SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , std::map< typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex , unsigned int > nodeMaps[Dim+1] )
+void InterpolatingProlongationSystem::__SetNodeMaps( const SimplexRefinableCell< Dim > &simplexRefinableCell , typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex::map nodeMaps[Dim+1] )
 {
 	typedef typename SimplexRefinableElements< Dim , Degree >::NodeMultiIndex NodeMultiIndex;
 

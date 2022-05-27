@@ -2,9 +2,10 @@
 #define PRE_PROCESS_INCLUDED
 
 #define VERSION 2.5
+#undef USE_UNORDERED_SET_MAP		// Surprisingly, this seems to make things slower
 
 #undef EIGEN_USE_MKL_ALL			// Enabling this lets Eigen use the MKL library for efficiency
-									// [NOTE] That this requires setting the include and liner directories accordingly
+									// [NOTE] This requires setting the include and library directories accordingly
 
 #ifdef EIGEN_USE_MKL_ALL
 // Link to the necessary libraries 

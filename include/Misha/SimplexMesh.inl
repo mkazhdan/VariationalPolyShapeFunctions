@@ -66,6 +66,9 @@ void SimplexMesh< Dim , Degree >::_init( const std::vector< SimplexIndex< Dim , 
 {
 	_simplices.resize( simplices.size() );
 	_g.resize( _simplices.size() );
+#ifdef USE_UNORDERED_SET_MAP
+	_nodeMap.reserve( _simplices.size() * NodesPerSimplex );
+#endif // USE_UNORDERED_SET_MAP
 	for( unsigned int s=0 ; s<_simplices.size() ; s++ )
 	{
 		for( unsigned int d=0 ; d<=Dim ; d++ ) _simplices[s][d] = (unsigned int)simplices[s][d];
@@ -132,12 +135,12 @@ Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::system( std::function
 	return M;
 }
 
-
 template< unsigned int Dim , unsigned int Degree >
 Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::crossFaceGradientEnergy( void ) const
 {
 	return crossFaceGradientEnergy( []( FaceMultiIndex ){ return true; } );
 }
+
 template< unsigned int Dim , unsigned int Degree >
 template< typename UseFaceFunctor >
 Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::crossFaceGradientEnergy( const UseFaceFunctor &useFaceFunctor ) const
@@ -159,7 +162,7 @@ Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::crossFaceGradientEner
 	};
 
 	// A mapping from simplex faces to indices
-	std::map< FaceMultiIndex , unsigned int > faceMap;
+	typename FaceMultiIndex::map faceMap;
 	{
 		Permutation< Dim > p;
 		for( unsigned int s=0 ; s<_simplices.size() ; s++ )	for( unsigned int f=0 ; f<=Dim ; f++ ) faceMap[ GetFaceMultiIndex( s , f , p ) ] = 0;
@@ -169,7 +172,11 @@ Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::crossFaceGradientEner
 	}
 
 	// The per face gradient components of the node functions
+#ifdef USE_UNORDERED_SET_MAP
+	std::vector< std::unordered_map< unsigned int , Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > > > faceGradientComponents( faceMap.size() );
+#else // !USE_UNORDERED_SET_MAP
 	std::vector< std::map< unsigned int , Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > > > faceGradientComponents( faceMap.size() );
+#endif // USE_UNORDERED_SET_MAP
 	// The per face metrics
 	std::vector< SquareMatrix< double , Dim-1 > > faceMetrics( faceMap.size() );
 
@@ -242,7 +249,7 @@ Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::_crossFaceGradientEne
 	};
 
 	// A mapping from simplex faces to indices
-	std::map< FaceMultiIndex , unsigned int > faceMap;
+	typename FaceMultiIndex::map faceMap;
 	{
 		Permutation< Dim > p;
 		for( unsigned int s=0 ; s<_simplices.size() ; s++ )	for( unsigned int f=0 ; f<=Dim ; f++ ) faceMap[ GetFaceMultiIndex( s , f , p ) ] = 0;
@@ -252,7 +259,11 @@ Eigen::SparseMatrix< double > SimplexMesh< Dim , Degree >::_crossFaceGradientEne
 	}
 
 	// The per face gradient components of the node functions
+#ifdef USE_UNORDERED_SET_MAP
+	std::vector< std::unordered_map< unsigned int , Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > > > faceGradientComponents( faceMap.size() );
+#else // !USE_UNORDERED_SET_MAP
 	std::vector< std::map< unsigned int , Point< Polynomial::Polynomial< Dim-1 , Degree-1 , double > , Dim > > > faceGradientComponents( faceMap.size() );
+#endif // USE_UNORDERED_SET_MAP
 	// The per face metrics
 	std::vector< SquareMatrix< double , Dim-1 > > faceMetrics( faceMap.size() );
 

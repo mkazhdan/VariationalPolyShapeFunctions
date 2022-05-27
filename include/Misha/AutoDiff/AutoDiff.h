@@ -190,9 +190,6 @@ namespace AutoDiff
 		//	2. [Evaluation] Where the argument is a scalar and the input is a zero-order tensor
 		//	3. [Evaluation] Where the argument is a tensor of the same type as the input
 		template< typename V > auto operator()( const V &v ) const;
-
-		// Returns the Laplacian of the function
-		auto laplacian( void ) const;
 	};
 
 
@@ -485,6 +482,7 @@ namespace AutoDiff
 		template< unsigned int D > auto _d( const Tensor< Dims ... > &t ) const;
 	};
 
+	template< typename F > auto Trace( const F &f );
 	////////////////////
 	// Implementation //
 	////////////////////
@@ -555,26 +553,6 @@ namespace AutoDiff
 		else if constexpr( std::is_arithmetic_v< V > && InPack::Size==0 ) return static_cast< const F & >( *this ).template d<0>( Tensor<>( v ) );
 		else return Composition< F , V >( static_cast< const F & >( *this ) , v );
 	}
-
-	template< unsigned int ... OutDims , unsigned int ... InDims , typename F >
-	auto Function< UIntPack < OutDims ... > , UIntPack< InDims ... > , F >::laplacian( void ) const
-	{
-		Tensor< InDims ... , InDims ... > identity;
-
-		unsigned int index[ sizeof...(InDims)*2 ];
-		WindowLoop< sizeof...(InDims) >::Run
-		(
-			ZeroUIntPack< sizeof...(InDims) >() , UIntPack< InDims ... >() ,
-			[&]( int d , int i ){ index[d] = index[d+sizeof...(InDims)] = i; } ,
-			[&]( void ){ identity( index ) = 1; }
-		);
-
-		auto d2 = static_cast< const F& >( *this ).d().d();
-		Constant< UIntPack< InDims ... , InDims ... > , UIntPack< InDims ... > > I( identity );
-
-		return ContractedOuterProduct< sizeof...(InDims)*2 , decltype( d2 ) , decltype(I) >( d2 , I );
-	}
-
 
 	////////////
 	// _Scale //
@@ -953,6 +931,33 @@ namespace AutoDiff
 			);
 		}
 		return d;
+	}
+
+	///////////
+	// Trace //
+	///////////
+	template< typename F >
+	auto Trace( const F &f )
+	{
+		typedef typename F::OutPack OutPack;
+		static const unsigned int Size = OutPack::Size;
+		static_assert( ( Size&1 )==0 , "[ERROR] Function output must be an even-tensor" );
+		static const unsigned int HalfSize = Size/2;
+		typedef typename Split< HalfSize , OutPack >::First HalfOutPack;
+		static_assert( Compare< OutPack , Concatenation< HalfOutPack , HalfOutPack > >::Equal , "[ERROR] Function output must be a square tensor" );
+
+		_Tensor< OutPack > identity;
+
+		unsigned int index[ Size ];
+		WindowLoop< HalfSize >::Run
+		(
+			ZeroUIntPack< HalfSize >() , HalfOutPack() ,
+			[&]( int d , int i ){ index[d] = index[d+HalfSize] = i; } ,
+			[&]( void ){ identity( index ) = 1; }
+		);
+
+		Constant< OutPack , typename F::InPack > I( identity );
+		return ContractedOuterProduct< Size , F , decltype(I) >( f , I );
 	}
 
 #include "AutoDiff.Transcendental.inc"

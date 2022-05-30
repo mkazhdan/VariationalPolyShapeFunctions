@@ -26,10 +26,6 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF S
 DAMAGE.
 */
 
-#pragma message( "TODO:" )
-#pragma message( "  1. Extract a slice of a function" )
-#pragma message( "  2. Determinant, inverse, and adjugate" )
-
 #ifndef AUTO_DIFF_INCLUDED
 #define AUTO_DIFF_INCLUDED
 
@@ -67,16 +63,41 @@ namespace AutoDiff
 	// A Function returning the composition two Function's
 	template< typename F1 , typename F2 > struct Composition;
 
-	// A Funciton that is constant in its input
+	// A Function that is constant in its input
 	template< typename OutPack , typename InPack > struct Constant;
 
-	// A Funciton that is linear in its input
+	// A Function that is linear in its input
 	template< typename OutPack , typename InPack > struct Linear;
 
-	// The identity Funciton
+	// The identity Function
 	template< typename InOutPack > struct Identity;
 
-	// The Funciton returning the square norm of its argument
+	// A Function extracting a single coefficient of the output
+	template< typename F > auto Coefficient( const unsigned int indices[] , const F &f );
+	template< unsigned int ... CoefficientIndices , typename F > auto Coefficient( UIntPack< CoefficientIndices ... > , const F &f );
+
+	// A Function returning the determinant of the output of a Function (assumed to return a square 2-tensor)
+	template< typename F > auto Determinant( const F &f );
+
+	// A Function returning the cofactor of the output of a Function (assumed to return a square 2-tensor)
+	template< typename F > auto Cofactor( const F &f );
+
+	// A Function returning the transpose of the output of a Function
+	template< typename F > auto Transpose( const F &f );
+
+	// A function returning the adjugate of the output of a function (assumed to return a square 2-tensor)
+	template< typename F > auto Adjugate( const F &f );
+
+	// A function returning the inverse of the output of a function (assumed to return a square 2-tensor)
+	template< typename F > auto Inverse( const F &f );
+
+	// A Function returning the cross-product of the columns of the output of a Function (assumed to return a 2-tensor with one more row than columns)
+	template< typename F > auto CrossProduct( const F &f );
+
+	// A Function returning the contraction of a Function
+	template< unsigned int I1 , unsigned int I2 , typename F > auto Contract( const F &f );
+
+	// The Function returning the square norm of its argument
 	template< typename InOutPack > struct SquareNorm;
 
 	// Some common transcendental Function's
@@ -335,17 +356,6 @@ namespace AutoDiff
 		const F2 _f2;
 	};
 
-	template< typename SquareMatrixF >
-	struct Adjugate
-	{
-		// Need to define this functionality
-	};
-	template< typename SquareMatrixF >
-	struct Determinant
-	{
-		// Need to define this functionality
-	};
-
 	// A class for describing a constant function
 	template< unsigned int ... OutDims , unsigned int ... InDims >
 	struct Constant< UIntPack< OutDims ... > , UIntPack< InDims ... > > : public Function< UIntPack< OutDims ... > , UIntPack< InDims ... > , Constant< UIntPack< OutDims ... > , UIntPack< InDims ... > > >
@@ -472,6 +482,40 @@ namespace AutoDiff
 		Identity( void );
 	};
 
+	template< typename InPack > struct _Coefficient;
+
+	template< unsigned int ... InDims >
+	struct _Coefficient< UIntPack< InDims ... > > : public Linear< UIntPack<> , UIntPack< InDims ... > >
+	{
+		typedef UIntPack< InDims ... > InPack;
+		using Linear< UIntPack<> , InPack >::_l;
+		_Coefficient( const unsigned int indices[] );
+		template< unsigned int ... CoefficientIndices >
+		_Coefficient( UIntPack< CoefficientIndices ... > );
+	};
+
+	template< unsigned int I1 , unsigned int I2 , typename InPack > struct _Contraction;
+
+	template< unsigned int I1 , unsigned int I2 , unsigned int ... Dims >
+	struct _Contraction< I1 , I2 , UIntPack< Dims ... > > : public Linear< typename Select< I1 , typename Select< I2 , UIntPack< Dims ... > >::Complement >::Complement , UIntPack< Dims ... > >
+	{
+		typedef UIntPack< Dims ... > InPack;
+		typedef typename Select< I1 , typename Select< I2 , InPack >::Complement >::Complement OutPack;
+		using Linear< OutPack , InPack >::_l;
+		_Contraction( void );
+	};
+
+	template< typename InPack > struct _Transpose;
+
+	template< unsigned int ... Dims >
+	struct _Transpose< UIntPack< Dims ... > > : public Linear< typename UIntPack< Dims ... >::Transpose , UIntPack< Dims ... > >
+	{
+		typedef UIntPack< Dims ... > InPack;
+		typedef typename UIntPack< Dims ... >::Transpose OutPack;
+		using Linear< OutPack , InPack >::_l;
+		_Transpose( void );
+	};
+
 	template< unsigned int ... Dims >
 	struct SquareNorm< UIntPack< Dims ... > > : public Function< UIntPack<> , UIntPack< Dims ... > , SquareNorm< UIntPack< Dims ... > > >
 	{
@@ -482,7 +526,6 @@ namespace AutoDiff
 		template< unsigned int D > auto _d( const Tensor< Dims ... > &t ) const;
 	};
 
-	template< typename F > auto Trace( const F &f );
 	////////////////////
 	// Implementation //
 	////////////////////
@@ -880,6 +923,231 @@ namespace AutoDiff
 		);
 	}
 
+	//////////////////
+	// _Coefficient //
+	//////////////////
+	template< unsigned int ... InDims >
+	_Coefficient< UIntPack< InDims ... > >::_Coefficient( const unsigned int indices[] ){ _l( indices ) = 1; }
+	template< unsigned int ... InDims >
+	template< unsigned int ... CoefficientIndices >
+	_Coefficient< UIntPack< InDims ... > >::_Coefficient( UIntPack< CoefficientIndices ... > )
+	{
+		typedef UIntPack< CoefficientIndices ... > CoefficientIndexPack;
+		typedef UIntPack< InDims ... > InPack;
+		static_assert( CoefficientIndexPack::Size==InPack::Size , "[ERROR] Coefficient count must match dimensions" );
+		static_assert( Compare< CoefficientIndexPack , InPack >::LessThan , "[ERROR] Coefficient index cannot exceed dimension" );
+		const unsigned int indices[] = { CoefficientIndices ... };
+		_l( indices ) = 1;
+	}
+
+	/////////////////
+	// Coefficient //
+	/////////////////
+	template< typename F >
+	auto Coefficient( const unsigned int indices[] , const F &f ){ return _Coefficient< typename F::OutPack >( indices )( f ); }
+	template< unsigned int ... CoefficientIndices , typename F >
+	auto Coefficient( UIntPack< CoefficientIndices ... > , const F &f ){ return _Coefficient< typename F::OutPack >( UIntPack< CoefficientIndices ... >() )( f ); }
+
+	/////////////////
+	// Determinant //
+	/////////////////
+	template< unsigned int R , unsigned int C ,typename F >
+	auto _SubMatrix( const F &f )
+	{
+		typedef typename F::OutPack OutPack;
+		static_assert( OutPack::Size==2 , "[ERROR] Output must be a 2-tensor" );
+		static_assert( OutPack::template Get<0>()==OutPack::template Get<1>() , "[ERROR] Output 2-tensor must be square" );
+		static const unsigned int Dim = OutPack::template Get<0>();
+
+		// Create the (Dim-1)x(Dim-1) matrix
+		Tensor< Dim-1 , Dim-1 , Dim , Dim > l;
+		unsigned int index[4];
+		for( unsigned int i=0 ; i<Dim-1 ; i++ ) for( unsigned int j=0 ; j<Dim-1 ; j++ )
+		{
+			index[0] = i;
+			index[1] = j;
+			index[2] = i<R ? i : i+1;
+			index[3] = j<C ? j : j+1;
+			l( index ) = 1;
+		}
+		Linear< UIntPack< Dim-1 , Dim-1 > , UIntPack< Dim , Dim > > L( l );
+		return L(f);
+	}
+
+	template< unsigned int C ,typename F >
+	auto _Determinant0( const F &f )
+	{
+		typedef typename F::OutPack OutPack;
+		static_assert( OutPack::Size==2 , "[ERROR] Output must be a 2-tensor" );
+		static_assert( OutPack::template Get<0>()==OutPack::template Get<1>() , "[ERROR] Output 2-tensor must be square" );
+		static const unsigned int Dim = OutPack::template Get<0>();
+
+		auto _det = Determinant( _SubMatrix<0,C>(f) ) * Coefficient( UIntPack<0,C>() , f );
+
+		if constexpr( C==0 ) return _det;
+		else
+		{
+			if constexpr( C&1 ) return _Determinant0< C-1 >( f ) - _det;
+			else                return _Determinant0< C-1 >( f ) + _det;
+		}
+	}
+
+	template< typename F >
+	auto Determinant( const F &f )
+	{
+		typedef typename F::OutPack OutPack;
+		static_assert( OutPack::Size==2 , "[ERROR] Output must be a 2-tensor" );
+		static_assert( OutPack::template Get<0>()==OutPack::template Get<1>() , "[ERROR] Output 2-tensor must be square" );
+		static const unsigned int Dim = OutPack::template Get<0>();
+		if      constexpr( Dim==1 ) return Coefficient( UIntPack<0,0>() , f );
+		else if constexpr( Dim==2 ) return Coefficient( UIntPack<0,0>() , f ) * Coefficient( UIntPack<1,1>() , f ) - Coefficient( UIntPack<1,0>() , f ) * Coefficient( UIntPack<0,1>() , f );
+		else return _Determinant0< Dim-1 >( f );
+	}
+
+	//////////////
+	// Cofactor //
+	//////////////
+
+	template< unsigned int R , unsigned int C , typename F >
+	auto _Cofactor( const F &f )
+	{
+		typedef typename F::InPack InPack;
+		typedef typename F::OutPack OutPack;
+		static_assert( OutPack::Size==2 , "[ERROR] Output must be a 2-tensor" );
+		static_assert( OutPack::template Get<0>()==OutPack::template Get<1>() , "[ERROR] Output 2-tensor must be square" );
+		static const unsigned int Dim = OutPack::template Get<0>();
+
+		// Create the Dim x Dim matrix
+		Tensor< Dim , Dim> e;
+		{
+			unsigned int index[2];
+			index[0] = R;
+			index[1] = C;
+			e( index ) = 1;
+		}
+
+		auto _det = Constant< UIntPack< Dim , Dim > , InPack >( e ) * Determinant( _SubMatrix< R , C >( f ) );
+
+		if constexpr( R==0 && C==0 ) return _det;
+		else if constexpr( C==0 )
+		{
+			if constexpr( (R+C)&1 ) return _Cofactor< R-1 , Dim-1 >(f) - _det;
+			else                    return _Cofactor< R-1 , Dim-1 >(f) + _det;
+		}
+		else
+		{
+			if constexpr( (R+C)&1 ) return _Cofactor< R , C-1 >( f ) - _det;
+			else                    return _Cofactor< R , C-1 >( f ) + _det;
+		}
+	}
+
+	template< typename F >
+	auto Cofactor( const F& f )
+	{
+		typedef typename F::OutPack OutPack;
+		static_assert( OutPack::Size==2 , "[ERROR] Output must be a 2-tensor" );
+		static_assert( OutPack::template Get<0>()==OutPack::template Get<1>() , "[ERROR] Output 2-tensor must be square" );
+		static const unsigned int Dim = OutPack::template Get<0>();
+		return _Cofactor< Dim-1 , Dim-1 >( f );
+	}
+
+	//////////////////
+	// CrossProduct //
+	//////////////////
+
+	template< unsigned int R , typename F >
+	auto _CrossProduct( const F &f )
+	{
+		typedef typename F::InPack InPack;
+		typedef typename F::OutPack OutPack;
+		static_assert( OutPack::Size==2 , "[ERROR] Output must be a 2-tensor" );
+		static_assert( OutPack::template Get<0>()==OutPack::template Get<1>()+1 , "[ERROR] Output 2-tensor must have one more row than column" );
+		static const unsigned int Dim = OutPack::template Get<0>();
+
+		// Create the Dim-dimensional vector
+		Tensor< Dim > c;
+		{
+			unsigned int index[1];
+			index[0] = R;
+			c( index ) = 1;
+		}
+
+		// Create the (Dim-1)x(Dim-1) matrix
+		Tensor< Dim-1 , Dim-1 , Dim , Dim-1 > l;
+		{
+			unsigned int index[4];
+			for( unsigned int i=0 ; i<Dim-1 ; i++ ) for( unsigned int j=0 ; j<Dim-1 ; j++ )
+			{
+				index[0] = i;
+				index[1] = j;
+				index[2] = i<R ? i : i+1;
+				index[3] = j;
+				l( index ) = 1;
+			}
+		}
+		Constant< UIntPack< Dim > , InPack > C( c );
+		Linear< UIntPack< Dim-1 , Dim-1 > , UIntPack< Dim , Dim-1 > > L( l );
+
+		auto _det = C * Determinant( L( f ) );
+
+		if constexpr( R==0 ) return _det;
+		else
+		{
+			if constexpr( R&1 ) return _CrossProduct< R-1 >( f ) - _det;
+			else                return _CrossProduct< R-1 >( f ) + _det;
+		}
+	}
+
+	template< typename F >
+	auto CrossProduct( const F& f )
+	{
+		typedef typename F::OutPack OutPack;
+		static_assert( OutPack::Size==2 , "[ERROR] Output must be a 2-tensor" );
+		static_assert( OutPack::template Get<0>()==OutPack::template Get<1>()+1 , "[ERROR] Output 2-tensor must have one more row than column" );
+		static const unsigned int Dim = OutPack::template Get<0>();
+		return _CrossProduct< Dim-1 >( f );
+	}
+
+	//////////////////
+	// _Contraction //
+	//////////////////
+	template< unsigned int I1 , unsigned int I2 , unsigned int ... Dims >
+	_Contraction< I1 , I2 , UIntPack< Dims ... > >::_Contraction( void ){ _l = Tensor< Dims ... >::template ContractionTensor< I1 , I2 >(); }
+
+	/////////////////
+	// Contraction //
+	/////////////////
+	template< unsigned I1 , unsigned I2 , typename F >
+	auto Contraction( const F &f )
+	{
+		if constexpr( I1<I2 ) return _Contraction< I1 , I2 , typename F::OutPack >()( f );
+		else                  return _Contraction< I2 , I1 , typename F::OutPack >()( f );
+	}
+
+	////////////////
+	// _Transpose //
+	////////////////
+	template< unsigned int ... Dims >
+	_Transpose< UIntPack< Dims ... > >::_Transpose( void ){ _l = Tensor< Dims ... >::TransposeTensor(); }
+
+	///////////////
+	// Transpose //
+	///////////////
+	template< typename F >
+	auto Transpose( const F &f ){ return _Transpose< typename F::OutPack >()( f ); }
+
+	//////////////
+	// Adjugate //
+	//////////////
+	template< typename F >
+	auto Adjugate( const F &f ){ return Transpose( Cofactor( f ) ); }
+
+	/////////////
+	// Inverse //
+	/////////////
+	template< typename F >
+	auto Inverse( const F &f ){ return Adjugate( f ) * Pow( Determinant( f ) , -1. ); }
+
 	////////////////
 	// SquareNorm //
 	////////////////
@@ -931,33 +1199,6 @@ namespace AutoDiff
 			);
 		}
 		return d;
-	}
-
-	///////////
-	// Trace //
-	///////////
-	template< typename F >
-	auto Trace( const F &f )
-	{
-		typedef typename F::OutPack OutPack;
-		static const unsigned int Size = OutPack::Size;
-		static_assert( ( Size&1 )==0 , "[ERROR] Function output must be an even-tensor" );
-		static const unsigned int HalfSize = Size/2;
-		typedef typename Split< HalfSize , OutPack >::First HalfOutPack;
-		static_assert( Compare< OutPack , Concatenation< HalfOutPack , HalfOutPack > >::Equal , "[ERROR] Function output must be a square tensor" );
-
-		_Tensor< OutPack > identity;
-
-		unsigned int index[ Size ];
-		WindowLoop< HalfSize >::Run
-		(
-			ZeroUIntPack< HalfSize >() , HalfOutPack() ,
-			[&]( int d , int i ){ index[d] = index[d+HalfSize] = i; } ,
-			[&]( void ){ identity( index ) = 1; }
-		);
-
-		Constant< OutPack , typename F::InPack > I( identity );
-		return ContractedOuterProduct< Size , F , decltype(I) >( f , I );
 	}
 
 #include "AutoDiff.Transcendental.inc"

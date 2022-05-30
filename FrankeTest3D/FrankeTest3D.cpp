@@ -84,7 +84,7 @@ void ExecuteDirect
 		return (double)franke( _p );
 	};
 
-	auto franke_laplacian = AutoDiff::Trace( franke.d().d() );
+	auto franke_laplacian = AutoDiff::Contraction< 0 , 1 >( franke.d().d() );
 	auto FrankeLaplacian = [&]( Point< double , Dim > p )
 	{
 		AutoDiff::Tensor< Dim > _p;
@@ -184,7 +184,7 @@ void ExecuteMG
 		return (double)franke( _p );
 	};
 
-	auto franke_laplacian = AutoDiff::Trace( franke.d().d() );
+	auto franke_laplacian = AutoDiff::Contraction< 0 , 1 >( franke.d().d() );
 	auto FrankeLaplacian = [&]( Point< double , Dim > p )
 	{
 		AutoDiff::Tensor< Dim > _p;

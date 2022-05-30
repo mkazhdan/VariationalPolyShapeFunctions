@@ -82,6 +82,26 @@ namespace AutoDiff
 
 		_Tensor( void ){ memset( Window< double , Pack >::data , 0 , sizeof( double ) * WindowSize< Pack >::Size ); }
 
+		template< typename ... UInts >
+		double &operator()( unsigned int index , UInts ... indices )
+		{
+			static_assert( sizeof...(indices)==Pack::Size-1 , "[ERROR] Wrong number of indices" );
+			unsigned int idx[] = { index , indices ... };
+			return Window< double , UIntPack< Dims ... > >::operator()( idx );
+		}
+
+		template< typename ... UInts >
+		const double &operator()( unsigned int index , UInts ... indices ) const
+		{
+			static_assert( sizeof...(indices)==Pack::Size-1 , "[ERROR] Wrong number of indices" );
+			unsigned int idx[] = { index , indices ... };
+			return Window< double , UIntPack< Dims ... > >::operator()( idx );
+		}
+
+		double &operator()( const unsigned int indices[] ){ return Window< double , UIntPack< Dims ... > >::operator()( indices ); }
+
+		const double &operator()( const unsigned int indices[] ) const { return Window< double , UIntPack< Dims ... > >::operator()( indices ); }
+
 		// Inner-product space methods
 		void Add( const _Tensor &t )
 		{
@@ -157,6 +177,19 @@ namespace AutoDiff
 		}
 #endif
 
+		static auto TransposeTensor( void )
+		{
+			_Tensor< Concatenation< typename Pack::Transpose , Pack > > t;
+			unsigned int idx[ 2*Size ];
+			WindowLoop< Size >::Run
+			(
+				ZeroUIntPack< Size >() , Pack() ,
+				[&]( int d , int i ){ idx[d] = idx[ 2*Size - 1 - d ] = i; } ,
+				[&]( void ){ t( idx ) = 1; }
+			);
+			return t;
+		}
+
 		// Transpose operator
 		_Tensor< typename Pack::Transpose > transpose( void ) const
 		{
@@ -200,35 +233,66 @@ namespace AutoDiff
 
 		_Tensor< Pack > operator * ( const _Tensor< UIntPack<> > &t ) const { return *this * t.data; }
 
+	protected:
+		template< unsigned int D1 , unsigned int D2 >
+		static auto _ContractionTensor( void )
+		{
+			static_assert( D1<D2 , "[ERROR] Contraction indices are the same" );
+			static_assert( D1<Pack::Size , "[ERROR] First contraction index too large" );
+			static_assert( D2<Pack::Size , "[ERROR] Second contraction index too large" );
+			static_assert( Select< D1 , Pack >::Value==Select< D2 , Pack >::Value , "[ERROR] Contraction dimensions differ" );
+			typedef typename Select< D1 , typename Select< D2 , Pack >::Complement >::Complement OutPack;
+
+			_Tensor< Concatenation< OutPack , Pack > > t;
+
+			unsigned int index[ Pack::Size+OutPack::Size ];
+			if constexpr( OutPack::Size==0 )
+				for( unsigned int i=0 ; i<Pack::template Get<D1>() ; i++ )
+				{
+					index[D1] = index[D2] = i;
+					t( index ) = 1;
+				}
+			else
+			{
+				unsigned int out2in[ OutPack::Size ];
+				{
+					unsigned int count = 0;
+					for( unsigned int i=0 ; i<Pack::Size ; i++ ) if( i!=D1 && i!=D2 ) out2in[ count++ ] = i;
+				}
+
+				WindowLoop< OutPack::Size >::Run
+				(
+					ZeroUIntPack< OutPack::Size >() , OutPack() ,
+					[&]( int d , int i ){ index[d] = index[ out2in[d] ] = i; } ,
+					[&]( void )
+					{
+						for( unsigned int i=0 ; i<Pack::template Get<D1>() ; i++ )
+						{
+							index[ OutPack::Size+D1 ] = i;
+							index[ OutPack::Size+D2 ] = i;
+							t( index ) = 1;
+						}
+					}
+				);
+			}
+
+			return t;
+		}
+
+	public:
+		template< unsigned int D1 , unsigned int D2 >
+		static auto ContractionTensor( void )
+		{
+			if constexpr( D1<D2 ) return _ContractionTensor< D1 , D2 >();
+			else                  return _ContractionTensor< D2 , D1 >();
+		}
+
 		// Tensor contraction
 		template< unsigned int D1 , unsigned int D2 >
 		_Tensor< typename Select< (D1<D2?D2:D1) , typename Select< (D1<D2?D1:D2) , Pack >::Complement >::Complement > contract( void ) const
 		{
-			static_assert( Select< D1 , Pack >::Value == Select< D2 , Pack >::Value , "[ERROR] Values differ" );
-			if constexpr( D2<D1 ){ return contract< D2 , D1 >(); }
-			else
-			{
-				_Tensor< typename Select< D2 , typename Select< D1 , Pack >::Complement >::Complement > t;
-
-				unsigned int idx[ Size ] , _idx[ Size==2 ?  1 : Size - 2 ];
-				WindowLoop< Size >::Run
-				(
-					ZeroUIntPack< Size >() , Pack() ,
-					[&]( int d , int i ){ idx[d] = i; } ,
-					[&]( const double &v )
-					{
-						if( idx[D1]==idx[D2] )
-						{
-							int ii=0;
-							for( int d=0 ; d<sizeof ... (Dims) ; d++ ) if( d!=D1 && d!=D2 ) _idx[ii++] = idx[d];
-							t( _idx ) += v;
-						}
-					} ,
-					*this
-				);
-				return t;
-			}
-		};
+			return ContractionTensor< D1 , D2 >().contractedOuterProduct< Pack::Size-2 >( *this );
+		}
 
 		// In1 := [ N{1} , ... , N{I} , N{I+1} , ... , N{K} ]
 		// In2 :=                     [ N{I+1} , ... , N{K} , N{K+1} , ... N{M} ]

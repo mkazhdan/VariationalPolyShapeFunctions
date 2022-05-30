@@ -72,7 +72,7 @@ void Execute( int argc , char *argv[] , const std::vector< Point< double , Dim >
 	std::stringstream sStream;
 	if( Multigrid.set )
 	{
-		sStream << "Deformable Polyhedral Mesh Viewer: Degree=" << Degree << ", multigrid (v. " << VERSION << ")]";
+		sStream << "Deformable Polyhedral Mesh Viewer: Degree=" << Degree << ", multigrid (V" << VERSION << ")]";
 		DeformablePolyhedralMeshVisualization< Degree , true > v;
 		v.vCycles = VCycles.value;
 		v.gsIters = GSIterations.value;
@@ -83,7 +83,7 @@ void Execute( int argc , char *argv[] , const std::vector< Point< double , Dim >
 	}
 	else
 	{
-		sStream << "Deformable Polyhedral Mesh Viewer: Degree=" << Degree << ", direct (v. " << VERSION << ")]";
+		sStream << "Deformable Polyhedral Mesh Viewer: Degree=" << Degree << ", direct (V" << VERSION << ")]";
 		DeformablePolyhedralMeshVisualization< Degree , false > v;
 		v.init( vertices , polygons , polyhedra , lockedVertices , xForm , width , height , Gravity.value , refinementResolution , CoarseNodeDimension.value , !NoLinearPrecision.set );
 		if( TimeStep.set ) v.setTimeStep( TimeStep.value );

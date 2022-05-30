@@ -56,7 +56,7 @@ int main( int argc , char* argv[] )
 	}
 
 	std::stringstream sStream;
-	sStream << "Running Time [Principal Curvature (v. " << VERSION << ")]";
+	sStream << "Running Time [Principal Curvature (V" << VERSION << ")]";
 	Miscellany::NestedTimer timer( sStream.str() , Verbose.set );
 
 	std::vector< std::vector< unsigned int > > polygons;

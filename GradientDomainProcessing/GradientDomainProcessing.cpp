@@ -183,7 +183,7 @@ int main( int argc , char* argv[] )
 	}
 
 	std::stringstream sStream;
-	sStream << "Running Time [Gradient Domain Process (v. " << VERSION << ")]";
+	sStream << "Running Time [Gradient Domain Process (V" << VERSION << ")]";
 	Miscellany::NestedTimer timer( sStream.str() , Verbose.set );
 
 	std::vector< std::vector< unsigned int > > polygons;

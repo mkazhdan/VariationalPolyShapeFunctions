@@ -338,7 +338,7 @@ int main( int argc , char* argv[] )
 	Verbose.set |= FullVerbose.set;
 
 	std::stringstream sStream;
-	sStream << "Running Time [Franke Test 2D (v. " << VERSION << ")]";
+	sStream << "Running Time [Franke Test 2D (V" << VERSION << ")]";
 	Miscellany::NestedTimer timer( sStream.str() , Verbose.set );
 
 	std::vector< Meshes::Polygon< unsigned int > > polygons;

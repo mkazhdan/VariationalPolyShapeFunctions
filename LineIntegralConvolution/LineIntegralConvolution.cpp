@@ -299,7 +299,7 @@ int main( int argc , char* argv[] )
 	}
 
 	std::stringstream sStream;
-	sStream << "Running Time [Line Integral Convolution (v. " << VERSION << ")]";
+	sStream << "Running Time [Line Integral Convolution (V" << VERSION << ")]";
 	Miscellany::NestedTimer nestedTimer( "Running time" , Verbose.set );
 
 	std::vector< std::vector< unsigned int > > polygons;

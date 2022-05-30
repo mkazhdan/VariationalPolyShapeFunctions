@@ -1,4 +1,4 @@
-<center><h2>Variational Polygonal/Polyhedral Shape Functions (Version 2.5)</h2></center>
+<center><h2>Variational Polygonal/Polyhedral Shape Functions (Version 2.51)</h2></center>
 <center>
 <a href="#LINKS">links</a>
 <a href="#EXECUTABLES">executables</a>
@@ -31,6 +31,7 @@ This software supports finite-elements-type calculations over polygonal and poly
 <B>Data:</B>
 <A HREF="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/VPSF.Data.zip">ZIP</A><br>
 <b>Older Versions:</b>
+<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.50/">V2</a>
 <a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.00/">V2</a>
 <a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version1.00/">V1</a>
 </ul>
@@ -417,6 +418,8 @@ We make two observations about this executable. First, to compute the smooth nor
 <ul><li> Added support for regularizing within the kernel.</li></ul>
 <a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.50/">Version 2.5</a>:
 <ul><li> Added line-integral-convolution code.</li></ul>
+<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.51/">Version 2.51</a>:
+<ul><li> Added more linear-algebraic functionality to <I>AutoDiff</I>.</li></ul>
 </details>
 
 

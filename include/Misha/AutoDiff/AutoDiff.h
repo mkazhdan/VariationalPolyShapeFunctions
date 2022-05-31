@@ -61,7 +61,7 @@ namespace AutoDiff
 	template< unsigned int I , typename F1 , typename F2 > auto ContractedOuterProduct( const F1 &f1 , const F2 &f2 );
 
 	// A Function returning the composition two Function's
-	template< typename F1 , typename F2 > struct Composition;
+	template< typename F1 , typename F2 > auto Composition( const F1 &f1 , const F2 &f2 );
 
 	// A Function that is constant in its input
 	template< typename OutPack , typename InPack > struct Constant;
@@ -324,18 +324,18 @@ namespace AutoDiff
 
 	// A class for describing the composition of two functions
 	template< typename F1 , typename F2 >
-	struct Composition : public Function< typename F1::OutPack , typename F2::InPack , Composition< F1 , F2 > >
+	struct _Composition : public Function< typename F1::OutPack , typename F2::InPack , _Composition< F1 , F2 > >
 	{
 		static_assert( Compare< typename F1::InPack , typename F2::OutPack >::Equal , "[ERROR] Input/Output types differ" );
 
-		typedef Function< typename F1::OutPack , typename F2::InPack , Composition > _Function;
+		typedef Function< typename F1::OutPack , typename F2::InPack , _Composition > _Function;
 
-		Composition( const F1 &f1 , const F2 &f2 ) : _f1(f1) , _f2(f2) {}
+		_Composition( const F1 &f1 , const F2 &f2 ) : _f1(f1) , _f2(f2) {}
 
 		template< unsigned int D > auto d( const _Tensor< typename _Function::InPack > &t ) const;
 		auto d( void ) const;
 		template< typename _F1 , typename _F2 >
-		friend std::ostream &operator << ( std::ostream &os , const Composition< _F1 , _F2 > &composition );
+		friend std::ostream &operator << ( std::ostream &os , const _Composition< _F1 , _F2 > &composition );
 
 	protected:
 		template< typename JPack > static constexpr unsigned int _OutPower( void );
@@ -715,29 +715,29 @@ namespace AutoDiff
 	/////////////////
 	template< typename F1 , typename F2 >
 	template< unsigned int D >
-	auto Composition< F1 , F2 >::d( const _Tensor< typename _Function::InPack > &t ) const
+	auto _Composition< F1 , F2 >::d( const _Tensor< typename _Function::InPack > &t ) const
 	{
 		if constexpr( D==0 ) return _f1( _f2( t ) );
 		else return _d< D , UIntPack< 1 > >( t );
 	}
 
 	template< typename F1 , typename F2 >
-	auto Composition< F1 , F2 >::d( void ) const
+	auto _Composition< F1 , F2 >::d( void ) const
 	{
 		typedef decltype( std::declval< F1 >().d() ) DF1;
 		typedef decltype( std::declval< F2 >().d() ) DF2;
-		return _ContractedOuterProduct< F1::InPack::Size , Composition< DF1 , F2 > , DF2 >
-		(
-			_ContractedOuterProduct< F1::InPack::Size , Composition< DF1 , F2 > , DF2 >( Composition< DF1 , F2 >( _f1.d() , _f2 ) , _f2.d() )
-		);
+		return _ContractedOuterProduct< F1::InPack::Size , _Composition< DF1 , F2 > , DF2 >
+			(
+				_ContractedOuterProduct< F1::InPack::Size , _Composition< DF1 , F2 > , DF2 >( _Composition< DF1 , F2 >( _f1.d() , _f2 ) , _f2.d() )
+				);
 	}
 
 	template< typename F1 , typename F2 >
-	std::ostream &operator << ( std::ostream &os , const Composition< F1 , F2 > &composition ){ return os << composition._f1 << "( " << composition._f2 << " )"; }
+	std::ostream &operator << ( std::ostream &os , const _Composition< F1 , F2 > &composition ){ return os << composition._f1 << "( " << composition._f2 << " )"; }
 
 	template< typename F1 , typename F2 >
 	template< typename JPack >
-	constexpr unsigned int Composition< F1 , F2 >::_OutPower( void )
+	constexpr unsigned int _Composition< F1 , F2 >::_OutPower( void )
 	{
 		if constexpr( JPack::Size==1 ) return JPack::First;
 		else return JPack::First + _OutPower< JPack::Rest >();
@@ -745,7 +745,7 @@ namespace AutoDiff
 
 	template< typename F1 , typename F2 >
 	template< typename JPack , unsigned int DStart >
-	constexpr unsigned int Composition< F1 , F2 >::_InPower( void )
+	constexpr unsigned int _Composition< F1 , F2 >::_InPower( void )
 	{
 		if constexpr( JPack::Size==1 ) return JPack::First * DStart;
 		else return JPack::First * DStart + _InPower< JPack::Rest , DStart+1 >();
@@ -753,7 +753,7 @@ namespace AutoDiff
 
 	template< typename F1 , typename F2 >
 	template< unsigned int D , typename JPack , unsigned int Index >
-	auto Composition< F1 , F2 >::_d( const _Tensor< typename _Function::InPack > &t ) const
+	auto _Composition< F1 , F2 >::_d( const _Tensor< typename _Function::InPack > &t ) const
 	{
 		if constexpr( D==_InPower< JPack >() )
 		{
@@ -789,7 +789,7 @@ namespace AutoDiff
 	// Comptes the D-th derivate, raised to the P-th power (and reorders)
 	template< typename F1 , typename F2 >
 	template< unsigned int D , unsigned int P >
-	auto Composition< F1 , F2 >::_power2( const _Tensor< typename F2::InPack > &t ) const
+	auto _Composition< F1 , F2 >::_power2( const _Tensor< typename F2::InPack > &t ) const
 	{
 		if      constexpr( P==0 ) return _Tensor< UIntPack<> >(1);
 		else if constexpr( P==1 ) return _f2.template d< D >( t );
@@ -809,7 +809,7 @@ namespace AutoDiff
 	// Multiplies a product of derivatives by the D-th derivative, raised to the P-th power (and reorders)
 	template< typename F1 , typename F2 >
 	template< unsigned int D , unsigned int P , unsigned int POut , unsigned int PIn >
-	auto Composition< F1 , F2 >::_leftMultiply2( const _Tensor< Concatenation< Power< typename F2::OutPack , POut > , Power< typename F2::InPack , PIn > > > &t2 , const _Tensor< typename F2::InPack > &t ) const
+	auto _Composition< F1 , F2 >::_leftMultiply2( const _Tensor< Concatenation< Power< typename F2::OutPack , POut > , Power< typename F2::InPack , PIn > > > &t2 , const _Tensor< typename F2::InPack > &t ) const
 	{
 		typedef SequentialUIntPack< F2::OutPack::Size*P    , 0 > P1;
 		typedef SequentialUIntPack< F2:: InPack::Size*D*P  , P1::Size > P2;
@@ -823,7 +823,7 @@ namespace AutoDiff
 	// Computes the product of the powers of the derivatives
 	template< typename F1 , typename F2 >
 	template< typename JPack , unsigned int DStart >
-	auto Composition< F1 , F2 >::_multiplyPower2( const _Tensor< typename F2::InPack > &t ) const
+	auto _Composition< F1 , F2 >::_multiplyPower2( const _Tensor< typename F2::InPack > &t ) const
 	{
 		if constexpr( JPack::Size==1 ) return _power2< DStart , JPack::First >( t );
 		// Assuming JPack = < 0 , 1 > and DStart = 1
@@ -842,6 +842,8 @@ namespace AutoDiff
 		//		Tensor< < 3 > >
 		else return _leftMultiply2< DStart , JPack::First , _OutPower< JPack::Rest >() , _InPower< JPack::Rest , DStart+1 >() >( _multiplyPower2< JPack::Rest , DStart+1 >( t ) , t );
 	}
+
+	template< typename F1 , typename F2 > auto Composition( const F1 &f1 , const F2 &f2 ){ return _Composition< F1 , F2 >( f1 , f2 ); }
 
 	//////////////
 	// Constant //

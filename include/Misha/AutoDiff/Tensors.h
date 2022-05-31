@@ -183,7 +183,7 @@ namespace AutoDiff
 			unsigned int idx[ 2*Size ];
 			WindowLoop< Size >::Run
 			(
-				ZeroUIntPack< Size >() , Pack() ,
+				ZeroUIntPack< Size >() , Pack::Transpose() ,
 				[&]( int d , int i ){ idx[d] = idx[ 2*Size - 1 - d ] = i; } ,
 				[&]( void ){ t( idx ) = 1; }
 			);

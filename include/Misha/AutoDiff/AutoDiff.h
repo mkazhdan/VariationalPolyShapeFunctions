@@ -57,8 +57,8 @@ namespace AutoDiff
 	// A Function returning the sum of two Function's
 	template< typename F1 , typename F2 > auto Add( const F1 &f1 , const F2 &f2 );
 
-	// A Function returning the contracted out product of two Function's
-	template< unsigned int I , typename F1 , typename F2 > struct ContractedOuterProduct;
+	// A Function returning the contracted outer product of two Function's
+	template< unsigned int I , typename F1 , typename F2 > auto ContractedOuterProduct( const F1 &f1 , const F2 &f2 );
 
 	// A Function returning the composition two Function's
 	template< typename F1 , typename F2 > struct Composition;
@@ -97,8 +97,8 @@ namespace AutoDiff
 	// A Function returning the contraction of a Function
 	template< unsigned int I1 , unsigned int I2 , typename F > auto Contract( const F &f );
 
-	// The Function returning the square norm of its argument
-	template< typename InOutPack > struct SquareNorm;
+	// The Function returning the square norm of the output of a Function
+	template< typename F > auto SquareNorm( const F &f );
 
 	// Some common transcendental Function's
 	template< typename F > auto Pow( const F &f , double e );
@@ -300,19 +300,19 @@ namespace AutoDiff
 
 	// A class for describing the product of two functions (with the same order input)
 	template< unsigned int I , typename F1 , typename F2 >
-	struct ContractedOuterProduct : public Function< Concatenation< typename Split< F1::OutPack::Size-I , typename F1::OutPack >::First , typename Split< I , typename F2::OutPack >::Second > , typename F1::InPack , ContractedOuterProduct< I , F1 , F2 > >
+	struct _ContractedOuterProduct : public Function< Concatenation< typename Split< F1::OutPack::Size-I , typename F1::OutPack >::First , typename Split< I , typename F2::OutPack >::Second > , typename F1::InPack , _ContractedOuterProduct< I , F1 , F2 > >
 	{
 		static_assert( Compare< typename F2::InPack , typename F2::InPack >::Equal , "[ERROR] Input types differ" );
 		typedef typename F1::OutPack OutPack1;
 		typedef typename F2::OutPack OutPack2;
 
-		typedef Function< Concatenation< typename Split< F1::OutPack::Size-I , typename F1::OutPack >::First , typename Split< I , typename F2::OutPack >::Second > , typename F1::InPack , ContractedOuterProduct > _Function;
+		typedef Function< Concatenation< typename Split< F1::OutPack::Size-I , typename F1::OutPack >::First , typename Split< I , typename F2::OutPack >::Second > , typename F1::InPack , _ContractedOuterProduct > _Function;
 
-		ContractedOuterProduct( const F1 &f1 , const F2 &f2 ) : _f1(f1) , _f2(f2) {}
+		_ContractedOuterProduct( const F1 &f1 , const F2 &f2 ) : _f1(f1) , _f2(f2) {}
 
 		template< unsigned int D > auto d( const _Tensor< typename _Function::InPack > &t ) const;
 		auto d( void ) const;
-		template< unsigned int _I , typename _F1 , typename _F2 > friend std::ostream &operator << ( std::ostream &os , const ContractedOuterProduct< _I , _F1 , _F2 > &op );
+		template< unsigned int _I , typename _F1 , typename _F2 > friend std::ostream &operator << ( std::ostream &os , const _ContractedOuterProduct< _I , _F1 , _F2 > &op );
 
 	protected:
 		const F1 _f1;
@@ -417,7 +417,7 @@ namespace AutoDiff
 	auto operator / ( const F &f , double s ){ return f * (1./s); }
 
 	template< typename F1 , typename F2 >
-	auto operator * ( const F1 &f1 , const F2 &f2 ){ return ContractedOuterProduct< 0 , F1 , F2 >(f1,f2); }
+	auto operator * ( const F1 &f1 , const F2 &f2 ){ return _ContractedOuterProduct< 0 , F1 , F2 >(f1,f2); }
 
 	template< typename F1 , typename F2 >
 	auto operator - ( const F1 &f1 , const F2 &f2 ){ return f1 + ( -f2 ); }
@@ -516,12 +516,14 @@ namespace AutoDiff
 		_Transpose( void );
 	};
 
+	template< typename OutPack > struct _SquareNorm;
+
 	template< unsigned int ... Dims >
-	struct SquareNorm< UIntPack< Dims ... > > : public Function< UIntPack<> , UIntPack< Dims ... > , SquareNorm< UIntPack< Dims ... > > >
+	struct _SquareNorm< UIntPack< Dims ... > > : public Function< UIntPack<> , UIntPack< Dims ... > , _SquareNorm< UIntPack< Dims ... > > >
 	{
 		template< unsigned int D > auto d( const Tensor< Dims ... > &t ) const;
 		auto d( void ) const;
-		template< unsigned int ... _Dims > friend std::ostream &operator << ( std::ostream &os , const SquareNorm< UIntPack< _Dims ... > > & );
+		template< unsigned int ... _Dims > friend std::ostream &operator << ( std::ostream &os , const _SquareNorm< UIntPack< _Dims ... > > & );
 	protected:
 		template< unsigned int D > auto _d( const Tensor< Dims ... > &t ) const;
 	};
@@ -663,27 +665,27 @@ namespace AutoDiff
 	////////////////////////////
 	template< unsigned int I , typename F1 , typename F2 >
 	template< unsigned int D >
-	auto ContractedOuterProduct< I , F1 , F2 >::d( const _Tensor< typename _Function::InPack > &t ) const
+	auto _ContractedOuterProduct< I , F1 , F2 >::d( const _Tensor< typename _Function::InPack > &t ) const
 	{
 		return _d< D >( t );
 	}
 
 	template< unsigned int I , typename F1 , typename F2 >
-	auto ContractedOuterProduct< I , F1 , F2 >::d( void ) const
+	auto _ContractedOuterProduct< I , F1 , F2 >::d( void ) const
 	{
 		return Add
 			<
-			ContractedOuterProduct< I , decltype( std::declval< F1 >().d() ) , F2 > ,
-			ContractedOuterProduct< I , F1 , decltype( std::declval< F2 >().d() ) >
+			_ContractedOuterProduct< I , decltype( std::declval< F1 >().d() ) , F2 > ,
+			_ContractedOuterProduct< I , F1 , decltype( std::declval< F2 >().d() ) >
 			>
 			(
-				ContractedOuterProduct< I , decltype( std::declval< F1 >().d() ) , F2 >( _f1.d() , _f2 ) ,
-				ContractedOuterProduct< I , F1 , decltype( std::declval< F2 >().d() ) >( _f1 , _f2.d() )
-			);
+				_ContractedOuterProduct< I , decltype( std::declval< F1 >().d() ) , F2 >( _f1.d() , _f2 ) ,
+				_ContractedOuterProduct< I , F1 , decltype( std::declval< F2 >().d() ) >( _f1 , _f2.d() )
+				);
 	}
 
 	template< unsigned int I , typename F1 , typename F2 >
-	std::ostream &operator << ( std::ostream &os , const ContractedOuterProduct< I , F1 , F2 > &op )
+	std::ostream &operator << ( std::ostream &os , const _ContractedOuterProduct< I , F1 , F2 > &op )
 	{
 		if( I==0 ) return os << "( " << op._f1 << " * " << op._f2 << " )";
 		else       return os << "( " << op._f1 << " *_" << I << " " << op._f2 << " )";
@@ -691,7 +693,7 @@ namespace AutoDiff
 
 	template< unsigned int I , typename F1 , typename F2 >
 	template< unsigned int D , unsigned int J >
-	auto ContractedOuterProduct< I , F1 , F2 >::_d( const _Tensor< typename _Function::InPack > &t ) const
+	auto _ContractedOuterProduct< I , F1 , F2 >::_d( const _Tensor< typename _Function::InPack > &t ) const
 	{
 		if constexpr( J!=0 )
 		{
@@ -703,6 +705,9 @@ namespace AutoDiff
 		}
 		else return _f1.template d< J >(t).template contractedOuterProduct< I >( _f2.template d< D-J >(t) );
 	}
+
+	template< unsigned int I , typename F1 , typename F2 >
+	auto ContractedOuterProduct( const F1 &f1 , const F2 &f2 ){ return _ContractedOuterProduct< I , F1 , F2 >( f1 , f2 ); }
 
 
 	/////////////////
@@ -721,9 +726,9 @@ namespace AutoDiff
 	{
 		typedef decltype( std::declval< F1 >().d() ) DF1;
 		typedef decltype( std::declval< F2 >().d() ) DF2;
-		return ContractedOuterProduct< F1::InPack::Size , Composition< DF1 , F2 > , DF2 >
+		return _ContractedOuterProduct< F1::InPack::Size , Composition< DF1 , F2 > , DF2 >
 		(
-			ContractedOuterProduct< F1::InPack::Size , Composition< DF1 , F2 > , DF2 >( Composition< DF1 , F2 >( _f1.d() , _f2 ) , _f2.d() )
+			_ContractedOuterProduct< F1::InPack::Size , Composition< DF1 , F2 > , DF2 >( Composition< DF1 , F2 >( _f1.d() , _f2 ) , _f2.d() )
 		);
 	}
 
@@ -1154,17 +1159,17 @@ namespace AutoDiff
 
 	template< unsigned int ... Dims >
 	template< unsigned int D >
-	auto SquareNorm< UIntPack< Dims ... > >::d( const Tensor< Dims ... > &t ) const { return _d< D >(t); }
+	auto _SquareNorm< UIntPack< Dims ... > >::d( const Tensor< Dims ... > &t ) const { return _d< D >(t); }
 
 	template< unsigned int ... Dims >
-	auto SquareNorm< UIntPack< Dims ... > >::d( void ) const { return Identity< UIntPack< Dims ... > >() * 2.; }
+	auto _SquareNorm< UIntPack< Dims ... > >::d( void ) const { return Identity< UIntPack< Dims ... > >() * 2.; }
 
 	template< unsigned int ... Dims >
-	std::ostream &operator << ( std::ostream &os , const SquareNorm< UIntPack< Dims ... > > & ){ return os << "SquareNorm[" << SquareNorm< UIntPack< Dims ... > >::Pack() << "]"; }
+	std::ostream &operator << ( std::ostream &os , const _SquareNorm< UIntPack< Dims ... > > & ){ return os << "SquareNorm[" << _SquareNorm< UIntPack< Dims ... > >::Pack() << "]"; }
 
 	template< unsigned int ... Dims >
 	template< unsigned int D >
-	auto SquareNorm< UIntPack< Dims ... > >::_d( const Tensor< Dims ... > &t ) const
+	auto _SquareNorm< UIntPack< Dims ... > >::_d( const Tensor< Dims ... > &t ) const
 	{
 		typedef UIntPack< Dims ... > Pack;
 		_Tensor< OutDPack< D , UIntPack<> , UIntPack< Dims ... > > > d;
@@ -1174,7 +1179,7 @@ namespace AutoDiff
 			(
 				ZeroUIntPack< Pack::Size >() , Pack() ,
 				[]( int d , int i ){} ,
-				[&]( double v ){ d() += v*v; } ,
+				[&]( double v ){ static_cast< double &>( d ) += v*v; } ,
 				t
 			);
 		}
@@ -1200,6 +1205,10 @@ namespace AutoDiff
 		}
 		return d;
 	}
+
+	template< typename F >
+	auto SquareNorm( const F &f ){ return _SquareNorm< typename F::OutPack >()( f ); }
+
 
 #include "AutoDiff.Transcendental.inc"
 }

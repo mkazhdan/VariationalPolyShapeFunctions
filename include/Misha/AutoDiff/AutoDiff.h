@@ -71,59 +71,111 @@ namespace AutoDiff
 
 
 	//////////////////////////
-	// Function -> Function //
+	// Function composition //
 	//////////////////////////
 
 	// A function returning the negation of a Function
+	// Output type is Function< F::OutPack , F::InPack >
 	template< typename F > auto operator - ( const F &f );
 
 	// A function returning the sum of two Function's (and specializations)
+	// Assumes:
+	//		F1::InPack==F2::InPack
+	//		F1::OutPack==F2::OutPack
+	// Output type is Function< F1::OutPack , F1::InPack >
 	template< typename F1 , typename F2 > auto operator + ( const F1 &f1 , const F2 &f2 );
 
 	// A function returning the difference of two Function's (and specializations)
+	// Assumes:
+	//		F1::InPack==F2::InPack
+	//		F1::OutPack==F2::OutPack
+	// Output type is Function< F1::OutPack , F1::InPack >
 	template< typename F1 , typename F2 > auto operator - ( const F1 &f1 , const F2 &f2 );
 
 	// A function returning the outer product of a Function with a Function (and specialization)
+	// Assumes:
+	//		F1::InPack==F2::InPack
+	// Output type is Function< Concatenation< F1::OutPack , F2::OutPack > , F1::InPack >
 	template< typename F1 , typename F2 > auto operator * ( const F1 &f , const F2 &f2 );
 
 	// A function returning the quotient of a Function by a scalar-valued Function
+	// Assumes:
+	//		F1::InPack==F2::InPack
+	//		F2::OutPack==UIntPack<>
+	// Output type is Function< F1::OutPack , F1::InPack >
 	template< typename F1 , typename F2 > auto operator / ( const F1 &f1 , const F2 &f2 );
 
 	// A function returning the contracted outer product of two Function's
+	// Assumes:
+	//		F1::InPack==F2::InPack
+	//		F1::OutPack==Concatenation< Pack1 , Pack2 >
+	//		F2::OutPack==Concatenation< Pack2 , Pack3 >
+	//		Pack::Size = I
+	// Output type is Function< Concatenation< Pack1 , Pack3 > , F1::InPack >
 	template< unsigned int I , typename F1 , typename F2 > auto ContractedOuterProduct( const F1 &f1 , const F2 &f2 );
 
 	// A function returning the composition two Function's
+	// Assumes:
+	//		F2::InPack==F1::OutPack
+	// Output type is Function< F2::OutPack , F1::InPack >
 	template< typename F1 , typename F2 > auto Composition( const F1 &f1 , const F2 &f2 );
 
 	// A function extracting a single coefficient of the output
+	// Assumes:
+	//		sizeof...(indices)==F1::OutPack::Size
+	//		indices[i]<F1::OutPack[i]
+	// Output type is Function< UIntPack<> , F1::InPack >
 	template< typename F > auto Coefficient( const unsigned int indices[] , const F &f );
 	template< unsigned int ... CoefficientIndices , typename F > auto Coefficient( UIntPack< CoefficientIndices ... > , const F &f );
 
 	// A function returning the determinant of the output of a Function (assumed to return a square 2-tensor)
+	// Assumes:
+	//		F::OutPack==UIntPack< Dim , Dim >
+	// Output type is Function< UIntPack<> , F::InPack >
 	template< typename F > auto Determinant( const F &f );
 
 	// A function returning the cofactor of the output of a Function (assumed to return a square 2-tensor)
+	// Assumes:
+	//		F::OutPack==UIntPack< Dim , Dim >
+	// Output type is Function< UIntPack<> , F::InPack >
 	template< typename F > auto Cofactor( const F &f );
 
 	// A function returning the transpose of the output of a Function
+	// Output type is Function< F::OutPack::Transpose , F::InPack >
 	template< typename F > auto Transpose( const F &f );
 
 	// A function returning the adjugate of the output of a function (assumed to return a square 2-tensor)
+	// Assumes:
+	//		F::OutPack==UIntPack< Dim , Dim >
+	// Output type is Function< UIntPack<> , F::InPack >
 	template< typename F > auto Adjugate( const F &f );
 
 	// A function returning the inverse of the output of a function (assumed to return a square 2-tensor)
+	// Assumes:
+	//		F::OutPack==UIntPack< Dim , Dim >
+	// Output type is Function< UIntPack<> , F::InPack >
 	template< typename F > auto Inverse( const F &f );
 
 	// A function returning the cross-product of the columns of the output of a Function (assumed to return a 2-tensor with one more row than columns)
+	// Assumes:
+	//		F::OutPack==UIntPack< Dim , Dim-1 >
+	// Output type is Function< UIntPack<Dim> , F::InPack >
 	template< typename F > auto CrossProduct( const F &f );
 
 	// A function returning the contraction of a Function
+	// Assumes:
+	//		F::OutPack::Size>=2
+	// Output type is Function< F::OutPack::Remove(I1,I2) , F::InPack >
 	template< unsigned int I1 , unsigned int I2 , typename F > auto Contract( const F &f );
 
 	// A function returning the square norm of the output of a Function
+	// Output type is Function< UIntPack<> , F::InPack >
 	template< typename F > auto SquareNorm( const F &f );
 
 	// Some common transcendental Function's
+	// Assumes:
+	//		F::OutPack==UIntPack<>
+	// Output type is Function< UIntPack<> , F::InPack >
 	template< typename F > auto Pow( const F &f , double e );
 	template< typename F > auto Exp( const F &f );
 	template< typename F > auto Log( const F &f );

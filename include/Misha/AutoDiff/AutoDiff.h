@@ -86,8 +86,8 @@ namespace AutoDiff
 	// A function returning the outer product of a Function with a Function (and specialization)
 	template< typename F1 , typename F2 > auto operator * ( const F1 &f , const F2 &f2 );
 
-	// A function returning the quotient of a Function by a scalar
-	template< typename F > auto operator / ( const F &f , const double &s );
+	// A function returning the quotient of a Function by a scalar-valued Function
+	template< typename F1 , typename F2 > auto operator / ( const F1 &f1 , const F2 &f2 );
 
 	// A function returning the contracted outer product of two Function's
 	template< unsigned int I , typename F1 , typename F2 > auto ContractedOuterProduct( const F1 &f1 , const F2 &f2 );
@@ -582,6 +582,22 @@ namespace AutoDiff
 	template< typename F1 , typename F2 >
 	auto operator * ( const F1 &f1 , const F2 &f2 ){ return _ContractedOuterProduct< 0 , F1 , F2 >(f1,f2); }
 
+	/////////////////////
+	// Tensor quotient //
+	/////////////////////
+	template< typename F1 , typename F2 >
+	auto operator / ( const F1 &f1 , const F2 &f2 )
+	{
+		static_assert( Compare< typename F2::OutPack , UIntPack<> >::Equal , "[ERROR] denominator is not scalar-valued" );
+
+		if constexpr( std::is_same< F1 , double >::value ) return Constant< UIntPack<> , typename F2::InPack >( f1 );
+		else if constexpr( std::is_same< F1 , Tensor<> >::value ) return Constant< UIntPack<> , typename F2::InPack >( f1 );
+		else
+		{
+			static_assert( Compare< typename F1::InPack , typename F2::InPack >::Equal , "[ERROR] Input types differ" );
+			return f1 * Pow( f2 , -1. );
+		}
+	}
 
 	////////////////////////////
 	// ContractedOuterProduct //
@@ -1070,7 +1086,7 @@ namespace AutoDiff
 	// Inverse //
 	/////////////
 	template< typename F >
-	auto Inverse( const F &f ){ return Adjugate( f ) * Pow( Determinant( f ) , -1. ); }
+	auto Inverse( const F &f ){ return Adjugate( f ) / Determinant( f ); }
 
 	////////////////
 	// SquareNorm //

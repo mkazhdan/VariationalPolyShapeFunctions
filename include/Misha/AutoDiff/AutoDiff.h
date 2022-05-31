@@ -15,7 +15,7 @@ may be used to endorse or promote products derived from this software without sp
 prior written permission. 
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO THE IMPLIED WARRANTIES 
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMIRTED TO THE IMPLIED WARRANTIES 
 OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
 SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
 INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
@@ -37,52 +37,75 @@ namespace AutoDiff
 {
 	template< typename T > bool constexpr IsScalar( void );
 
-	////////////////////////
-	// Short declarations //
-	////////////////////////
+	////////////////////////////
+	////////////////////////////
+	//// Short declarations ////
+	////////////////////////////
+	////////////////////////////
+
+	//////////////
+	// Function //
+	//////////////
 	// A general class describing a function taking in a tensor and outputting a tensor
 	// (Parameters OutPack and InPack are assumed to be of variadic UIntPack<> type giving the
 	// dimensions along the different ranks of the tensor.)
 	template< typename OutPack , typename InPack , typename F > struct Function;
 
-	// A class for recursivley computing the continuous d-th derivative of a Function
-	template< unsigned int D > struct ContinuousDifferentiator;
-
-	// A class for recursivley computing the discrete d-th derivative of a Function
-	template< unsigned int D > struct DiscreteDifferentiator;
-
-	// A Function returning the product of a Function with a scalar
-	template< typename F > auto Scale( const F &f , double s );
-
-	// A Function returning the sum of two Function's
-	template< typename F1 , typename F2 > auto Add( const F1 &f1 , const F2 &f2 );
-
-	// A Function returning the contracted outer product of two Function's
-	template< unsigned int I , typename F1 , typename F2 > auto ContractedOuterProduct( const F1 &f1 , const F2 &f2 );
-
-	// A Function returning the composition two Function's
-	template< typename F1 , typename F2 > auto Composition( const F1 &f1 , const F2 &f2 );
+	/////////////////////
+	// Basic Functions //
+	/////////////////////
 
 	// A Function that is constant in its input
+	// InPack: a UIntPacK< ... > describing the dimensions of the input tensor
+	// OutPack: a UIntPacK< ... > describing the dimensions of the output tensor
 	template< typename OutPack , typename InPack > struct Constant;
 
 	// A Function that is linear in its input
+	// InPack: a UIntPacK< ... > describing the dimensions of the input tensor
+	// OutPack: a UIntPacK< ... > describing the dimensions of the output tensor
 	template< typename OutPack , typename InPack > struct Linear;
 
 	// The identity Function
+	// InOutPack: a UIntPacK< ... > describing the dimensions of the input/output tensor
 	template< typename InOutPack > struct Identity;
 
-	// A Function extracting a single coefficient of the output
+
+	//////////////////////////
+	// Function -> Function //
+	//////////////////////////
+
+	// A function returning the negation of a Function
+	template< typename F > auto operator - ( const F &f );
+
+	// A function returning the sum of two Function's (and specializations)
+	template< typename F1 , typename F2 > auto operator + ( const F1 &f1 , const F2 &f2 );
+
+	// A function returning the difference of two Function's (and specializations)
+	template< typename F1 , typename F2 > auto operator - ( const F1 &f1 , const F2 &f2 );
+
+	// A function returning the outer product of a Function with a Function (and specialization)
+	template< typename F1 , typename F2 > auto operator * ( const F1 &f , const F2 &f2 );
+
+	// A function returning the quotient of a Function by a scalar
+	template< typename F > auto operator / ( const F &f , const double &s );
+
+	// A function returning the contracted outer product of two Function's
+	template< unsigned int I , typename F1 , typename F2 > auto ContractedOuterProduct( const F1 &f1 , const F2 &f2 );
+
+	// A function returning the composition two Function's
+	template< typename F1 , typename F2 > auto Composition( const F1 &f1 , const F2 &f2 );
+
+	// A function extracting a single coefficient of the output
 	template< typename F > auto Coefficient( const unsigned int indices[] , const F &f );
 	template< unsigned int ... CoefficientIndices , typename F > auto Coefficient( UIntPack< CoefficientIndices ... > , const F &f );
 
-	// A Function returning the determinant of the output of a Function (assumed to return a square 2-tensor)
+	// A function returning the determinant of the output of a Function (assumed to return a square 2-tensor)
 	template< typename F > auto Determinant( const F &f );
 
-	// A Function returning the cofactor of the output of a Function (assumed to return a square 2-tensor)
+	// A function returning the cofactor of the output of a Function (assumed to return a square 2-tensor)
 	template< typename F > auto Cofactor( const F &f );
 
-	// A Function returning the transpose of the output of a Function
+	// A function returning the transpose of the output of a Function
 	template< typename F > auto Transpose( const F &f );
 
 	// A function returning the adjugate of the output of a function (assumed to return a square 2-tensor)
@@ -91,13 +114,13 @@ namespace AutoDiff
 	// A function returning the inverse of the output of a function (assumed to return a square 2-tensor)
 	template< typename F > auto Inverse( const F &f );
 
-	// A Function returning the cross-product of the columns of the output of a Function (assumed to return a 2-tensor with one more row than columns)
+	// A function returning the cross-product of the columns of the output of a Function (assumed to return a 2-tensor with one more row than columns)
 	template< typename F > auto CrossProduct( const F &f );
 
-	// A Function returning the contraction of a Function
+	// A function returning the contraction of a Function
 	template< unsigned int I1 , unsigned int I2 , typename F > auto Contract( const F &f );
 
-	// The Function returning the square norm of the output of a Function
+	// A function returning the square norm of the output of a Function
 	template< typename F > auto SquareNorm( const F &f );
 
 	// Some common transcendental Function's
@@ -109,27 +132,13 @@ namespace AutoDiff
 	template< typename F > auto Sinh( const F &f );
 	template< typename F > auto Cosh( const F &f );
 
-	template< typename F > auto operator - ( const F &f );
-	template< typename F1 , typename F2 > auto operator + ( const F1 &f1 , const F2 &f2 );
-	template< typename F1 , typename F2 > auto operator - ( const F1 &f1 , const F2 &f2 );
 
-	template< typename F > auto operator + ( const F &f , double s );
-	template< typename F > auto operator + ( double s , const F &f );
-	template< typename F > auto operator - ( const F &f , double s );
-	template< typename F > auto operator - ( double s , const F &f );
-	template< typename F > auto operator + ( const F &f , const _Tensor< typename F::OutPack > &t );
-	template< typename F > auto operator + ( const _Tensor< typename F::OutPack > &t , const F &f );
-	template< typename F > auto operator - ( const F &f , const _Tensor< typename F::OutPack > &t );
-	template< typename F > auto operator - ( const _Tensor< typename F::OutPack > &t , const F &f );
-	template< typename F > auto operator / ( const F &f , double s );
-	template< typename F > auto operator / ( double s , const F &f );
-	template< typename F > auto operator * ( const F &f , const double &s );
-	template< typename F > auto operator * ( const double &s , const F &f );
-	template< typename F1 , typename F2 > auto operator * ( const F1 &f1 , const F2 &f2 );
+	///////////////////////////
+	///////////////////////////
+	//// Full declarations ////
+	///////////////////////////
+	///////////////////////////
 
-	///////////////////////
-	// Full declarations //
-	///////////////////////
 	template< typename T >
 	bool constexpr IsScalar( void )
 	{
@@ -137,7 +146,7 @@ namespace AutoDiff
 		else return false;
 	}
 
-	// Some combanatoric functions that will be useful
+	// Some combinatoric functions that will be useful
 	template< unsigned int D > struct Factorial      { static const unsigned int Value = Factorial< D-1 >::Value * D; };
 	template<>                 struct Factorial< 0 > { static const unsigned int Value = 1; };
 
@@ -161,36 +170,6 @@ namespace AutoDiff
 		typedef UIntPack< OutDims ... > type;
 	};
 	template< unsigned int D , typename OutPack , typename InPack > using OutDPack = typename _OutDPack< D , OutPack , InPack >::type;
-
-
-	// A class for (recursively) computing the continuous D-th derivative of a function and return the evaluation at an input tensor
-	template< unsigned int D >
-	struct ContinuousDifferentiator
-	{
-		template< typename F > static auto Derivative( const F &f , const _Tensor< typename F::InPack > &t );
-		template< typename F > static auto Derivative( const F &f );
-	};
-
-	template<>
-	struct ContinuousDifferentiator< 0 >
-	{
-		template< typename F > static auto Derivative( const F &f , const _Tensor< typename F::InPack > &t );
-		template< typename F > static auto Derivative( const F &f );
-	};
-
-
-	// A class for (recursively) computing the discrete D-th derivative of a function and return the evaluation at an input tensor
-	template< unsigned int D >
-	struct DiscreteDifferentiator
-	{
-		template< typename F > static auto Derivative( const F &f , const _Tensor< typename F::InPack > &t , double eps );
-	};
-
-	template<>
-	struct DiscreteDifferentiator< 0 >
-	{
-		template< typename F > static auto Derivative( const F &f , const _Tensor< typename F::InPack > &t , double eps );
-	};
 
 
 	// A class for describing a function
@@ -228,16 +207,11 @@ namespace AutoDiff
 		template< typename _F > friend std::ostream &operator << ( std::ostream &os , const _Scale< _F > &scale );
 		const F &f( void ) const { return f; }
 	protected:
-		template< typename _F > friend auto Scale( const _Scale< _F > & , double );
+		template< typename _F > friend auto operator * ( const _Scale< _F > & , double );
+		template< typename _F > friend auto operator * ( double , const _Scale< _F > & );
 		const F _f;
 		const double _s;
 	};
-
-	template< typename F > struct ScaleType{ typedef _Scale< F > type; };
-	template< typename F > struct ScaleType< _Scale< F > >{ typedef _Scale< F > type; };
-
-	template< typename F > auto Scale( const F &f , double s ){ return _Scale< F >( f , s ); }
-	template< typename F > auto Scale( const _Scale< F > &f , double s ){ return _Scale< F >( f._f , f._s*s ); }
 
 	template< bool B , bool ... Bs >
 	constexpr bool AND( void )
@@ -277,26 +251,6 @@ namespace AutoDiff
 
 		const std::tuple< F , Fs... > _f;
 	};
-
-	template< typename F1 , typename F2 > struct AddType{ typedef _Add< F1 , F2 > type; };
-	template< typename F1 , typename ... Fs , typename F2 > struct AddType< _Add< F1 , Fs ... > , F2 >{ typedef _Add< F1 , Fs ... , F2 > type; };
-	template< typename F1 , typename F2 , typename ... Fs > struct AddType< F1 , _Add< F2 , Fs ... > >{ typedef _Add< F1 , F2 , Fs ... > type; };
-	template< typename F1 , typename ... F1s , typename F2 , typename ... F2s > struct AddType< _Add< F1 , F1s ... > , _Add< F2 , F2s ... > >{ typedef _Add< F1 , F1s ... , F2 , F2s ... > type; };
-
-	// Generic add functionality
-	template< typename F1 , typename F2 > auto Add( const F1 &f1 , const F2 &f2 ){ return _Add< F1 , F2 >( std::make_tuple(f1,f2) ); }
-
-	// Add functionality when the first argument is a sum
-	template< typename F1 , typename F2 , typename ... Fs >
-	auto Add( const F1 &f , const _Add< F2 , Fs ... > &add ){ return _Add< F1 , F2 , Fs ... >( std::tuple_cat( std::make_tuple(f) , add.f_tuple() ) ); }
-
-	// Add functionality when the second argument is a sum
-	template< typename F1 , typename ... Fs , typename F2 >
-	auto Add( const _Add< F1 , Fs ... > &add , const F2 &f ){ return _Add< F1 , Fs ... , F2 >( std::tuple_cat( add.f_tuple() , std::make_tuple(f) ) ); }
-
-	// Add functionality when both arguments are sums
-	template< typename F1 , typename ... F1s , typename F2 , typename ... F2s >
-	auto Add( const _Add< F1 , F1s ... > &add1 , const _Add< F2 , F2s ... > &add2 ){ return _Add< F1 , F1s ... , F2 , F2s ... >( std::tuple_cat( add1.f_tuple() , add2.f_tuple() ) ); }
 
 	// A class for describing the product of two functions (with the same order input)
 	template< unsigned int I , typename F1 , typename F2 >
@@ -401,78 +355,7 @@ namespace AutoDiff
 		template< unsigned int D > auto _d( const _Tensor< UIntPack< InDims ... > > &t ) const;
 	};
 
-	template< typename F1 , typename F2 >
-	auto operator + ( const F1 &f1 , const F2 &f2 ){ return Add(f1,f2); }
 
-	template< typename F >
-	auto operator * ( const F &f , const double &s ){ return Scale(f,s); }
-
-	template< typename F >
-	auto operator * ( const double &s , const F &f ){ return f*s; }
-
-	template< typename F >
-	auto operator - ( const F &f ){ return f * -1.; }
-
-	template< typename F >
-	auto operator / ( const F &f , double s ){ return f * (1./s); }
-
-	template< typename F1 , typename F2 >
-	auto operator * ( const F1 &f1 , const F2 &f2 ){ return _ContractedOuterProduct< 0 , F1 , F2 >(f1,f2); }
-
-	template< typename F1 , typename F2 >
-	auto operator - ( const F1 &f1 , const F2 &f2 ){ return f1 + ( -f2 ); }
-
-	template< typename F >
-	auto operator + ( const F &f , const _Tensor< typename F::OutPack > &t )
-	{
-		return Add< F , Constant< typename F::OutPack , typename F::InPack > >( f , Constant< typename F::OutPack , typename F::InPack >( t ) );
-	}
-
-	template< typename F >
-	auto operator + ( const _Tensor< typename F::OutPack > &t , const F &f )
-	{
-		return Add< Constant< typename F::OutPack , typename F::InPack > , F >( Constant< typename F::OutPack , typename F::InPack >( t ) , f );
-	}
-
-	template< typename F >
-	auto operator - ( const F &f , const _Tensor< typename F::OutPack > &t )
-	{
-		return Add< F , Constant< typename F::OutPack , typename F::InPack > >( f , Constant< typename F::OutPack , typename F::InPack >( -t ) );
-	}
-
-	template< typename F >
-	auto operator - ( const _Tensor< typename F::OutPack > &t , const F &f )
-	{
-		return Add< Constant< typename F::OutPack , typename F::InPack > , Scale< F > >( Constant< typename F::OutPack , typename F::InPack >( t ) , -f );
-	}
-
-	template< typename F >
-	auto operator + ( const F &f , double s )
-	{
-		static_assert( Compare< typename F::OutPack , UIntPack<> >::Equal , "[ERROR] function must be scalar-valued" );
-		return Add< F , Constant< typename F::OutPack , typename F::InPack > >( f , Constant< typename F::OutPack , typename F::InPack >( s ) );
-	}
-
-	template< typename F >
-	auto operator + ( double s , const F &f )
-	{
-		static_assert( Compare< typename F::OutPack , UIntPack<> >::Equal , "[ERROR] function must be scalar-valued" );
-		return Add< Constant< typename F::OutPack , typename F::InPack > , F >( Constant< typename F::OutPack , typename F::InPack >( s ) , f );
-	}
-
-	template< typename F >
-	auto operator - ( const F &f , double s )
-	{
-		static_assert( Compare< typename F::OutPack , UIntPack<> >::Equal , "[ERROR] function must be scalar-valued" );
-		return Add< F , Constant< typename F::OutPack , typename F::InPack > >( f , Constant< typename F::OutPack , typename F::InPack >( -s ) );
-	}
-
-	template< typename F >
-	auto operator - ( double s , const F &f )
-	{
-		static_assert( Compare< typename F::OutPack , UIntPack<> >::Equal , "[ERROR] function must be scalar-valued" );
-		return Add< Constant< typename F::OutPack , typename F::InPack > , Scale< F > >( Constant< typename F::OutPack , typename F::InPack >( s ) , -f );
-	}
 
 	template< unsigned int ... Dims >
 	struct Identity< UIntPack< Dims ... > > : public Linear< UIntPack< Dims ... > , UIntPack< Dims ... > >
@@ -528,64 +411,12 @@ namespace AutoDiff
 		template< unsigned int D > auto _d( const Tensor< Dims ... > &t ) const;
 	};
 
-	////////////////////
-	// Implementation //
-	////////////////////
 
-	///////////////////////////////
-	// ContinuousDifferentiatior //
-	///////////////////////////////
-	template< unsigned int D >
-	template< typename F >
-	auto ContinuousDifferentiator< D >::Derivative( const F &f , const _Tensor< typename F::InPack > &t ){ return ContinuousDifferentiator< D-1 >::Derivative( f.d() , t ); }
-
-	template< unsigned int D >
-	template< typename F >
-	auto ContinuousDifferentiator< D >::Derivative( const F &f ){ return ContinuousDifferentiator< D-1 >::Derivative( f.d() ); }
-
-	template< typename F >
-	auto ContinuousDifferentiator< 0 >::Derivative( const F &f , const _Tensor< typename F::InPack > &t ){ return f(t); }
-
-	template< typename F >
-	auto ContinuousDifferentiator< 0 >::Derivative( const F &f ){ return f; }
-
-
-	////////////////////////////
-	// DiscreteDifferentiator //
-	////////////////////////////
-	template< unsigned int D >
-	template< typename F >
-	auto DiscreteDifferentiator< D >::Derivative( const F &f , const _Tensor< typename F::InPack > &t , double eps )
-	{
-		typedef OutDPack< D-1 , typename F::OutPack , typename F::InPack > _OutPack;
-
-		_Tensor< OutDPack< D , typename F::OutPack , typename F::InPack > > out;
-
-		unsigned int index[ ( _OutPack::Size + F::InPack::Size )>0 ? ( _OutPack::Size + F::InPack::Size ) : 1 ] , idx[ F::InPack::Size>0 ? F::InPack::Size : 1 ];
-		WindowLoop< F::InPack::Size >::Run
-		(
-			ZeroUIntPack< F::InPack::Size >() , F::InPack() ,
-			[&]( int d , int i ){ index[ _OutPack::Size+d ] = idx[d] = i; } ,
-			[&]( void )
-			{
-				_Tensor< typename F::InPack > delta;
-				delta( idx ) = eps;
-
-				_Tensor< _OutPack > d = ( DiscreteDifferentiator< D-1 >::template Derivative< F >( f , t+delta , eps ) - DiscreteDifferentiator< D-1 >::template Derivative< F >( f , t-delta , eps ) ) / ( 2*eps );
-				WindowLoop< _OutPack::Size >::Run
-				(
-					ZeroUIntPack< _OutPack::Size >() , _OutPack() ,
-					[&]( int d , int i ){ index[d] = i; } ,
-					[&]( double v ){ out( index ) = v; } ,
-					d
-				);
-			}
-		);
-		return out;
-	}
-
-	template< typename F >
-	auto DiscreteDifferentiator< 0 >::Derivative( const F &f , const _Tensor< typename F::InPack > &t , double eps ){ return f( t ); }
+	////////////////////////
+	////////////////////////
+	//// Implementation ////
+	////////////////////////
+	////////////////////////
 
 	//////////////
 	// Function //
@@ -607,7 +438,7 @@ namespace AutoDiff
 	auto _Scale< F >::d( const _Tensor< typename _Function::InPack > &t ) const { return _f.template d<D>(t) * _s; }
 
 	template< typename F >
-	auto _Scale< F >::d( void ) const { return Scale< decltype( std::declval< F >().d() ) >( _f.d() , _s ); }
+	auto _Scale< F >::d( void ) const { return _Scale< decltype( std::declval< F >().d() ) >( _f.d() , _s ); }
 
 	template< typename F >
 	std::ostream &operator << ( std::ostream &os , const _Scale< F > &scale )
@@ -649,7 +480,7 @@ namespace AutoDiff
 	auto _Add< F , Fs ... >::_d( void ) const
 	{
 		if constexpr( I==sizeof...(Fs) ) return std::get<I>(_f).d();
-		else return Add( std::get<I>(_f).d() , this->template _d<I+1>() );
+		else return std::get<I>(_f).d() + this->template _d<I+1>();
 	}
 
 	template< typename F , typename ... Fs >
@@ -659,6 +490,98 @@ namespace AutoDiff
 		if constexpr( I==sizeof...(Fs) ) return std::get<I>(_f).template d<D>(t);
 		else return std::get<I>(_f).template d<D>(t) + this->template _d<D,I+1>(t);
 	}
+
+	//////////////
+	// Negation //
+	//////////////
+	template< typename F >
+	auto operator - ( const F &f ){ return f * -1.; }
+
+	//////////////
+	// Addition //
+	//////////////
+	template< typename F1 , typename F2 >
+	auto operator + ( const F1 &f1 , const F2 &f2 ){ return _Add< F1 , F2 >( std::make_tuple(f1,f2) ); }
+
+	template< typename F1 , typename F2 , typename ... Fs >
+	auto operator + ( const F1 &f , const _Add< F2 , Fs ... > &add ){ return _Add< F1 , F2 , Fs ... >( std::tuple_cat( std::make_tuple(f) , add.f_tuple() ) ); }
+
+	template< typename F1 , typename ... Fs , typename F2 >
+	auto operator + ( const _Add< F1 , Fs ... > &add , const F2 &f ){ return _Add< F1 , Fs ... , F2 >( std::tuple_cat( add.f_tuple() , std::make_tuple(f) ) ); }
+
+	template< typename F1 , typename ... F1s , typename F2 , typename ... F2s >
+	auto operator + ( const _Add< F1 , F1s ... > &add1 , const _Add< F2 , F2s ... > &add2 ){ return _Add< F1 , F1s ... , F2 , F2s ... >( std::tuple_cat( add1.f_tuple() , add2.f_tuple() ) ); }
+
+	template< typename F >
+	auto operator + ( const F &f , const _Tensor< typename F::OutPack > &t ){ return f + Constant< typename F::OutPack , typename F::InPack >( t ); }
+
+	template< typename F >
+	auto operator + ( const _Tensor< typename F::OutPack > &t , const F &f ){ return Constant< typename F::OutPack , typename F::InPack >( t ) + f; }
+
+	template< typename F >
+	auto operator + ( const F &f , double s )
+	{
+		static_assert( Compare< typename F::OutPack , UIntPack<> >::Equal , "[ERROR] function must be scalar-valued" );
+		return f + Constant< typename F::OutPack , typename F::InPack >( s );
+	}
+
+	template< typename F >
+	auto operator + ( double s , const F &f )
+	{
+		static_assert( Compare< typename F::OutPack , UIntPack<> >::Equal , "[ERROR] function must be scalar-valued" );
+		return Constant< typename F::OutPack , typename F::InPack >( s ) + f;
+	}
+
+	/////////////////
+	// Subtraction //
+	/////////////////
+	template< typename F1 , typename F2 >
+	auto operator - ( const F1 &f1 , const F2 &f2 ){ return f1 + ( -f2 ); }
+
+	template< typename F >
+	auto operator - ( const F &f , const _Tensor< typename F::OutPack > &t ){ return f + Constant< typename F::OutPack , typename F::InPack >( -t ); }
+
+	template< typename F >
+	auto operator - ( const _Tensor< typename F::OutPack > &t , const F &f ){ Constant< typename F::OutPack , typename F::InPack >( t ) - f; }
+
+	template< typename F >
+	auto operator - ( const F &f , double s )
+	{
+		static_assert( Compare< typename F::OutPack , UIntPack<> >::Equal , "[ERROR] function must be scalar-valued" );
+		return f + Constant< typename F::OutPack , typename F::InPack >( -s );
+	}
+
+	template< typename F >
+	auto operator - ( double s , const F &f )
+	{
+		static_assert( Compare< typename F::OutPack , UIntPack<> >::Equal , "[ERROR] function must be scalar-valued" );
+		return Constant< typename F::OutPack , typename F::InPack >( s ) - f;
+	}
+
+	////////////////////
+	// Scalar product //
+	////////////////////
+	template< typename F >
+	auto operator * ( const F &f , const double &s ){ return _Scale< F >(f,s); }
+
+	template< typename F >
+	auto operator * ( const _Scale< F > &f , double s ){ return _Scale< F >( f._f , f._s*s ); }
+
+	template< typename F >
+	auto operator * ( const double &s , const F &f ){ return f*s; }
+
+	/////////////////////
+	// Scalar quotient //
+	/////////////////////
+	template< typename F >
+	auto operator / ( const F &f , const double &s ){ return f * (1./s); }
+
+	////////////////////
+	// Tensor product //
+	////////////////////
+	template< typename F1 , typename F2 >
+	auto operator * ( const F1 &f1 , const F2 &f2 ){ return _ContractedOuterProduct< 0 , F1 , F2 >(f1,f2); }
+
 
 	////////////////////////////
 	// ContractedOuterProduct //
@@ -673,15 +596,9 @@ namespace AutoDiff
 	template< unsigned int I , typename F1 , typename F2 >
 	auto _ContractedOuterProduct< I , F1 , F2 >::d( void ) const
 	{
-		return Add
-			<
-			_ContractedOuterProduct< I , decltype( std::declval< F1 >().d() ) , F2 > ,
-			_ContractedOuterProduct< I , F1 , decltype( std::declval< F2 >().d() ) >
-			>
-			(
-				_ContractedOuterProduct< I , decltype( std::declval< F1 >().d() ) , F2 >( _f1.d() , _f2 ) ,
-				_ContractedOuterProduct< I , F1 , decltype( std::declval< F2 >().d() ) >( _f1 , _f2.d() )
-				);
+		return 
+			_ContractedOuterProduct< I , decltype( std::declval< F1 >().d() ) , F2 >( _f1.d() , _f2 ) +
+			_ContractedOuterProduct< I , F1 , decltype( std::declval< F2 >().d() ) >( _f1 , _f2.d() ) ;
 	}
 
 	template< unsigned int I , typename F1 , typename F2 >
@@ -1210,7 +1127,6 @@ namespace AutoDiff
 
 	template< typename F >
 	auto SquareNorm( const F &f ){ return _SquareNorm< typename F::OutPack >()( f ); }
-
 
 #include "AutoDiff.Transcendental.inc"
 }

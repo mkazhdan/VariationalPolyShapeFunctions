@@ -625,7 +625,7 @@ namespace AutoDiff
 	template< unsigned int ... PermutationIndices , typename F >
 	std::ostream &operator << ( std::ostream &os , const _Permutation< UIntPack< PermutationIndices ... > , F > &p )
 	{
-		os << "Permutation" << _Permutiation< UIntPack< PermutationIndices ... > , F >::PermutationPack() << "( " << p._f << " )";
+		os << "Permutation" << _Permutation< UIntPack< PermutationIndices ... > , F >::PermutationPack() << "( " << p._f << " )";
 	}
 
 	template< typename PermutationPack , typename F >

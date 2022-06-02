@@ -47,8 +47,8 @@ namespace AutoDiff
 	// Function //
 	//////////////
 	// A general class describing a function taking in a tensor and outputting a tensor
-	// (Parameters OutPack and InPack are assumed to be of variadic UIntPack<> type giving the
-	// dimensions along the different ranks of the tensor.)
+	// (Parameters OutPack and InPack are assumed to be of variadic UIntPack<...> type giving the
+	// dimensions along the different ranks of the input/output tensors.)
 	template< typename OutPack , typename InPack , typename F > struct Function;
 
 	/////////////////////
@@ -75,35 +75,43 @@ namespace AutoDiff
 	//////////////////////////
 
 	// A function returning the negation of a Function
-	// Output type is Function< F::OutPack , F::InPack >
+	// Output type derives from Function< F::OutPack , F::InPack >
 	template< typename F > auto operator - ( const F &f );
 
 	// A function returning the sum of two Function's (and specializations)
 	// Assumes:
 	//		F1::InPack==F2::InPack
 	//		F1::OutPack==F2::OutPack
-	// Output type is Function< F1::OutPack , F1::InPack >
+	// Output type derives from Function< F1::OutPack , F1::InPack >
 	template< typename F1 , typename F2 > auto operator + ( const F1 &f1 , const F2 &f2 );
 
 	// A function returning the difference of two Function's (and specializations)
 	// Assumes:
 	//		F1::InPack==F2::InPack
 	//		F1::OutPack==F2::OutPack
-	// Output type is Function< F1::OutPack , F1::InPack >
+	// Output type derives from Function< F1::OutPack , F1::InPack >
 	template< typename F1 , typename F2 > auto operator - ( const F1 &f1 , const F2 &f2 );
 
 	// A function returning the outer product of a Function with a Function (and specialization)
 	// Assumes:
 	//		F1::InPack==F2::InPack
-	// Output type is Function< Concatenation< F1::OutPack , F2::OutPack > , F1::InPack >
+	// Output type derives from Function< Concatenation< F1::OutPack , F2::OutPack > , F1::InPack >
 	template< typename F1 , typename F2 > auto operator * ( const F1 &f , const F2 &f2 );
 
 	// A function returning the quotient of a Function by a scalar-valued Function
 	// Assumes:
 	//		F1::InPack==F2::InPack
 	//		F2::OutPack==UIntPack<>
-	// Output type is Function< F1::OutPack , F1::InPack >
+	// Output type derives from Function< F1::OutPack , F1::InPack >
 	template< typename F1 , typename F2 > auto operator / ( const F1 &f1 , const F2 &f2 );
+
+
+	// A function returning the permutation a Function's output
+	// Assumes:
+	//		PermutationPack is a permutation
+	//		PermutationPack::Size==F::OutPack::Size
+	// Output type derives from Function< Permutation< F::OutPack , PermutationPack > >
+	template< typename PermutationPack , typename F > auto Permutation( const F &f );
 
 	// A function returning the contracted outer product of two Function's
 	// Assumes:
@@ -111,71 +119,71 @@ namespace AutoDiff
 	//		F1::OutPack==Concatenation< Pack1 , Pack2 >
 	//		F2::OutPack==Concatenation< Pack2 , Pack3 >
 	//		Pack::Size = I
-	// Output type is Function< Concatenation< Pack1 , Pack3 > , F1::InPack >
+	// Output type derives from Function< Concatenation< Pack1 , Pack3 > , F1::InPack >
 	template< unsigned int I , typename F1 , typename F2 > auto ContractedOuterProduct( const F1 &f1 , const F2 &f2 );
 
 	// A function returning the composition two Function's
 	// Assumes:
 	//		F2::InPack==F1::OutPack
-	// Output type is Function< F2::OutPack , F1::InPack >
+	// Output type derives from Function< F2::OutPack , F1::InPack >
 	template< typename F1 , typename F2 > auto Composition( const F1 &f1 , const F2 &f2 );
 
 	// A function extracting a single coefficient of the output
 	// Assumes:
-	//		sizeof...(indices)==F1::OutPack::Size
-	//		indices[i]<F1::OutPack[i]
-	// Output type is Function< UIntPack<> , F1::InPack >
+	//		sizeof...(indices)==F::OutPack::Size
+	//		indices[i]<F::OutPack[i]
+	// Output type derives from Function< UIntPack<> , F1::InPack >
 	template< typename F > auto Coefficient( const unsigned int indices[] , const F &f );
 	template< unsigned int ... CoefficientIndices , typename F > auto Coefficient( UIntPack< CoefficientIndices ... > , const F &f );
 
 	// A function returning the determinant of the output of a Function (assumed to return a square 2-tensor)
 	// Assumes:
 	//		F::OutPack==UIntPack< Dim , Dim >
-	// Output type is Function< UIntPack<> , F::InPack >
+	// Output type derives from Function< UIntPack<> , F::InPack >
 	template< typename F > auto Determinant( const F &f );
 
 	// A function returning the cofactor of the output of a Function (assumed to return a square 2-tensor)
 	// Assumes:
 	//		F::OutPack==UIntPack< Dim , Dim >
-	// Output type is Function< UIntPack<> , F::InPack >
+	// Output type derives from Function< UIntPack<> , F::InPack >
 	template< typename F > auto Cofactor( const F &f );
 
 	// A function returning the transpose of the output of a Function
-	// Output type is Function< F::OutPack::Transpose , F::InPack >
+	// Output type derives from Function< F::OutPack::Transpose , F::InPack >
 	template< typename F > auto Transpose( const F &f );
 
 	// A function returning the adjugate of the output of a function (assumed to return a square 2-tensor)
 	// Assumes:
 	//		F::OutPack==UIntPack< Dim , Dim >
-	// Output type is Function< UIntPack<> , F::InPack >
+	// Output type derives from Function< UIntPack<> , F::InPack >
 	template< typename F > auto Adjugate( const F &f );
 
 	// A function returning the inverse of the output of a function (assumed to return a square 2-tensor)
 	// Assumes:
 	//		F::OutPack==UIntPack< Dim , Dim >
-	// Output type is Function< UIntPack<> , F::InPack >
+	// Output type derives from Function< UIntPack<> , F::InPack >
 	template< typename F > auto Inverse( const F &f );
 
 	// A function returning the cross-product of the columns of the output of a Function (assumed to return a 2-tensor with one more row than columns)
 	// Assumes:
 	//		F::OutPack==UIntPack< Dim , Dim-1 >
-	// Output type is Function< UIntPack<Dim> , F::InPack >
+	// Output type derives from Function< UIntPack<Dim> , F::InPack >
 	template< typename F > auto CrossProduct( const F &f );
 
 	// A function returning the contraction of a Function
 	// Assumes:
 	//		F::OutPack::Size>=2
-	// Output type is Function< F::OutPack::Remove(I1,I2) , F::InPack >
+	// Output type derives from Function< F::OutPack::Remove(I1,I2) , F::InPack >
 	template< unsigned int I1 , unsigned int I2 , typename F > auto Contract( const F &f );
 
 	// A function returning the square norm of the output of a Function
-	// Output type is Function< UIntPack<> , F::InPack >
+	// Output type derives from Function< UIntPack<> , F::InPack >
 	template< typename F > auto SquareNorm( const F &f );
 
 	// Some common transcendental Function's
 	// Assumes:
 	//		F::OutPack==UIntPack<>
-	// Output type is Function< UIntPack<> , F::InPack >
+	// Output type derives from Function< UIntPack<> , F::InPack >
 	template< typename F > auto Pow( const F &f , double e );
 	template< typename F > auto Exp( const F &f );
 	template< typename F > auto Log( const F &f );
@@ -184,17 +192,19 @@ namespace AutoDiff
 	template< typename F > auto Sinh( const F &f );
 	template< typename F > auto Cosh( const F &f );
 
+	// A function returning the discrete derivative of a Function at a particular input
+	template< typename F > auto DiscreteDerivative( const F &f , const Tensor< typename F::InPack > &in , double eps );
 
-	///////////////////////////
-	///////////////////////////
-	//// Full declarations ////
-	///////////////////////////
-	///////////////////////////
+	////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////
+	//// Full declarations (including helper functions) ////
+	////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////
 
 	template< typename T >
 	bool constexpr IsScalar( void )
 	{
-		if constexpr( std::is_arithmetic_v< T > || std::is_base_of< Tensor<> , T >::value ) return true;
+		if constexpr( std::is_arithmetic_v< T > || std::is_base_of< Tensor< UIntPack<> > , T >::value ) return true;
 		else return false;
 	}
 
@@ -206,24 +216,6 @@ namespace AutoDiff
 	template< unsigned int D , unsigned int K > struct Choose         { static const unsigned int Value = ( Choose< D-1 , K-1 >::Value * D ) / K; };
 	template< unsigned int D >                  struct Choose< D , 0 >{ static const unsigned int Value = 1; };
 
-	// A (recursively-defined) templated class to track the type of the tensor output as the D-the derivative
-	template< unsigned int D , typename OutPack , typename InPack > struct _OutDPack;
-
-	template< unsigned int D , unsigned int ... OutDims , unsigned int ... InDims >
-	struct _OutDPack< D , UIntPack< OutDims ... > , UIntPack< InDims ... > >
-	{
-		typedef UIntPack< InDims ... > InPack;
-		typedef UIntPack< OutDims ... > OutPack;
-		typedef Concatenation< typename _OutDPack< D-1 , OutPack , InPack >::type , InPack > type;
-	};
-	template< unsigned int ... OutDims , unsigned int ... InDims >
-	struct _OutDPack< 0 , UIntPack< OutDims ... > , UIntPack< InDims ... > >
-	{
-		typedef UIntPack< OutDims ... > type;
-	};
-	template< unsigned int D , typename OutPack , typename InPack > using OutDPack = typename _OutDPack< D , OutPack , InPack >::type;
-
-
 	// A class for describing a function
 	template< unsigned int ... OutDims , unsigned int ... InDims , typename F >
 	struct Function< UIntPack < OutDims ... > , UIntPack< InDims ... > , F >
@@ -232,10 +224,6 @@ namespace AutoDiff
 		typedef UIntPack< InDims ... > InPack;
 		// Type of the tensor returned as output
 		typedef UIntPack< OutDims ... > OutPack;
-
-		// template< unsigned int D >
-		// virtual Tensor< OutDPack< D , OutPack , InPack > > d( const Tensor< InPack > &t ) const = 0;
-		// [NOTE] We can't actually declare this one as virtual because it is templated.
 
 		// [NOTE] There are three ways the function call operator can be invoked with a single argument:
 		//	1. [Composition] Where the argument is a function, implying composition
@@ -254,7 +242,7 @@ namespace AutoDiff
 
 		_Scale( const F &f , double s ) : _f(f) , _s(s) {}
 
-		template< unsigned int D > auto d( const _Tensor< typename _Function::InPack > &t ) const;
+		auto value( const Tensor< typename _Function::InPack > &t ) const;
 		auto d( void ) const;
 		template< typename _F > friend std::ostream &operator << ( std::ostream &os , const _Scale< _F > &scale );
 		const F &f( void ) const { return f; }
@@ -291,7 +279,7 @@ namespace AutoDiff
 
 		_Add( const std::tuple< F , Fs ... > f ) : _f(f) {}
 
-		template< unsigned int D > auto d( const _Tensor< typename _Function::InPack > &t ) const;
+		auto value( const Tensor< typename _Function::InPack > &t ) const;
 		auto d( void ) const;
 		template< typename _F , typename ... _Fs >
 		friend std::ostream &operator << ( std::ostream &os , const _Add< _F , _Fs... > &_Add );
@@ -299,9 +287,27 @@ namespace AutoDiff
 	protected:
 		template< unsigned int I > void _toStream( std::ostream &os ) const;
 		template< unsigned int I > auto _d( void ) const;
-		template< unsigned int D , unsigned int I > auto _d( const _Tensor< typename _Function::InPack > &t ) const;
+		template< unsigned int I > auto _value( const Tensor< typename _Function::InPack > &t ) const;
 
 		const std::tuple< F , Fs... > _f;
+	};
+
+	template< typename PermutationPack , typename F > struct _Permutation;
+
+	template< unsigned int ... PermutationIndices , typename F >
+	struct _Permutation< UIntPack< PermutationIndices ... > , F > : public Function< PermutedUIntPack< typename F::OutPack , UIntPack< PermutationIndices ... > > , typename F::InPack , _Permutation< UIntPack< PermutationIndices ... > , F > >
+	{
+		typedef UIntPack< PermutationIndices ... > PermutationPack;
+		static_assert( PermutationPack::Size==F::OutPack::Size , "[ERROR] Sizes don't match" );
+		typedef Function< PermutedUIntPack< typename F::OutPack , PermutationPack > , typename F::InPack , _Permutation< PermutationPack , F > > _Function;
+
+		_Permutation( const F &f ) : _f(f) {}
+		auto value( const Tensor< typename _Function::InPack > &t ) const;
+		auto d( void ) const;
+		template< typename _PermutationPack , typename _F > friend std::ostream &operator << ( std::ostream & , const _Permutation< _PermutationPack , _F > & );
+
+	protected:
+		const F _f;
 	};
 
 	// A class for describing the product of two functions (with the same order input)
@@ -316,15 +322,13 @@ namespace AutoDiff
 
 		_ContractedOuterProduct( const F1 &f1 , const F2 &f2 ) : _f1(f1) , _f2(f2) {}
 
-		template< unsigned int D > auto d( const _Tensor< typename _Function::InPack > &t ) const;
+		auto value( const Tensor< typename _Function::InPack > &t ) const;
 		auto d( void ) const;
 		template< unsigned int _I , typename _F1 , typename _F2 > friend std::ostream &operator << ( std::ostream &os , const _ContractedOuterProduct< _I , _F1 , _F2 > &op );
 
 	protected:
 		const F1 _f1;
 		const F2 _f2;
-
-		template< unsigned int D , unsigned int J=D > auto _d( const _Tensor< typename _Function::InPack > &t ) const;
 	};
 
 
@@ -338,26 +342,11 @@ namespace AutoDiff
 
 		_Composition( const F1 &f1 , const F2 &f2 ) : _f1(f1) , _f2(f2) {}
 
-		template< unsigned int D > auto d( const _Tensor< typename _Function::InPack > &t ) const;
+		auto value( const Tensor< typename _Function::InPack > &t ) const;
 		auto d( void ) const;
 		template< typename _F1 , typename _F2 >
 		friend std::ostream &operator << ( std::ostream &os , const _Composition< _F1 , _F2 > &composition );
-
 	protected:
-		template< typename JPack > static constexpr unsigned int _OutPower( void );
-		template< typename JPack , unsigned int DStart=1 > static constexpr unsigned int _InPower( void );
-		template< unsigned int D , typename JPack , unsigned int Index=(unsigned int)-1 > auto _d( const _Tensor< typename _Function::InPack > &t ) const;
-
-		// Comptes the D-th derivate, raised to the P-th power (and reorders)
-		template< unsigned int D , unsigned int P > auto _power2( const _Tensor< typename F2::InPack > &t ) const;
-
-		// Multiplies a product of derivatives by the D-th derivative, raised to the P-th power (and reorders)
-		template< unsigned int D , unsigned int P , unsigned int POut , unsigned int PIn >
-		auto _leftMultiply2( const _Tensor< Concatenation< Power< typename F2::OutPack , POut > , Power< typename F2::InPack , PIn > > > &t2 , const _Tensor< typename F2::InPack > &t ) const;
-
-		// Computes the product of the powers of the derivatives
-		template< typename JPack , unsigned int DStart=1 > auto _multiplyPower2( const _Tensor< typename F2::InPack > &t ) const;
-
 		const F1 _f1;
 		const F2 _f2;
 	};
@@ -367,18 +356,15 @@ namespace AutoDiff
 	struct Constant< UIntPack< OutDims ... > , UIntPack< InDims ... > > : public Function< UIntPack< OutDims ... > , UIntPack< InDims ... > , Constant< UIntPack< OutDims ... > , UIntPack< InDims ... > > >
 	{
 		Constant( void ){}
-		Constant( const _Tensor< UIntPack< OutDims ... > > &c ) : _c(c){}
+		Constant( const Tensor< UIntPack< OutDims ... > > &c ) : _c(c){}
 
-		template< unsigned int D > auto d( const _Tensor< UIntPack< InDims ... > > &t ) const;
+		auto value( const Tensor< UIntPack< InDims ... > > &t ) const;
 		auto d( void ) const;
 		template< unsigned int ... _OutDims , unsigned int ... _InDims >
 		friend std::ostream &operator << ( std::ostream &os , const Constant< UIntPack< _OutDims ... > , UIntPack< _InDims ... > > &c );
 	protected:
-		const _Tensor< UIntPack< OutDims ... > > _c;
-
-		template< unsigned int D > auto _d( const _Tensor< UIntPack< InDims ... > > & ) const;
+		const Tensor< UIntPack< OutDims ... > > _c;
 	};
-
 
 	// A class for describing a linear function
 	template< unsigned int ... OutDims , unsigned int ... InDims >
@@ -388,7 +374,7 @@ namespace AutoDiff
 		Linear( void ){}
 
 		// A constructor generating a linear function with the prescribed tensor taking input tensors to output tensors
-		Linear( const _Tensor< Concatenation< UIntPack< OutDims ... > , UIntPack< InDims ... > > > &l ) : _l(l){}
+		Linear( const Tensor< Concatenation< UIntPack< OutDims ... > , UIntPack< InDims ... > > > &l ) : _l(l){}
 
 		// A constructor generating a simple Linear function with one in the entry {out,in} and zero for all other entries.
 		Linear( std::initializer_list< unsigned int > out , std::initializer_list< unsigned int > in );
@@ -396,18 +382,14 @@ namespace AutoDiff
 		// A constructor generating a simple Linear function with one in the entry {_OutDims,_InDims} and zero for all other entries.
 		template< unsigned int ... _OutDims , unsigned int ... _InDims > Linear( UIntPack< _OutDims ... > , UIntPack< _InDims ... > );
 
-		template< unsigned int D > auto d( const _Tensor< UIntPack< InDims ... > > &t ) const;
+		auto value( const Tensor< UIntPack< InDims ... > > &t ) const;
 		auto d( void ) const;
 		template< unsigned int ... _OutDims , unsigned int ... _InDims >
 		friend std::ostream &operator << ( std::ostream &os , const Linear< UIntPack< _OutDims ... > , UIntPack< _InDims ... > > &l );
 
 	protected:
-		_Tensor< Concatenation< UIntPack< OutDims ... > , UIntPack< InDims ... > > > _l;
-
-		template< unsigned int D > auto _d( const _Tensor< UIntPack< InDims ... > > &t ) const;
+		Tensor< Concatenation< UIntPack< OutDims ... > , UIntPack< InDims ... > > > _l;
 	};
-
-
 
 	template< unsigned int ... Dims >
 	struct Identity< UIntPack< Dims ... > > : public Linear< UIntPack< Dims ... > , UIntPack< Dims ... > >
@@ -440,30 +422,6 @@ namespace AutoDiff
 		_Contraction( void );
 	};
 
-	template< typename InPack > struct _Transpose;
-
-	template< unsigned int ... Dims >
-	struct _Transpose< UIntPack< Dims ... > > : public Linear< typename UIntPack< Dims ... >::Transpose , UIntPack< Dims ... > >
-	{
-		typedef UIntPack< Dims ... > InPack;
-		typedef typename UIntPack< Dims ... >::Transpose OutPack;
-		using Linear< OutPack , InPack >::_l;
-		_Transpose( void );
-	};
-
-	template< typename OutPack > struct _SquareNorm;
-
-	template< unsigned int ... Dims >
-	struct _SquareNorm< UIntPack< Dims ... > > : public Function< UIntPack<> , UIntPack< Dims ... > , _SquareNorm< UIntPack< Dims ... > > >
-	{
-		template< unsigned int D > auto d( const Tensor< Dims ... > &t ) const;
-		auto d( void ) const;
-		template< unsigned int ... _Dims > friend std::ostream &operator << ( std::ostream &os , const _SquareNorm< UIntPack< _Dims ... > > & );
-	protected:
-		template< unsigned int D > auto _d( const Tensor< Dims ... > &t ) const;
-	};
-
-
 	////////////////////////
 	////////////////////////
 	//// Implementation ////
@@ -477,8 +435,8 @@ namespace AutoDiff
 	template< typename V >
 	auto Function< UIntPack < OutDims ... > , UIntPack< InDims ... > , F >::operator()( const V &v ) const
 	{
-		if constexpr( std::is_base_of< _Tensor< InPack > , V >::value ) return static_cast< const F & >( *this ).template d<0>( v );
-		else if constexpr( std::is_arithmetic_v< V > && InPack::Size==0 ) return static_cast< const F & >( *this ).template d<0>( Tensor<>( v ) );
+		if constexpr( std::is_base_of< Tensor< InPack > , V >::value ) return static_cast< const F & >( *this ).value( v );
+		else if constexpr( std::is_arithmetic_v< V > && InPack::Size==0 ) return static_cast< const F & >( *this ).value( Tensor< UIntPack<> >( v ) );
 		else return Composition< F , V >( static_cast< const F & >( *this ) , v );
 	}
 
@@ -486,8 +444,7 @@ namespace AutoDiff
 	// _Scale //
 	////////////
 	template< typename F >
-	template< unsigned int D >
-	auto _Scale< F >::d( const _Tensor< typename _Function::InPack > &t ) const { return _f.template d<D>(t) * _s; }
+	auto _Scale< F >::value( const Tensor< typename _Function::InPack > &t ) const { return _f(t) * _s; }
 
 	template< typename F >
 	auto _Scale< F >::d( void ) const { return _Scale< decltype( std::declval< F >().d() ) >( _f.d() , _s ); }
@@ -503,8 +460,7 @@ namespace AutoDiff
 	// _Add //
 	//////////
 	template< typename F , typename ... Fs >
-	template< unsigned int D >
-	auto _Add< F , Fs ... >::d( const _Tensor< typename _Function::InPack > &t ) const { return this->template _d<D,0>(t); }
+	auto _Add< F , Fs ... >::value( const Tensor< typename _Function::InPack > &t ) const { return this->template _value<0>(t); }
 
 	template< typename F , typename ... Fs >
 	auto _Add< F , Fs ... >::d( void ) const { return this->template _d<0>(); }
@@ -536,11 +492,11 @@ namespace AutoDiff
 	}
 
 	template< typename F , typename ... Fs >
-	template< unsigned int D , unsigned int I >
-	auto _Add< F , Fs ... >::_d( const _Tensor< typename _Function::InPack > &t ) const
+	template< unsigned int I >
+	auto _Add< F , Fs ... >::_value( const Tensor< typename _Function::InPack > &t ) const
 	{
-		if constexpr( I==sizeof...(Fs) ) return std::get<I>(_f).template d<D>(t);
-		else return std::get<I>(_f).template d<D>(t) + this->template _d<D,I+1>(t);
+		if constexpr( I==sizeof...(Fs) ) return std::get<I>(_f)(t);
+		else return std::get<I>(_f)(t) + this->template _value<I+1>(t);
 	}
 
 	//////////////
@@ -565,10 +521,10 @@ namespace AutoDiff
 	auto operator + ( const _Add< F1 , F1s ... > &add1 , const _Add< F2 , F2s ... > &add2 ){ return _Add< F1 , F1s ... , F2 , F2s ... >( std::tuple_cat( add1.f_tuple() , add2.f_tuple() ) ); }
 
 	template< typename F >
-	auto operator + ( const F &f , const _Tensor< typename F::OutPack > &t ){ return f + Constant< typename F::OutPack , typename F::InPack >( t ); }
+	auto operator + ( const F &f , const Tensor< typename F::OutPack > &t ){ return f + Constant< typename F::OutPack , typename F::InPack >( t ); }
 
 	template< typename F >
-	auto operator + ( const _Tensor< typename F::OutPack > &t , const F &f ){ return Constant< typename F::OutPack , typename F::InPack >( t ) + f; }
+	auto operator + ( const Tensor< typename F::OutPack > &t , const F &f ){ return Constant< typename F::OutPack , typename F::InPack >( t ) + f; }
 
 	template< typename F >
 	auto operator + ( const F &f , double s )
@@ -591,10 +547,10 @@ namespace AutoDiff
 	auto operator - ( const F1 &f1 , const F2 &f2 ){ return f1 + ( -f2 ); }
 
 	template< typename F >
-	auto operator - ( const F &f , const _Tensor< typename F::OutPack > &t ){ return f + Constant< typename F::OutPack , typename F::InPack >( -t ); }
+	auto operator - ( const F &f , const Tensor< typename F::OutPack > &t ){ return f + Constant< typename F::OutPack , typename F::InPack >( -t ); }
 
 	template< typename F >
-	auto operator - ( const _Tensor< typename F::OutPack > &t , const F &f ){ Constant< typename F::OutPack , typename F::InPack >( t ) - f; }
+	auto operator - ( const Tensor< typename F::OutPack > &t , const F &f ){ Constant< typename F::OutPack , typename F::InPack >( t ) - f; }
 
 	template< typename F >
 	auto operator - ( const F &f , double s )
@@ -643,7 +599,7 @@ namespace AutoDiff
 		static_assert( Compare< typename F2::OutPack , UIntPack<> >::Equal , "[ERROR] denominator is not scalar-valued" );
 
 		if constexpr( std::is_same< F1 , double >::value ) return Constant< UIntPack<> , typename F2::InPack >( f1 );
-		else if constexpr( std::is_same< F1 , Tensor<> >::value ) return Constant< UIntPack<> , typename F2::InPack >( f1 );
+		else if constexpr( std::is_same< F1 , Tensor< UIntPack<> > >::value ) return Constant< UIntPack<> , typename F2::InPack >( f1 );
 		else
 		{
 			static_assert( Compare< typename F1::InPack , typename F2::InPack >::Equal , "[ERROR] Input types differ" );
@@ -651,22 +607,56 @@ namespace AutoDiff
 		}
 	}
 
+	/////////////////
+	// Permutation //
+	/////////////////
+	template< unsigned int ... PermutationIndices , typename F >
+	auto _Permutation< UIntPack< PermutationIndices ... > , F >::value( const Tensor< typename _Function::InPack > &t ) const
+	{
+		return _f( t ).permute( PermutationPack() );
+	}
+
+	template< unsigned int ... PermutationIndices , typename F >
+	auto _Permutation< UIntPack< PermutationIndices ... > , F >::d( void ) const
+	{
+		return Permutation< Concatenation< PermutationPack , SequentialUIntPack< _Function::InPack::Size , PermutationPack::Size > > >( _f.d() ); 
+	}
+
+	template< unsigned int ... PermutationIndices , typename F >
+	std::ostream &operator << ( std::ostream &os , const _Permutation< UIntPack< PermutationIndices ... > , F > &p )
+	{
+		os << "Permutation" << _Permutiation< UIntPack< PermutationIndices ... > , F >::PermutationPack() << "( " << p._f << " )";
+	}
+
+	template< typename PermutationPack , typename F >
+	auto Permutation( const F &f ){ return _Permutation< PermutationPack , F >( f ); }
+
 	////////////////////////////
 	// ContractedOuterProduct //
 	////////////////////////////
 	template< unsigned int I , typename F1 , typename F2 >
-	template< unsigned int D >
-	auto _ContractedOuterProduct< I , F1 , F2 >::d( const _Tensor< typename _Function::InPack > &t ) const
+	auto _ContractedOuterProduct< I , F1 , F2 >::value( const Tensor< typename _Function::InPack > &t ) const
 	{
-		return _d< D >( t );
+		return _f1(t).template contractedOuterProduct< I >( _f2(t) );
 	}
 
 	template< unsigned int I , typename F1 , typename F2 >
 	auto _ContractedOuterProduct< I , F1 , F2 >::d( void ) const
 	{
-		return 
-			_ContractedOuterProduct< I , decltype( std::declval< F1 >().d() ) , F2 >( _f1.d() , _f2 ) +
-			_ContractedOuterProduct< I , F1 , decltype( std::declval< F2 >().d() ) >( _f1 , _f2.d() ) ;
+		// [Note] As a function is differentiated, the input type is appended to the output type
+		// 
+		// Get the PermutationPack permuting _f1.d() so that the InPack is on the left
+		typedef SequentialUIntPack< F1::InPack::Size , F1::OutPack::Size > PreP1Pack;
+		typedef SequentialUIntPack< F1::OutPack::Size , 0 > PreP2Pack;
+		typedef Concatenation< PreP1Pack , PreP2Pack > PrePermutationPack;
+
+		// Get the PermutationPack permuting _f1.d() * f2 so that the InPack is on the right
+		typedef Concatenation< typename Split< F1::OutPack::Size-I , typename F1::OutPack >::First , typename Split< I , typename F2::OutPack >::Second > ContractionPack;
+		typedef SequentialUIntPack< ContractionPack::Size , F1::InPack::Size > PostP1Pack;
+		typedef SequentialUIntPack< F1::InPack::Size , 0 > PostP2Pack;
+		typedef Concatenation< PostP1Pack , PostP2Pack > PostPermutationPack;
+
+		return Permutation< PostPermutationPack >( ContractedOuterProduct< I >( Permutation< PrePermutationPack >( _f1.d() ) , _f2 ) ) + ContractedOuterProduct< I >( _f1 , _f2.d() );
 	}
 
 	template< unsigned int I , typename F1 , typename F2 >
@@ -677,21 +667,6 @@ namespace AutoDiff
 	}
 
 	template< unsigned int I , typename F1 , typename F2 >
-	template< unsigned int D , unsigned int J >
-	auto _ContractedOuterProduct< I , F1 , F2 >::_d( const _Tensor< typename _Function::InPack > &t ) const
-	{
-		if constexpr( J!=0 )
-		{
-			typedef SequentialUIntPack< OutPack1::Size , 0 > P1;
-			typedef SequentialUIntPack< J*_Function::InPack::Size , P1::Size > P2;
-			typedef SequentialUIntPack< OutPack2::Size + (D-J)*_Function::InPack::Size , P1::Size + P2::Size > P3;
-
-			return ( _f1.template d< J >(t).template contractedOuterProduct<I>( _f2.template d< D-J >(t) ) ).permute( Concatenation< P1 , P3 , P2 >() ) * (double)Choose< D , J >::Value + _d< D , J-1 >( t );
-		}
-		else return _f1.template d< J >(t).template contractedOuterProduct< I >( _f2.template d< D-J >(t) );
-	}
-
-	template< unsigned int I , typename F1 , typename F2 >
 	auto ContractedOuterProduct( const F1 &f1 , const F2 &f2 ){ return _ContractedOuterProduct< I , F1 , F2 >( f1 , f2 ); }
 
 
@@ -699,134 +674,13 @@ namespace AutoDiff
 	// Composition //
 	/////////////////
 	template< typename F1 , typename F2 >
-	template< unsigned int D >
-	auto _Composition< F1 , F2 >::d( const _Tensor< typename _Function::InPack > &t ) const
-	{
-		if constexpr( D==0 ) return _f1( _f2( t ) );
-		else return _d< D , UIntPack< 1 > >( t );
-	}
+	auto _Composition< F1 , F2 >::value( const Tensor< typename _Function::InPack > &t ) const { return _f1( _f2(t) ); }
 
 	template< typename F1 , typename F2 >
-	auto _Composition< F1 , F2 >::d( void ) const
-	{
-		typedef decltype( std::declval< F1 >().d() ) DF1;
-		typedef decltype( std::declval< F2 >().d() ) DF2;
-		return _ContractedOuterProduct< F1::InPack::Size , _Composition< DF1 , F2 > , DF2 >
-			(
-				_ContractedOuterProduct< F1::InPack::Size , _Composition< DF1 , F2 > , DF2 >( _Composition< DF1 , F2 >( _f1.d() , _f2 ) , _f2.d() )
-				);
-	}
+	auto _Composition< F1 , F2 >::d( void ) const { return ContractedOuterProduct< F1::InPack::Size >( Composition( _f1.d() , _f2 ) , _f2.d() ); }
 
 	template< typename F1 , typename F2 >
 	std::ostream &operator << ( std::ostream &os , const _Composition< F1 , F2 > &composition ){ return os << composition._f1 << "( " << composition._f2 << " )"; }
-
-	template< typename F1 , typename F2 >
-	template< typename JPack >
-	constexpr unsigned int _Composition< F1 , F2 >::_OutPower( void )
-	{
-		if constexpr( JPack::Size==1 ) return JPack::First;
-		else return JPack::First + _OutPower< JPack::Rest >();
-	}
-
-	template< typename F1 , typename F2 >
-	template< typename JPack , unsigned int DStart >
-	constexpr unsigned int _Composition< F1 , F2 >::_InPower( void )
-	{
-		if constexpr( JPack::Size==1 ) return JPack::First * DStart;
-		else return JPack::First * DStart + _InPower< JPack::Rest , DStart+1 >();
-	}
-
-	template< typename F1 , typename F2 >
-	template< unsigned int D , typename JPack , unsigned int Index >
-	auto _Composition< F1 , F2 >::_d( const _Tensor< typename _Function::InPack > &t ) const
-	{
-		if constexpr( D==_InPower< JPack >() )
-		{
-			static const unsigned int I = _OutPower< JPack >();
-			_Tensor< Concatenation< typename F1::OutPack , Power< typename F1::InPack , I > > > t1 = _f1.template d< I >( _f2( t ) );
-			_Tensor< Concatenation< Power< typename F2::OutPack , _OutPower< JPack >() > , Power< typename F2::InPack , _InPower< JPack >() > > > t2 = _multiplyPower2< JPack >( t );
-			return t1.template contractedOuterProduct< F2::OutPack::Size * I >( t2 );
-		}
-		else
-		{
-			if      constexpr( Index==-1 ) return _d< D , Concatenation< UIntPack< JPack::First+1 > , typename JPack::Rest > >( t ) + _d< D , JPack , Index+1 >( t );
-			else if constexpr( Index<JPack::Size-1 )
-			{
-				if constexpr( Select< Index , JPack >::Value )
-				{
-					typedef Concatenation< typename Split< Index , JPack >::First , UIntPack< Select< Index , JPack >::Value-1 > , UIntPack< Select< Index+1 , JPack >::Value+1 > , typename Split< Index+2 , JPack >::Second > _JPack;
-					return _d< D , _JPack >( t ) * (double)Select< Index , JPack >::Value + _d< D , JPack , Index+1 >( t );
-				}
-				else return _d< D , JPack , Index+1 >( t );
-			}
-			else if constexpr( Index==JPack::Size-1 )
-			{
-				if constexpr( Select< Index , JPack >::Value!=0 )
-				{
-					typedef Concatenation< typename Split< Index , JPack >::First , UIntPack< Select< Index , JPack >::Value-1 > , UIntPack< 1 > > _JPack;
-					return _d< D , _JPack >( t ) * (double)Select< Index , JPack >::Value;
-				}
-				else return _Tensor< OutDPack< D , typename _Function::OutPack , typename _Function::InPack > >();
-			}
-		}
-	}
-
-	// Comptes the D-th derivate, raised to the P-th power (and reorders)
-	template< typename F1 , typename F2 >
-	template< unsigned int D , unsigned int P >
-	auto _Composition< F1 , F2 >::_power2( const _Tensor< typename F2::InPack > &t ) const
-	{
-		if      constexpr( P==0 ) return _Tensor< UIntPack<> >(1);
-		else if constexpr( P==1 ) return _f2.template d< D >( t );
-		else
-		{
-			typedef SequentialUIntPack< F2::OutPack::Size*(P-1)   , 0 > P1;
-			typedef SequentialUIntPack< F2:: InPack::Size*(P-1)*D , P1::Size > P2;
-			typedef SequentialUIntPack< F2::OutPack::Size         , P1::Size + P2::Size > P3;
-			typedef SequentialUIntPack< F2:: InPack::Size*D       , P1::Size + P2::Size + P3::Size > P4;
-
-			_Tensor< Concatenation< Power< typename F2::OutPack , P-1 > , Power< typename F2::InPack , D*(P-1) > > > t1 = _power2< D , P-1 >( t );
-			_Tensor< Concatenation< typename F2::OutPack , Power< typename F2::InPack , D > > > t2 = _f2.template d< D >( t );
-			return ( t1 * t2 ).permute( Concatenation< P1 , P3 , P2 , P4 >() );
-		}
-	}
-
-	// Multiplies a product of derivatives by the D-th derivative, raised to the P-th power (and reorders)
-	template< typename F1 , typename F2 >
-	template< unsigned int D , unsigned int P , unsigned int POut , unsigned int PIn >
-	auto _Composition< F1 , F2 >::_leftMultiply2( const _Tensor< Concatenation< Power< typename F2::OutPack , POut > , Power< typename F2::InPack , PIn > > > &t2 , const _Tensor< typename F2::InPack > &t ) const
-	{
-		typedef SequentialUIntPack< F2::OutPack::Size*P    , 0 > P1;
-		typedef SequentialUIntPack< F2:: InPack::Size*D*P  , P1::Size > P2;
-		typedef SequentialUIntPack< F2::OutPack::Size*POut , P1::Size+P2::Size > P3;
-		typedef SequentialUIntPack< F2:: InPack::Size*PIn  , P1::Size + P2::Size + P3::Size > P4;
-
-		_Tensor< Concatenation< Power< typename F2::OutPack , P > , Power< typename F2::InPack , D*P > > > t1 = _power2< D , P >( t );
-		return ( t1 * t2 ).permute( Concatenation< P1 , P3 , P2 , P4 >() );
-	}
-
-	// Computes the product of the powers of the derivatives
-	template< typename F1 , typename F2 >
-	template< typename JPack , unsigned int DStart >
-	auto _Composition< F1 , F2 >::_multiplyPower2( const _Tensor< typename F2::InPack > &t ) const
-	{
-		if constexpr( JPack::Size==1 ) return _power2< DStart , JPack::First >( t );
-		// Assuming JPack = < 0 , 1 > and DStart = 1
-		// F2::OutPack = <3>
-		// F2::InPack = <3>
-		// F1::OutPack = <>
-		// F1::InPack = <3>
-		// The output of:
-		//		_leftMultiply2< D=DStart , P=JPack::First , POut=_OutPower< JPack::Rest > , PIn=_InPower< JPack::Rest > >
-		//		_leftMultiply2< D=1 , P=0 , POut=_OutPower< < 1 > > , PIn=_InPower< < 1 > > >
-		//		_leftMultiply2< D=1 , P=0 , POut=1 , PIn=1 >
-		// wil be of type: 
-		//		Tensor< Concatenation< Power< typename F2::OutPack , POut + P > , Power< typename F2::InPack , PIn + D*P > > >
-		//		Tensor< Concatenation< Power< <3> , 1 > , Power< <3> , 1 > > >
-		//		Tensor< Concatenation< <>  , <3> > >
-		//		Tensor< < 3 > >
-		else return _leftMultiply2< DStart , JPack::First , _OutPower< JPack::Rest >() , _InPower< JPack::Rest , DStart+1 >() >( _multiplyPower2< JPack::Rest , DStart+1 >( t ) , t );
-	}
 
 	template< typename F1 , typename F2 > auto Composition( const F1 &f1 , const F2 &f2 ){ return _Composition< F1 , F2 >( f1 , f2 ); }
 
@@ -835,22 +689,13 @@ namespace AutoDiff
 	//////////////
 	// A class for reprenting a constant function
 	template< unsigned int ... OutDims , unsigned int ... InDims >
-	template< unsigned int D >
-	auto Constant< UIntPack< OutDims ... > , UIntPack< InDims ... > >::d( const Tensor< InDims ... > &t ) const { return _d<D>(t); }
+	auto Constant< UIntPack< OutDims ... > , UIntPack< InDims ... > >::value( const Tensor< UIntPack< InDims ... > > &t ) const { return _c; }
 
 	template< unsigned int ... OutDims , unsigned int ... InDims >
 	auto Constant< UIntPack< OutDims ... > , UIntPack< InDims ... > >::d( void ) const { return Constant< Concatenation< UIntPack< OutDims ... > , UIntPack< InDims ... > > , UIntPack< InDims ... > >(); }
 
 	template< unsigned int ... OutDims , unsigned int ... InDims >
 	std::ostream &operator << ( std::ostream &os , const Constant< UIntPack< OutDims ... > , UIntPack< InDims ... > > &c ){ return os << c._c; }
-
-	template< unsigned int ... OutDims , unsigned int ... InDims >
-	template< unsigned int D >
-	auto Constant< UIntPack< OutDims ... > , UIntPack< InDims ... > >::_d( const _Tensor< UIntPack< InDims ... > > & ) const
-	{
-		if constexpr( D==0 ) return _c;
-		else return _Tensor< OutDPack< D , UIntPack< OutDims ... > , UIntPack< InDims ... > > >();
-	}
 
 	////////////
 	// Linear //
@@ -882,23 +727,16 @@ namespace AutoDiff
 	}
 
 	template< unsigned int ... OutDims , unsigned int ... InDims >
-	template< unsigned int D >
-	auto Linear< UIntPack< OutDims ... > , UIntPack< InDims ... > >::d( const Tensor< InDims ... > &t ) const { return _d<D>(t); }
+	auto Linear< UIntPack< OutDims ... > , UIntPack< InDims ... > >::value( const Tensor< UIntPack< InDims ... > > &t ) const
+	{
+		return _l.template contractedOuterProduct< sizeof ... ( InDims ) >( t );
+	}
 
 	template< unsigned int ... OutDims , unsigned int ... InDims >
 	auto Linear< UIntPack< OutDims ... > , UIntPack< InDims ... > >::d( void ) const { return Constant< Concatenation< UIntPack< OutDims ... > , UIntPack< InDims ... > > , UIntPack< InDims ... > >(_l); }
 
 	template< unsigned int ... OutDims , unsigned int ... InDims >
 	std::ostream &operator << ( std::ostream &os , const Linear< UIntPack< OutDims ... > , UIntPack< InDims ... > > &l ){ return os << l._l; }
-
-	template< unsigned int ... OutDims , unsigned int ... InDims >
-	template< unsigned int D >
-	auto Linear< UIntPack< OutDims ... > , UIntPack< InDims ... > >::_d( const Tensor< InDims ... > &t ) const
-	{
-		if      constexpr( D==0 ) return _l.template contractedOuterProduct< sizeof ... ( InDims ) >( t );
-		else if constexpr( D==1 ) return _l;
-		else return _Tensor< OutDPack< D , UIntPack< OutDims ... > , UIntPack< InDims ... > > >();
-	}
 
 	//////////////
 	// Identity //
@@ -952,7 +790,7 @@ namespace AutoDiff
 		static const unsigned int Dim = OutPack::template Get<0>();
 
 		// Create the (Dim-1)x(Dim-1) matrix
-		Tensor< Dim-1 , Dim-1 , Dim , Dim > l;
+		Tensor< UIntPack< Dim-1 , Dim-1 , Dim , Dim > > l;
 		unsigned int index[4];
 		for( unsigned int i=0 ; i<Dim-1 ; i++ ) for( unsigned int j=0 ; j<Dim-1 ; j++ )
 		{
@@ -1010,7 +848,7 @@ namespace AutoDiff
 		static const unsigned int Dim = OutPack::template Get<0>();
 
 		// Create the Dim x Dim matrix
-		Tensor< Dim , Dim> e;
+		Tensor< UIntPack< Dim , Dim > > e;
 		{
 			unsigned int index[2];
 			index[0] = R;
@@ -1057,7 +895,7 @@ namespace AutoDiff
 		static const unsigned int Dim = OutPack::template Get<0>();
 
 		// Create the Dim-dimensional vector
-		Tensor< Dim > c;
+		Tensor< UIntPack< Dim > > c;
 		{
 			unsigned int index[1];
 			index[0] = R;
@@ -1065,7 +903,7 @@ namespace AutoDiff
 		}
 
 		// Create the (Dim-1)x(Dim-1) matrix
-		Tensor< Dim-1 , Dim-1 , Dim , Dim-1 > l;
+		Tensor< UIntPack< Dim-1 , Dim-1 , Dim , Dim-1 > > l;
 		{
 			unsigned int index[4];
 			for( unsigned int i=0 ; i<Dim-1 ; i++ ) for( unsigned int j=0 ; j<Dim-1 ; j++ )
@@ -1104,7 +942,7 @@ namespace AutoDiff
 	// _Contraction //
 	//////////////////
 	template< unsigned int I1 , unsigned int I2 , unsigned int ... Dims >
-	_Contraction< I1 , I2 , UIntPack< Dims ... > >::_Contraction( void ){ _l = Tensor< Dims ... >::template ContractionTensor< I1 , I2 >(); }
+	_Contraction< I1 , I2 , UIntPack< Dims ... > >::_Contraction( void ){ _l = Tensor< UIntPack< Dims ... > >::template ContractionTensor< I1 , I2 >(); }
 
 	/////////////////
 	// Contraction //
@@ -1116,17 +954,11 @@ namespace AutoDiff
 		else                  return _Contraction< I2 , I1 , typename F::OutPack >()( f );
 	}
 
-	////////////////
-	// _Transpose //
-	////////////////
-	template< unsigned int ... Dims >
-	_Transpose< UIntPack< Dims ... > >::_Transpose( void ){ _l = Tensor< Dims ... >::TransposeTensor(); }
-
 	///////////////
 	// Transpose //
 	///////////////
 	template< typename F >
-	auto Transpose( const F &f ){ return _Transpose< typename F::OutPack >()( f ); }
+	auto Transpose( const F &f ){ return Permutation< ReverseUIntPack< SequentialUIntPack< F::OutPack::Size > > >( f ); }
 
 	//////////////
 	// Adjugate //
@@ -1143,58 +975,52 @@ namespace AutoDiff
 	////////////////
 	// SquareNorm //
 	////////////////
-
-	template< unsigned int ... Dims >
-	template< unsigned int D >
-	auto _SquareNorm< UIntPack< Dims ... > >::d( const Tensor< Dims ... > &t ) const { return _d< D >(t); }
-
-	template< unsigned int ... Dims >
-	auto _SquareNorm< UIntPack< Dims ... > >::d( void ) const { return Identity< UIntPack< Dims ... > >() * 2.; }
-
-	template< unsigned int ... Dims >
-	std::ostream &operator << ( std::ostream &os , const _SquareNorm< UIntPack< Dims ... > > & ){ return os << "SquareNorm[" << _SquareNorm< UIntPack< Dims ... > >::Pack() << "]"; }
-
-	template< unsigned int ... Dims >
-	template< unsigned int D >
-	auto _SquareNorm< UIntPack< Dims ... > >::_d( const Tensor< Dims ... > &t ) const
-	{
-		typedef UIntPack< Dims ... > Pack;
-		_Tensor< OutDPack< D , UIntPack<> , UIntPack< Dims ... > > > d;
-		if constexpr( D==0 )
-		{
-			WindowLoop< Pack::Size >::Run
-			(
-				ZeroUIntPack< Pack::Size >() , Pack() ,
-				[]( int d , int i ){} ,
-				[&]( double v ){ static_cast< double &>( d ) += v*v; } ,
-				t
-			);
-		}
-		else if constexpr( D==1 )
-		{
-			WindowLoop< Pack::Size >::Run
-			(
-				ZeroUIntPack< Pack::Size >() , Pack() ,
-				[]( int d , int i ){} ,
-				[]( double &d , double v ){ d = 2*v; } ,
-				d , t
-			);
-		}
-		else if constexpr( D==2 )
-		{
-			unsigned int index[ 2*Pack::Size ];
-			WindowLoop< Pack::Size >::Run
-			(
-				ZeroUIntPack< Pack::Size >() , Pack() ,
-				[&]( int d , int i ){ index[d] = index[ d+Pack::Size ] = i; } ,
-				[&]( void ){ d( index ) = 2.; }
-			);
-		}
-		return d;
-	}
-
 	template< typename F >
-	auto SquareNorm( const F &f ){ return _SquareNorm< typename F::OutPack >()( f ); }
+	auto SquareNorm( const F &f ){ return ContractedOuterProduct< F::OutPack::Size >( f , f ); }
+
+	////////////////////////
+	// DiscreteDerivative //
+	////////////////////////
+	template< typename F >
+	auto DiscreteDerivative( const F &f , const Tensor< typename F::InPack > &in , double eps )
+	{
+		typedef Tensor< typename F::InPack > InTensor;
+		typedef Tensor< typename F::OutPack > OutTensor;
+
+		if constexpr( F::InPack::Size==0 ) return ( F( in + InTensor( eps ) ) - F( in - InTensor( eps ) ) ) / ( 2. * eps );
+		else
+		{
+			Tensor< Concatenation< typename F::OutPack , typename F::InPack > > out;
+
+			unsigned int index[ F::InPack::Size ];
+			WindowLoop< F::InPack::Size >::Run
+			(
+				ZeroUIntPack< F::InPack::Size >() , F::InPack() ,
+				[&]( int d , int i ){ index[d] = i; } ,
+				[&]( void )
+				{
+					InTensor in1 = in , in2 = in;
+					in1( index ) += eps;
+					in2( index ) -= eps;
+					OutTensor _out = ( f( in1 ) - f( in2 ) ) / (2.*eps);
+					if constexpr( F::OutPack::Size==0 ) out( index ) = (double)_out;
+					else
+					{
+						unsigned int _index[ F::OutPack::Size + F::InPack::Size ];
+						for( unsigned int i=0 ; i<F::InPack::Size ; i++ ) _index[i+F::OutPack::Size] = index[i];
+						WindowLoop< F::OutPack::Size >::Run
+						(
+							ZeroUIntPack< F::OutPack::Size >() , F::OutPack() ,
+							[&]( int d , int i ){ _index[d] = i; } ,
+							[&]( const double &v ){ out( _index ) = v; } ,
+							_out
+						);
+					}
+				}
+			);
+			return out;
+		}
+	}
 
 #include "AutoDiff.Transcendental.inc"
 }

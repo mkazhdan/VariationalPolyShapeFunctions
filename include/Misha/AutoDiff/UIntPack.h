@@ -236,9 +236,10 @@ namespace AutoDiff
 	template< unsigned int I , typename Pack1 , typename Pack2 >
 	using Insertion = typename _Insertion< I , Pack1 , Pack2 >::type;
 
-	/////////////////
-	// Permutation //
-	/////////////////
+	//////////////////////
+	// PermutedUIntPack //
+	//////////////////////
+	// [NOTE] The entry in the i-th position indicates where the i-th position comes from (not goes to)
 	template< typename Pack , typename PermutationPack > struct _Permutation;
 	template< unsigned int ... Values , unsigned int ... PermutationValues >
 	struct _Permutation< UIntPack< Values ... > , UIntPack< PermutationValues ... > >
@@ -253,7 +254,24 @@ namespace AutoDiff
 		typedef UIntPack<> type;
 	};
 
-	template< typename Pack , typename PermutationPack > using Permutation = typename _Permutation< Pack , PermutationPack >::type;
+	template< typename Pack , typename PermutationPack > using PermutedUIntPack = typename _Permutation< Pack , PermutationPack >::type;
+
+	/////////////////////
+	// ReverseUIntPack //
+	/////////////////////
+	template< typename Pack > struct _Reverse;
+
+	template< unsigned int Value >
+	struct _Reverse< UIntPack< Value > >
+	{
+		typedef UIntPack< Value > type;
+	};
+	template< unsigned int ... Values >
+	struct _Reverse< UIntPack< Values ... > >
+	{
+		typedef Concatenation< typename _Reverse< typename UIntPack< Values ... >::Rest >::type , UIntPack< UIntPack< Values ... >::First > > type;
+	};
+	template< typename Pack > using ReverseUIntPack = typename _Reverse< Pack >::type;
 
 
 	template< typename Pack1 , typename Pack2 > struct Compare;

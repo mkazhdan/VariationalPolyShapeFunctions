@@ -77,7 +77,7 @@ void ExecuteDirect
 
 	auto Franke = [&]( Point< double , Dim > p )
 	{
-		AutoDiff::Tensor< Dim > _p;
+		AutoDiff::Tensor< AutoDiff::UIntPack< Dim > > _p;
 		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
 		return (double)franke( _p );
 	};
@@ -85,7 +85,7 @@ void ExecuteDirect
 	auto franke_laplacian = AutoDiff::Contraction< 0 , 1 >( franke.d().d() );
 	auto FrankeLaplacian = [&]( Point< double , Dim > p )
 	{
-		AutoDiff::Tensor< Dim > _p;
+		AutoDiff::Tensor< AutoDiff::UIntPack< Dim > > _p;
 		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
 		return (double)franke_laplacian( _p );
 	};
@@ -178,7 +178,7 @@ void ExecuteMG
 
 	auto Franke = [&]( Point< double , Dim > p )
 	{
-		AutoDiff::Tensor< Dim > _p;
+		AutoDiff::Tensor< AutoDiff::UIntPack< Dim > > _p;
 		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
 		return (double)franke( _p );
 	};
@@ -186,7 +186,7 @@ void ExecuteMG
 	auto franke_laplacian = AutoDiff::Contraction< 0 , 1 >( franke.d().d() );
 	auto FrankeLaplacian = [&]( Point< double , Dim > p )
 	{
-		AutoDiff::Tensor< Dim > _p;
+		AutoDiff::Tensor< AutoDiff::UIntPack< Dim > > _p;
 		for( unsigned int d=0 ; d<Dim ; d++ ) _p[d] = p[d];
 		return (double)franke_laplacian( _p );
 	};

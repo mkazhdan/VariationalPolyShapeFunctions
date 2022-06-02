@@ -35,6 +35,7 @@ DAMAGE.
 #include "Misha/Array.h"
 #include "UIntPack.h"
 
+//#define USE_DYNAMIC_WINDOW
 
 namespace AutoDiff
 {
@@ -142,6 +143,11 @@ namespace AutoDiff
 	protected:
 		// A pointer to the zero-dimensional array data
 		Pointer( Data ) _data;
+#ifdef USE_DYNAMIC_WINDOW
+		WindowWrapper( void ) : _data( NullPointer< Data >() ) {}
+		void _init( Pointer( Data ) data ){ _data = data; }
+		template< class _Data , typename Pack > friend struct Window;
+#endif // USE_DYNAMIC_WINDOW
 	};
 
 	template< class Data , unsigned int ... Ress >
@@ -149,11 +155,29 @@ namespace AutoDiff
 	{
 		using WindowWrapper< Data , UIntPack< Ress ... > >::operator();
 
+#ifdef USE_DYNAMIC_WINDOW
+		Pointer( Data ) data;
+
+		Window( void )
+		{
+			data = NewPointer< Data >( WindowSize< UIntPack< Ress ... > >::Size );
+			WindowWrapper< Data , UIntPack< Ress ... > >::_init( data );
+		}
+		Window( const Window &w )
+		{
+			data = NewPointer< Data >( WindowSize< UIntPack< Ress ... > >::Size );
+			WindowWrapper< Data , UIntPack< Ress ... > >::_init( data );
+			memcpy( data , w.data , sizeof(Data) * WindowSize< UIntPack< Ress ... > >::Size );
+		}
+		Window &operator=( const Window &w ){ memcpy( data , w.data , sizeof(Data) * WindowSize< UIntPack< Ress ... > >::Size ) ; return *this; }
+		~Window( void ){ DeletePointer( data ); }
+#else // !USE_DYNAMIC_WINDOW
 		Data data[ WindowSize< UIntPack< Ress ... > >::Size ];
 
 		Window( void ) : WindowWrapper< Data , UIntPack< Ress ... > >( data ){}
 		Window( const Window &w ) : WindowWrapper< Data , UIntPack< Ress ... > >( data ){ memcpy( data , w.data , sizeof(Data) * WindowSize< UIntPack< Ress ... > >::Size ); }
 		Window &operator=( const Window &w ){ memcpy( data , w.data , sizeof(Data) * WindowSize< UIntPack< Ress ... > >::Size ) ; return *this; }
+#endif // USE_DYNAMIC_WINDOW
 
 		WindowWrapper< Data , UIntPack< Ress ... > > operator()( void ){ return WindowWrapper< Data , UIntPack< Ress ... > >( data ); }
 		ConstWindowWrapper< Data , UIntPack< Ress ... > > operator()( void ) const { return ConstWindowWrapper< Data , UIntPack< Ress ... > >( data ); }

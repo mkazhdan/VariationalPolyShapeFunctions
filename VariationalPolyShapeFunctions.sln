@@ -90,9 +90,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AutoDiff", "AutoDiff", "{20
 	ProjectSection(SolutionItems) = preProject
 		include\Misha\AutoDiff\AutoDiff.h = include\Misha\AutoDiff\AutoDiff.h
 		include\Misha\AutoDiff\AutoDiff.Transcendental.inc = include\Misha\AutoDiff\AutoDiff.Transcendental.inc
+		include\Misha\AutoDiff\MultiDimensionalArray.h = include\Misha\AutoDiff\MultiDimensionalArray.h
 		include\Misha\AutoDiff\Tensors.h = include\Misha\AutoDiff\Tensors.h
 		include\Misha\AutoDiff\UIntPack.h = include\Misha\AutoDiff\UIntPack.h
-		include\Misha\AutoDiff\Windows.h = include\Misha\AutoDiff\Windows.h
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PrincipalCurvature", "PrincipalCurvature\PrincipalCurvature.vcxproj", "{8C7E982C-21BD-4E10-9F17-74D8DE8D8A40}"

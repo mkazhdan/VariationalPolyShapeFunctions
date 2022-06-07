@@ -30,8 +30,10 @@ DAMAGE.
 #define TENSORS_INCLUDED
 
 #include <iostream>
+#include <random>
 #include "Misha/Algebra.h"
-#include "Windows.h"
+#include "MultiDimensionalArray.h"
+#include "UIntPack.h"
 
 namespace AutoDiff
 {
@@ -39,9 +41,9 @@ namespace AutoDiff
 
 	// A zero-tensor is the same as a double value
 	template<>
-	struct Tensor< UIntPack<> > : public InnerProductSpace< double , Tensor< UIntPack<> > >
+	struct Tensor< UIntPack::Pack<> > : public InnerProductSpace< double , Tensor< UIntPack::Pack<> > >
 	{
-		typedef UIntPack<> Pack;
+		typedef UIntPack::Pack<> Pack;
 		static const unsigned int Size = 1;
 
 		double data;
@@ -54,9 +56,9 @@ namespace AutoDiff
 		void Scale( double s ){ data *= s; }
 		double InnerProduct( const Tensor &t ) const { return data * t.data; }
 		template< unsigned int ... _Dims >
-		Tensor< UIntPack< _Dims ... > > operator * ( const Tensor< UIntPack< _Dims ... > > &t ) const { return t * data; }
+		Tensor< UIntPack::Pack< _Dims ... > > operator * ( const Tensor< UIntPack::Pack< _Dims ... > > &t ) const { return t * data; }
 		template< unsigned int I , unsigned int ... _Dims >
-		Tensor< UIntPack< _Dims ... > > contractedOuterProduct( const Tensor< UIntPack< _Dims ... > > &t ) const 
+		Tensor< UIntPack::Pack< _Dims ... > > contractedOuterProduct( const Tensor< UIntPack::Pack< _Dims ... > > &t ) const 
 		{
 			static_assert( I==0 , "[ERROR] Contraction suffix/prefix don't match" );
 			return *this * t;
@@ -64,10 +66,18 @@ namespace AutoDiff
 
 		// Permute indices
 		template< unsigned int ... PermutationValues >
-		Tensor< PermutedUIntPack< Pack , UIntPack< PermutationValues ... > > > permute( UIntPack< PermutationValues ... > ) const
+		Tensor< UIntPack::Permutation< Pack , UIntPack::Pack< PermutationValues ... > > > permute( UIntPack::Pack< PermutationValues ... > ) const
 		{
 			static_assert( sizeof ... ( PermutationValues ) == Size , "[ERROR] Permutation size doesn't match dimension" );
 			return *this;
+		}
+
+		static Tensor Random( std::default_random_engine &generator )
+		{
+			// From https://www.cplusplus.com/reference/random/uniform_real_distribution/
+			std::uniform_real_distribution< double > distribution( 0.0 , 1.0 );
+
+			return Tensor( distribution( generator ) );
 		}
 
 		friend std::ostream &operator << ( std::ostream &os , const Tensor &t ){ return os << t.data; }
@@ -75,19 +85,19 @@ namespace AutoDiff
 
 	// A general tensor
 	template< unsigned int ... Dims >
-	struct Tensor< UIntPack< Dims ... > > : public Window< double , UIntPack< Dims ... > > , public InnerProductSpace< double , Tensor< UIntPack< Dims ... > > >
+	struct Tensor< UIntPack::Pack< Dims ... > > : public MultiDimensionalArray::Array< double , Dims ... > , public InnerProductSpace< double , Tensor< UIntPack::Pack< Dims ... > > >
 	{
-		typedef UIntPack< Dims ... > Pack;
+		typedef UIntPack::Pack< Dims ... > Pack;
 		static const unsigned int Size = Pack::Size;
 
-		Tensor( void ){ memset( Window< double , Pack >::data , 0 , sizeof( double ) * WindowSize< Pack >::Size ); }
+		Tensor( void ){ memset( MultiDimensionalArray::Array< double , Dims ... >::data , 0 , sizeof( double ) * MultiDimensionalArray::ArraySize< Dims ... >() ); }
 
 		template< typename ... UInts >
 		double &operator()( unsigned int index , UInts ... indices )
 		{
 			static_assert( sizeof...(indices)==Pack::Size-1 , "[ERROR] Wrong number of indices" );
 			unsigned int idx[] = { index , indices ... };
-			return Window< double , UIntPack< Dims ... > >::operator()( idx );
+			return MultiDimensionalArray::Array< double , Dims ... >::operator()( idx );
 		}
 
 		template< typename ... UInts >
@@ -95,19 +105,18 @@ namespace AutoDiff
 		{
 			static_assert( sizeof...(indices)==Pack::Size-1 , "[ERROR] Wrong number of indices" );
 			unsigned int idx[] = { index , indices ... };
-			return Window< double , UIntPack< Dims ... > >::operator()( idx );
+			return MultiDimensionalArray::Array< double , Dims ... >::operator()( idx );
 		}
 
-		double &operator()( const unsigned int indices[] ){ return Window< double , UIntPack< Dims ... > >::operator()( indices ); }
-
-		const double &operator()( const unsigned int indices[] ) const { return Window< double , UIntPack< Dims ... > >::operator()( indices ); }
+		double &operator()( const unsigned int indices[] ){ return MultiDimensionalArray::Array< double , Dims ... >::operator()( indices ); }
+		const double &operator()( const unsigned int indices[] ) const { return MultiDimensionalArray::Array< double , Dims ... >::operator()( indices ); }
 
 		// Inner-product space methods
 		void Add( const Tensor &t )
 		{
-			WindowLoop< Size >::Run
+			MultiDimensionalArray::Loop< Size >::Run
 			(
-				ZeroUIntPack< Size >() , Pack() ,
+				UIntPack::IsotropicPack< Size >::Values , Pack::Values ,
 				[]( int d , int i ){} ,
 				[]( double &v1 , const double &v2 ){ v1 += v2; } ,
 				*this , t
@@ -115,9 +124,9 @@ namespace AutoDiff
 		}
 		void Scale( double s )
 		{
-			WindowLoop< Size >::Run
+			MultiDimensionalArray::Loop< Size >::Run
 			(
-				ZeroUIntPack< Size >() , Pack() ,
+				UIntPack::IsotropicPack< Size >::Values , Pack::Values ,
 				[]( int d , int i ){} ,
 				[&]( double &v ){ v *= s; } ,
 				*this
@@ -126,9 +135,9 @@ namespace AutoDiff
 		double InnerProduct( const Tensor &t ) const
 		{
 			double innerProduct = 0;
-			WindowLoop< Size >::Run
+			MultiDimensionalArray::Loop< Size >::Run
 			(
-				ZeroUIntPack< Size >() , Pack() ,
+				UIntPack::IsotropicPack< Size >::Values , Pack::Values ,
 				[]( int d , int i ){} ,
 				[&]( double v1 , double v2 ){ innerProduct += v1*v2; } ,
 				*this , t
@@ -136,16 +145,34 @@ namespace AutoDiff
 			return innerProduct;
 		}
 
+		static Tensor Random( std::default_random_engine &generator )
+		{
+			// From https://www.cplusplus.com/reference/random/uniform_real_distribution/
+			std::uniform_real_distribution< double > distribution( 0.0 , 1.0 );
+
+			Tensor t;
+
+			MultiDimensionalArray::Loop< Size >::Run
+			(
+				UIntPack::IsotropicPack< Size >::Values , Pack::Values ,
+				[&]( int , int ){} ,
+				[&]( double &v ){ v = distribution( generator ); } ,
+				t
+			);
+			return t;
+		}
+
+
 		template< unsigned int ... PermutationValues >
-		static auto PermutationTensor( UIntPack< PermutationValues ... > )
+		static auto PermutationTensor( UIntPack::Pack< PermutationValues ... > )
 		{
 #pragma message( "[WARNING] Should avoid using PermutationTensor" )
-			Tensor< Concatenation< PermutedUIntPack< Pack , UIntPack< PermutationValues ... > > , Pack > > t;
+			Tensor< UIntPack::Concatenation< UIntPack::Permutation< Pack , UIntPack::Pack< PermutationValues ... > > , Pack > > t;
 			const unsigned int permutation[] = { PermutationValues ... };
 			unsigned int idx[ 2*Size ];
-			WindowLoop< Size >::Run
+			MultiDimensionalArray::Loop< Size >::Run
 			(
-				ZeroUIntPack< Size >() , Pack() ,
+				UIntPack::IsotropicPack< Size >::Values , Pack::Values ,
 				[&]( int d , int i ){ idx[ permutation[d] ] = idx[ Size+d ] = i; } ,
 				[&]( void ){ t( idx ) = 1; }
 			);
@@ -154,19 +181,19 @@ namespace AutoDiff
 
 		// Permute indices
 		template< unsigned int ... PermutationValues >
-		Tensor< PermutedUIntPack< Pack , UIntPack< PermutationValues ... > > > permute( UIntPack< PermutationValues ... > ) const
+		Tensor< UIntPack::Permutation< Pack , UIntPack::Pack< PermutationValues ... > > > permute( UIntPack::Pack< PermutationValues ... > ) const
 		{
 			static_assert( sizeof ... ( PermutationValues ) == Size , "[ERROR] Permutation size doesn't match dimension" );
-			typedef UIntPack< PermutationValues ... > PPack;
+			typedef UIntPack::Pack< PermutationValues ... > PPack;
 			const unsigned int PValues[] = { PermutationValues ... };
 			unsigned int IPValues[ Size ];
 			for( unsigned int i=0 ; i<Size ; i++ ) IPValues[ PValues[i] ] = i;
 
-			Tensor< PermutedUIntPack< Pack , PPack > > t;
+			Tensor< UIntPack::Permutation< Pack , PPack > > t;
 			unsigned int idx[ Size ];
-			WindowLoop< Size >::Run
+			MultiDimensionalArray::Loop< Size >::Run
 			(
-				ZeroUIntPack< Size >() , Pack() ,
+				UIntPack::IsotropicPack< Size >::Values , Pack::Values ,
 				[&]( int d , int i ){ idx[ IPValues[d] ] = i; } ,
 				[&]( const double &v ){ t( idx ) = v; } ,
 				*this
@@ -177,14 +204,14 @@ namespace AutoDiff
 		// Extract slice
 #if 0
 		template< unsigned int ... Indices >
-		Tensor< typename Split< sizeof ... ( Indices ) , Pack >::Second > extract( UIntPack< Indices ... > ) const
+		Tensor< typename UIntPack::Partition< sizeof ... ( Indices ) , Pack >::Second > extract( UIntPack::Pack< Indices ... > ) const
 		{
-			typedef typename Split< sizeof ... ( Indices ) , Pack >::Second Remainder;
+			typedef typename UIntPack::Partition< sizeof ... ( Indices ) , Pack >::Second Remainder;
 			Tensor< Remainder> t;
 
-			WindowLoop< Remainder::Size >::Run
+			MultiDimensionalArray::Loop< Remainder::Size >::Run
 			(
-				ZeroUIntPack< Remainder::Size >() , Remainder() ,
+				UIntPack::IsotropicPack< Remainder::Size >::Values , Remainder::Values ,
 				[&]( int d , int i ){; } ,
 				[&]( const double &v , double &v ){ t( idx ) = v; } ,
 				*this , t
@@ -196,11 +223,11 @@ namespace AutoDiff
 		static auto TransposeTensor( void )
 		{
 #pragma message( "[WARNING] Should avoid using TransposeTensor" )
-			Tensor< Concatenation< typename Pack::Transpose , Pack > > t;
+			Tensor< UIntPack::Concatenation< typename Pack::Transpose , Pack > > t;
 			unsigned int idx[ 2*Size ];
-			WindowLoop< Size >::Run
+			MultiDimensionalArray::Loop< Size >::Run
 			(
-				ZeroUIntPack< Size >() , Pack::Transpose() ,
+				UIntPack::IsotropicPack< Size >::Values , Pack::Transpose::Values ,
 				[&]( int d , int i ){ idx[d] = idx[ 2*Size - 1 - d ] = i; } ,
 				[&]( void ){ t( idx ) = 1; }
 			);
@@ -210,25 +237,25 @@ namespace AutoDiff
 		// Transpose operator
 		Tensor< typename Pack::Transpose > transpose( void ) const
 		{
-			return permute( ReverseUIntPack< SequentialUIntPack< Pack::Size > >() );
+			return permute( UIntPack::SequentialPack< Pack::Size >::Transpose() );
 		}
 
 		// Outer product
 		template< unsigned int ... _Dims >
-		Tensor< Concatenation< Pack , UIntPack< _Dims ... > > > operator * ( const Tensor< UIntPack< _Dims ... > > &t ) const 
+		Tensor< UIntPack::Concatenation< Pack , UIntPack::Pack< _Dims ... > > > operator * ( const Tensor< UIntPack::Pack< _Dims ... > > &t ) const 
 		{
-			typedef UIntPack< _Dims ... > _Pack;
-			Tensor< Concatenation< Pack , _Pack > > _t;
+			typedef UIntPack::Pack< _Dims ... > _Pack;
+			Tensor< UIntPack::Concatenation< Pack , _Pack > > _t;
 
-			WindowLoop< Pack::Size >::Run
+			MultiDimensionalArray::Loop< Pack::Size >::Run
 			(
-				ZeroUIntPack< Pack::Size >() , Pack() ,
+				UIntPack::IsotropicPack< Pack::Size >::Values , Pack::Values ,
 				[]( int d , int i ){} ,
-				[&]( WindowWrapper< double , _Pack > __t , const double &v )
+				[&]( MultiDimensionalArray::ArrayWrapper< double , _Dims ... > __t , const double &v )
 				{
-					WindowLoop< _Pack::Size >::Run
+					MultiDimensionalArray::Loop< _Pack::Size >::Run
 					(
-						ZeroUIntPack< _Pack::Size >() , _Pack() ,
+						UIntPack::IsotropicPack< _Pack::Size >::Values , _Pack::Values ,
 						[]( int d , int i ){} ,
 						[&]( double &v1 , const double &v2 ){ v1 += v*v2; } ,
 						__t , t
@@ -239,7 +266,7 @@ namespace AutoDiff
 			return _t;
 		}
 
-		Tensor< Pack > operator * ( const Tensor< UIntPack<> > &t ) const { return *this * t.data; }
+		Tensor< Pack > operator * ( const Tensor< UIntPack::Pack<> > &t ) const { return *this * t.data; }
 
 	protected:
 		template< unsigned int D1 , unsigned int D2 >
@@ -248,10 +275,10 @@ namespace AutoDiff
 			static_assert( D1<D2 , "[ERROR] Contraction indices are the same" );
 			static_assert( D1<Pack::Size , "[ERROR] First contraction index too large" );
 			static_assert( D2<Pack::Size , "[ERROR] Second contraction index too large" );
-			static_assert( Select< D1 , Pack >::Value==Select< D2 , Pack >::Value , "[ERROR] Contraction dimensions differ" );
-			typedef typename Select< D1 , typename Select< D2 , Pack >::Complement >::Complement OutPack;
+			static_assert( UIntPack::Selection< D1 , Pack >::Value==UIntPack::Selection< D2 , Pack >::Value , "[ERROR] Contraction dimensions differ" );
+			typedef typename UIntPack::Selection< D1 , typename UIntPack::Selection< D2 , Pack >::Complement >::Complement OutPack;
 
-			Tensor< Concatenation< OutPack , Pack > > t;
+			Tensor< UIntPack::Concatenation< OutPack , Pack > > t;
 
 			unsigned int index[ Pack::Size+OutPack::Size ];
 			if constexpr( OutPack::Size==0 )
@@ -268,9 +295,9 @@ namespace AutoDiff
 					for( unsigned int i=0 ; i<Pack::Size ; i++ ) if( i!=D1 && i!=D2 ) out2in[ count++ ] = i;
 				}
 
-				WindowLoop< OutPack::Size >::Run
+				MultiDimensionalArray::Loop< OutPack::Size >::Run
 				(
-					ZeroUIntPack< OutPack::Size >() , OutPack() ,
+					UIntPack::IsotropicPack< OutPack::Size >::Values , OutPack::Values ,
 					[&]( int d , int i ){ index[d] = index[ out2in[d] ] = i; } ,
 					[&]( void )
 					{
@@ -298,7 +325,7 @@ namespace AutoDiff
 
 		// Tensor contraction
 		template< unsigned int D1 , unsigned int D2 >
-		Tensor< typename Select< (D1<D2?D2:D1) , typename Select< (D1<D2?D1:D2) , Pack >::Complement >::Complement > contract( void ) const
+		Tensor< typename UIntPack::Selection< (D1<D2?D2:D1) , typename UIntPack::Selection< (D1<D2?D1:D2) , Pack >::Complement >::Complement > contract( void ) const
 		{
 			return ContractionTensor< D1 , D2 >().contractedOuterProduct< Pack::Size-2 >( *this );
 		}
@@ -307,57 +334,59 @@ namespace AutoDiff
 		// In2 :=                     [ N{I+1} , ... , N{K} , N{K+1} , ... N{M} ]
 		// Out := [ N{1} , ... , N{I}             ,           N{K+1} , ... N{M} ]
 		template< unsigned int I , unsigned int ... _Dims >
-		Tensor< Concatenation< typename Split< Size-I , Pack >::First , typename Split< I , UIntPack< _Dims ... > >::Second > > contractedOuterProduct( const Tensor< UIntPack< _Dims ... > > &t ) const 
+		Tensor< UIntPack::Concatenation< typename UIntPack::Partition< Size-I , Pack >::First , typename UIntPack::Partition< I , UIntPack::Pack< _Dims ... > >::Second > > contractedOuterProduct( const Tensor< UIntPack::Pack< _Dims ... > > &t ) const 
 		{
-			static_assert( Compare< typename Split< Size-I , Pack >::Second , typename Split< I , UIntPack< _Dims ... > >::First >::Equal , "[ERROR] Contraction suffix/prefix don't match" );
-			typedef UIntPack< _Dims ... > _Pack;
+			static_assert( UIntPack::Comparison< typename UIntPack::Partition< Size-I , Pack >::Second , typename UIntPack::Partition< I , UIntPack::Pack< _Dims ... > >::First >::Equal , "[ERROR] Contraction suffix/prefix don't match" );
+			typedef UIntPack::Pack< _Dims ... > _Pack;
 			static const unsigned int _Size = _Pack::Size;
-			typedef typename Split< Size-I ,  Pack >:: First P1;
-			typedef typename Split< Size-I ,  Pack >::Second P2;
-			typedef typename Split<      I , _Pack >::Second P3;
+			typedef typename UIntPack::Partition< Size-I ,  Pack >:: First P1;
+			typedef typename UIntPack::Partition< Size-I ,  Pack >::Second P2;
+			typedef typename UIntPack::Partition<      I , _Pack >::Second P3;
 
-			typedef typename std::conditional< P2::Size!=0 , ConstWindowWrapper< double , P2 > , const double & >::type In1SliceType;
-			typedef typename std::conditional< P3::Size!=0 , ConstWindowWrapper< double , P3 > , const double & >::type In2SliceType;
-			typedef typename std::conditional< Concatenation< P1 , P3 >::Size!=0 , double , Tensor< UIntPack<> > >::type OutBaseType;
-			typedef typename std::conditional< P3::Size!=0 ,      WindowWrapper< double , P3 > , OutBaseType & >::type OutSliceType;
+			typedef typename MultiDimensionalArray::SliceType< P1::Size , double ,  Dims ... >::const_type In1SliceType;
+			typedef typename MultiDimensionalArray::SliceType< P2::Size , double , _Dims ... >::const_type In2SliceType;
+			// In the case that we are collapsing completely, out is of type Tensor< UIntPack::Pack<> >
+			// -- Then the first and last loops are trivial and we never access the contents of out using operator[]
+			typedef typename std::conditional< UIntPack::Concatenation< P1 , P3 >::Size!=0 , double , Tensor< UIntPack::Pack<> > >::type OutBaseType;
+			typedef typename std::conditional< P3::Size!=0 , typename MultiDimensionalArray::SliceType< P2::Size , double , _Dims ... >::type , OutBaseType & >::type OutSliceType;
 
 			const Tensor<  Pack > &in1 = *this;
 			const Tensor< _Pack > &in2 = t;
-			Tensor< Concatenation< P1 , P3 > > out;
+			Tensor< UIntPack::Concatenation< P1 , P3 > > out;
 
 			// Iterate over {1,...,I} of in1 and out
-			WindowLoop< P1::Size >::Run
+			MultiDimensionalArray::Loop< P1::Size >::Run
 			(
-				ZeroUIntPack< P1::Size >() , P1() ,
+				UIntPack::IsotropicPack< P1::Size >::Values , P1::Values ,
 				[]( int d , int i ){} ,
 				[&]( In1SliceType _in1 , OutSliceType _out )
 				{
 					// Iterate over {I,...,K} of in1 and in2
-					WindowLoop< P2::Size >::Run
+					MultiDimensionalArray::Loop< P2::Size >::Run
 					(
-						ZeroUIntPack< P2::Size >() , P2() ,
+						UIntPack::IsotropicPack< P2::Size >::Values , P2::Values ,
 						[]( int d , int i ){} ,
 						[&]( double __in1 , In2SliceType _in2 )
 						{
 							// Iterate over {K+1,...,M} of in2 and out
-							WindowLoop< P3::Size >::Run
+							MultiDimensionalArray::Loop< P3::Size >::Run
 							(
-								ZeroUIntPack< P3::Size >() , P3() ,
+								UIntPack::IsotropicPack< P3::Size >::Values , P3::Values ,
 								[]( int d , int i ){} ,
 								[&]( double __in2 , OutBaseType &_out_ ){ _out_ += __in1 * __in2; } ,
 								_in2 , _out
 							);
 						} ,
 						_in1 , in2
-							);
+					);
 				} ,
 				in1 , out
-					);
+			);
 			return out;
 		}
 
 		template< unsigned int I >
-		Tensor< Pack > contractedOuterProduct( const Tensor< UIntPack<> > &t ) const { return *this * t; }
+		Tensor< Pack > contractedOuterProduct( const Tensor< UIntPack::Pack<> > &t ) const { return *this * t; }
 	};
 }
 #endif // TENSORS_INCLUDED

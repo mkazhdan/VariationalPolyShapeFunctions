@@ -27,10 +27,10 @@ DAMAGE.
 */
 
 
-struct _Pow : public Function< UIntPack<> , UIntPack<> , _Pow >
+struct _Pow : public Function< UIntPack::Pack<> , UIntPack::Pack<> , _Pow >
 {
 	_Pow( double e ) : _e(e) {}
-	Tensor< UIntPack<> > value( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( pow( static_cast< double >( t ) , _e ) ); }
+	Tensor< UIntPack::Pack<> > value( const Tensor< UIntPack::Pack<> > &t ) const { return Tensor< UIntPack::Pack<> >( pow( static_cast< double >( t ) , _e ) ); }
 	auto d( void ) const { return _Pow( _e-1. ) * _e; }
 	friend std::ostream &operator<< ( std::ostream &os , const _Pow &p ){ return os << "pow( " << p._e << " )"; }
 protected:
@@ -53,9 +53,9 @@ auto operator / ( double n , const F &f )
 }
 
 
-struct _Exp : public Function< UIntPack<> , UIntPack<> , _Exp >
+struct _Exp : public Function< UIntPack::Pack<> , UIntPack::Pack<> , _Exp >
 {
-	Tensor< UIntPack<> > value( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( exp( static_cast< double >( t ) ) ); }
+	Tensor< UIntPack::Pack<> > value( const Tensor< UIntPack::Pack<> > &t ) const { return Tensor< UIntPack::Pack<> >( exp( static_cast< double >( t ) ) ); }
 	auto d( void ) const { return _Exp(); }
 	friend std::ostream &operator<< ( std::ostream &os , const _Exp & ){ return os << "exp"; }
 };
@@ -66,9 +66,9 @@ template< typename F > auto Exp( const F &f )
 	return Composition< _Exp , F >( _Exp() , f );
 }
 
-struct _Log : public Function< UIntPack<> , UIntPack<> , _Log >
+struct _Log : public Function< UIntPack::Pack<> , UIntPack::Pack<> , _Log >
 {
-	Tensor< UIntPack<> > value( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( log( static_cast< double >( t ) ) ); }
+	Tensor< UIntPack::Pack<> > value( const Tensor< UIntPack::Pack<> > &t ) const { return Tensor< UIntPack::Pack<> >( log( static_cast< double >( t ) ) ); }
 	auto d( void ) const { return _Pow(-1.); }
 	friend std::ostream &operator<< ( std::ostream &os , const _Log & ){ return os << "log"; }
 };
@@ -80,9 +80,9 @@ template< typename F > auto Log( const F &f )
 }
 
 
-struct _Sin : public Function< UIntPack<> , UIntPack<> , _Sin >
+struct _Sin : public Function< UIntPack::Pack<> , UIntPack::Pack<> , _Sin >
 {
-	Tensor< UIntPack<> > value( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( sin( static_cast< double >( t ) ) ); }
+	Tensor< UIntPack::Pack<> > value( const Tensor< UIntPack::Pack<> > &t ) const { return Tensor< UIntPack::Pack<> >( sin( static_cast< double >( t ) ) ); }
 	auto d( void ) const;
 	friend std::ostream &operator<< ( std::ostream &os , const _Sin & ){ return os << "sin"; }
 };
@@ -94,9 +94,9 @@ template< typename F > auto Sin( const F &f )
 }
 
 
-struct _Cos : public Function< UIntPack<> , UIntPack<> , _Cos >
+struct _Cos : public Function< UIntPack::Pack<> , UIntPack::Pack<> , _Cos >
 {
-	Tensor< UIntPack<> > value( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( cos( static_cast< double >( t ) ) ); }
+	Tensor< UIntPack::Pack<> > value( const Tensor< UIntPack::Pack<> > &t ) const { return Tensor< UIntPack::Pack<> >( cos( static_cast< double >( t ) ) ); }
 	auto d( void ) const { return -_Sin(); }
 	friend std::ostream &operator << ( std::ostream &os , const _Cos & ){ return os << "cos"; }
 };
@@ -110,9 +110,9 @@ template< typename F > auto Cos( const F &f )
 auto _Sin::d( void ) const { return _Cos(); }
 
 
-struct _Sinh : public Function< UIntPack<> , UIntPack<> , _Sinh >
+struct _Sinh : public Function< UIntPack::Pack<> , UIntPack::Pack<> , _Sinh >
 {
-	Tensor< UIntPack<> > value( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( sinh( static_cast< double >( t ) ) ); }
+	Tensor< UIntPack::Pack<> > value( const Tensor< UIntPack::Pack<> > &t ) const { return Tensor< UIntPack::Pack<> >( sinh( static_cast< double >( t ) ) ); }
 	auto d( void ) const;
 	friend std::ostream &operator<< ( std::ostream &os , const _Sinh & ){ return os << "sinh"; }
 };
@@ -124,9 +124,9 @@ template< typename F > auto Sinh( const F &f )
 }
 
 
-struct _Cosh : public Function< UIntPack<> , UIntPack<> , _Cosh >
+struct _Cosh : public Function< UIntPack::Pack<> , UIntPack::Pack<> , _Cosh >
 {
-	Tensor< UIntPack<> > value( const Tensor< UIntPack<> > &t ) const { return Tensor< UIntPack<> >( cosh( static_cast< double >( t ) ) ); };
+	Tensor< UIntPack::Pack<> > value( const Tensor< UIntPack::Pack<> > &t ) const { return Tensor< UIntPack::Pack<> >( cosh( static_cast< double >( t ) ) ); };
 	auto d( void ) const { return _Sinh(); }
 	friend std::ostream &operator << ( std::ostream &os , const _Cosh & ){ return os << "cosh"; }
 };

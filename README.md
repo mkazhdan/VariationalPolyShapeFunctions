@@ -1,4 +1,4 @@
-<center><h2>Variational Polygonal/Polyhedral Shape Functions (Version 2.6)</h2></center>
+<center><h2>Variational Polygonal/Polyhedral Shape Functions (Version 2.7)</h2></center>
 <center>
 <a href="#LINKS">links</a>
 <a href="#EXECUTABLES">executables</a>
@@ -31,6 +31,7 @@ This software supports finite-elements-type calculations over polygonal and poly
 <B>Data:</B>
 <A HREF="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/VPSF.Data.zip">ZIP</A><br>
 <b>Older Versions:</b>
+<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.60/">V2.6</a>
 <a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.51/">V2.51</a>
 <a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.50/">V2.5</a>
 <a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.00/">V2</a>
@@ -423,6 +424,14 @@ We make two observations about this executable. First, to compute the smooth nor
 <ul><li> Added more linear-algebraic functionality to <I>AutoDiff</I>.</li></ul>
 <a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.60/">Version 2.6</a>:
 <ul><li> Bug fixes in <I>AutoDiff</I>.</li></ul>
+<a href="http://www.cs.jhu.edu/~misha/Code/VariationalPolyShapeFunctions/Version2.70/">Version 2.7</a>:
+<ul><li> Cleaned up <I>AutoDiff</I>:
+	<UL>
+	<LI> Changed <I>Tensor</I> to use <I>UIntPack</I>.
+	<LI> Replaced <I>Window</I> with <I>MultiDimensionalArray</I>.
+	<LI> Removed dependence of <I>MultiDimensionalArray</I> on <I>UIntPack</I>.
+	</LI>
+</li></ul>
 </details>
 
 

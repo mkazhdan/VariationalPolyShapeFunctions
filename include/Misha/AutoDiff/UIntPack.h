@@ -33,52 +33,84 @@ DAMAGE.
 // Unsigned integer parameter packs //
 //////////////////////////////////////
 
-namespace AutoDiff
+namespace UIntPack
 {
+	////////////////////////////
+	////////////////////////////
+	//// Short declarations ////
+	////////////////////////////
+	////////////////////////////
 
 	// A wrapper class for passing unsigned integer parameter packs
-	template< unsigned int  ... Values > struct UIntPack{};
+	template< unsigned int  ... Values > struct Pack;
 
-	template< unsigned int _Value , unsigned int ... _Values > struct UIntPack< _Value , _Values ... >
+	// A class that identifies a single entry and its complement
+	template< unsigned int I , typename Pack > struct Selection;
+
+	// A class that splits a Pack into two sub-packs
+	template< unsigned int I , typename Pack > struct Partition;
+
+	// A class for comparing two Packs
+	template< typename Pack1 , typename Pack2 > struct Comparison;
+
+	// A helper class for defining a concatenation of multiple Packs
+	template< typename ... Packs > struct _Concatenation;
+
+	// A helper class for defining the permutation of a Pack
+	template< typename Pack , typename PermutationPack > struct _Permutation;
+
+	// A helper class for defining a Pack with the same value repeated Dim times
+	template< unsigned int Dim , unsigned int Value > struct _IsotropicPack;
+
+	// A helper class for defining a Pack with sequentially increasing values
+	template< unsigned int Dim , unsigned int StartValue > struct _SequentialPack;
+
+	// A Pack that is the concatenation of multiple Packs
+	template< typename ... Packs > using Concatenation = typename _Concatenation< Packs ... >::type;
+
+	// A Pack that is the permtuation of a Pack
+	// [NOTE] The entry in the i-th position  of PermutationPack indicates where the i-th position comes from (not goes to)
+	template< typename Pack , typename PermutationPack > using Permutation = typename _Permutation< Pack , PermutationPack >::type;
+
+	// A Pack that has the same value repeated Dim times
+	template< unsigned int Dim , unsigned int Value=0 > using IsotropicPack = typename _IsotropicPack< Dim , Value >::type;
+
+	// A Pack with sequentially increasing values
+	template< unsigned int Dim , unsigned int StartValue=0 > using SequentialPack = typename _SequentialPack< Dim , StartValue >::type;
+
+
+	/////////////////////
+	/////////////////////
+	//// Definitions ////
+	/////////////////////
+	/////////////////////
+
+
+	//////////
+	// Pack //
+	//////////
+
+	// The general case
+	template< unsigned int _Value , unsigned int ... _Values > struct Pack< _Value , _Values ... >
 	{
 		static const unsigned int First = _Value;
-		typedef UIntPack< _Values ... > Rest;
+		typedef Pack< _Values ... > Rest;
 		typedef typename Rest::Transpose::template Append< First > Transpose;
 
 		static const unsigned int Size = 1 + sizeof ... ( _Values );
-		template< unsigned int ... __Values > using  Append = UIntPack< _Value , _Values ... , __Values ... >;
-		template< unsigned int ... __Values > using Prepend = UIntPack< __Values ... , _Value , _Values ... >;
+
+		template< unsigned int ... __Values > using  Append = Pack< _Value , _Values ... , __Values ... >;
+		template< unsigned int ... __Values > using Prepend = Pack< __Values ... , _Value , _Values ... >;
 
 		static const unsigned int Values[];
-		static constexpr unsigned int Min( void ){ return _Value < Rest::Min() ? _Value : Rest::Min(); }
-		static constexpr unsigned int Max( void ){ return _Value > Rest::Max() ? _Value : Rest::Max(); }
 
-		template< typename T > struct Plus{};
-		template< typename T > struct Minus{};
-		template< typename T > struct Compare{};
-		template< unsigned int __Value , unsigned int ... __Values > struct Plus < UIntPack< __Value , __Values ... > >{ typedef typename Rest::template Plus < UIntPack< __Values ... > >::type::template Prepend< _Value + __Value > type; };
-		template< unsigned int __Value , unsigned int ... __Values > struct Minus< UIntPack< __Value , __Values ... > >{ typedef typename Rest::template Minus< UIntPack< __Values ... > >::type::template Prepend< _Value - __Value > type; };
-		template< unsigned int __Value , unsigned int ... __Values > struct Compare< UIntPack< __Value , __Values ... > >
+		template< unsigned int I > constexpr static unsigned int Get( void )
 		{
-			static const bool              Equal = _Value==__Value && Rest::template Compare< UIntPack< __Values ... > >::             Equal;
-			static const bool           NotEqual = _Value!=__Value || Rest::template Compare< UIntPack< __Values ... > >::          NotEqual;
-			static const bool    LessThan        = _Value< __Value && Rest::template Compare< UIntPack< __Values ... > >::   LessThan       ;
-			static const bool    LessThanOrEqual = _Value<=__Value && Rest::template Compare< UIntPack< __Values ... > >::   LessThanOrEqual;
-			static const bool GreaterThan        = _Value> __Value && Rest::template Compare< UIntPack< __Values ... > >::GreaterThan       ;
-			static const bool GreaterThanOrEqual = _Value>=__Value && Rest::template Compare< UIntPack< __Values ... > >::GreaterThanOrEqual;
-		};
+			if constexpr( I==0 ) return _Value;
+			else return Rest::template Get< I-1 >();
+		}
 
-		template< unsigned int I > constexpr static typename std::enable_if< I==0 , unsigned int >::type Get( void ){ return _Value; }
-		template< unsigned int I > constexpr static typename std::enable_if< I!=0 , unsigned int >::type Get( void ){ return Rest::template Get< I-1 >(); }
-
-		template< unsigned int __Value , unsigned int ... __Values > constexpr bool operator <  ( UIntPack< __Value , __Values ... > ) const { return _Value< __Value && Rest()< UIntPack< __Values ... >(); }
-		template< unsigned int __Value , unsigned int ... __Values > constexpr bool operator <= ( UIntPack< __Value , __Values ... > ) const { return _Value<=__Value && Rest()<=UIntPack< __Values ... >(); }
-		template< unsigned int __Value , unsigned int ... __Values > constexpr bool operator >  ( UIntPack< __Value , __Values ... > ) const { return _Value> __Value && Rest()> UIntPack< __Values ... >(); }
-		template< unsigned int __Value , unsigned int ... __Values > constexpr bool operator >= ( UIntPack< __Value , __Values ... > ) const { return _Value>=__Value && Rest()>=UIntPack< __Values ... >(); }
-		template< unsigned int __Value , unsigned int ... __Values > constexpr bool operator == ( UIntPack< __Value , __Values ... > ) const { return _Value==__Value && Rest()==UIntPack< __Values ... >(); }
-		template< unsigned int __Value , unsigned int ... __Values > constexpr bool operator != ( UIntPack< __Value , __Values ... > ) const { return _Value!=__Value && Rest()!=UIntPack< __Values ... >(); }
-
-		friend std::ostream &operator << ( std::ostream &os , UIntPack )
+		friend std::ostream &operator << ( std::ostream &os , Pack )
 		{
 			os << "< ";
 			for( unsigned int i=0 ; i<Size ; i++ )
@@ -89,207 +121,100 @@ namespace AutoDiff
 			return os << " >";
 		}
 	};
-	template< unsigned int _Value > struct UIntPack< _Value >
+
+	// The specialized case with one entry
+	template< unsigned int _Value > struct Pack< _Value >
 	{
 		static const unsigned int First = _Value;
-		typedef UIntPack<> Rest;
-		typedef UIntPack< _Value > Transpose;
+		typedef Pack<> Rest;
+		typedef Pack< _Value > Transpose;
 
 		static const unsigned int Size = 1;
-		template< unsigned int ... __Values > using  Append = UIntPack< _Value , __Values ... >;
-		template< unsigned int ... __Values > using Prepend = UIntPack< __Values ... , _Value >;
+
+		template< unsigned int ... __Values > using  Append = Pack< _Value , __Values ... >;
+		template< unsigned int ... __Values > using Prepend = Pack< __Values ... , _Value >;
+
 		static const unsigned int Values[];
-		static constexpr unsigned int Min( void ){ return _Value; }
-		static constexpr unsigned int Max( void ){ return _Value; }
 
-		template< typename T > struct Plus{};
-		template< typename T > struct Minus{};
-		template< typename T > struct Compare{};
-		template< unsigned int __Value > struct Plus < UIntPack< __Value > >{ typedef UIntPack< _Value + __Value > type; };
-		template< unsigned int __Value > struct Minus< UIntPack< __Value > >{ typedef UIntPack< _Value - __Value > type; };
-		template< unsigned int __Value > struct Compare< UIntPack< __Value > >
+		template< unsigned int I > constexpr static unsigned int Get( void )
 		{
-			static const bool              Equal = _Value==__Value;
-			static const bool           NotEqual = _Value!=__Value;
-			static const bool    LessThan        = _Value< __Value;
-			static const bool    LessThanOrEqual = _Value<=__Value;
-			static const bool GreaterThan        = _Value> __Value;
-			static const bool GreaterThanOrEqual = _Value>=__Value;
-		};
+			static_assert( I==0 , "[ERROR] Pack< Value >::Get called with non-zero index" );
+			return _Value;
+		}
 
-		template< unsigned int I > constexpr static unsigned int Get( void ){ static_assert( I==0 , "[ERROR] UIntPack< Value >::Get called with non-zero index" ) ; return _Value; }
-
-		template< unsigned int __Value > constexpr bool operator <  ( UIntPack< __Value > ) const { return _Value< __Value; }
-		template< unsigned int __Value > constexpr bool operator <= ( UIntPack< __Value > ) const { return _Value<=__Value; }
-		template< unsigned int __Value > constexpr bool operator >  ( UIntPack< __Value > ) const { return _Value> __Value; }
-		template< unsigned int __Value > constexpr bool operator >= ( UIntPack< __Value > ) const { return _Value>=__Value; }
-		template< unsigned int __Value > constexpr bool operator == ( UIntPack< __Value > ) const { return _Value==__Value; }
-		template< unsigned int __Value > constexpr bool operator != ( UIntPack< __Value > ) const { return _Value!=__Value; }
-
-		friend std::ostream &operator << ( std::ostream &os , UIntPack )
+		friend std::ostream &operator << ( std::ostream &os , Pack )
 		{
 			return os << "< " << First << " >";
 		}
 	};
 
-
-	template<> struct UIntPack<>
+	// The specialized case with no entries
+	template<> struct Pack<>
 	{
-		typedef UIntPack<> Rest;
+		typedef Pack<> Rest;
 		static const unsigned int Size = 0;
 		static constexpr unsigned int Values[] = { 0 };
-		typedef UIntPack<> Transpose;
-		template< unsigned int ... __Values > using  Append = UIntPack< __Values ... >;
-		template< unsigned int ... __Values > using Prepend = UIntPack< __Values ... >;
-		friend std::ostream &operator << ( std::ostream &os , UIntPack ){ return os << "< >"; }
+		typedef Pack<> Transpose;
+		template< unsigned int ... __Values > using  Append = Pack< __Values ... >;
+		template< unsigned int ... __Values > using Prepend = Pack< __Values ... >;
+		friend std::ostream &operator << ( std::ostream &os , Pack ){ return os << "< >"; }
 	};
 
-	template< unsigned int _Value , unsigned int ... _Values > const unsigned int UIntPack< _Value , _Values ... >::Values[] = { _Value , _Values ... };
-	template< unsigned int _Value > const unsigned int UIntPack< _Value >::Values[] = { _Value };
-	template< unsigned int ... V1 , unsigned int ... V2 > typename UIntPack< V1 ... >::template Plus < UIntPack< V2 ... > >::type operator + ( UIntPack< V1 ... > , UIntPack< V2 ... > ){ return typename UIntPack< V1 ... >::template Plus < UIntPack< V2 ... > >::type(); }
-	template< unsigned int ... V1 , unsigned int ... V2 > typename UIntPack< V1 ... >::template Minus< UIntPack< V2 ... > >::type operator - ( UIntPack< V1 ... > , UIntPack< V2 ... > ){ return typename UIntPack< V1 ... >::template Minus< UIntPack< V2 ... > >::type(); }
+	template< unsigned int _Value , unsigned int ... _Values > const unsigned int Pack< _Value , _Values ... >::Values[] = { _Value , _Values ... };
+	template< unsigned int _Value > const unsigned int Pack< _Value >::Values[] = { _Value };
 
-	/////////////////////////////////////////////////////////
-	// Selection of an individual index and its complement //
-	/////////////////////////////////////////////////////////
-	template< unsigned int I , typename Pack > struct Select;
-
+	///////////////
+	// Selection //
+	///////////////
 	template< unsigned int I , unsigned _Value , unsigned int ... _Values >
-	struct Select< I , UIntPack< _Value , _Values ... > >
+	struct Selection< I , Pack< _Value , _Values ... > >
 	{
-		static const unsigned int Value = Select< I-1 , UIntPack< _Values ... > >::Value;
-		typedef typename Select< I-1 , UIntPack< _Values ... > >::Complement::template Prepend< _Value > Complement;
+		static const unsigned int Value = Selection< I-1 , Pack< _Values ... > >::Value;
+		typedef typename Selection< I-1 , Pack< _Values ... > >::Complement::template Prepend< _Value > Complement;
 	};
 
 	template< unsigned _Value , unsigned int ... _Values >
-	struct Select< 0 , UIntPack< _Value , _Values ... > >
+	struct Selection< 0 , Pack< _Value , _Values ... > >
 	{
 		static const unsigned int Value = _Value;
-		typedef UIntPack< _Values ... > Complement;
+		typedef Pack< _Values ... > Complement;
 	};
 
-	///////////////////
-	// Concatenation //
-	///////////////////
-	template< typename ... Packs > struct _Concatenation;
-	template< unsigned int ... Values1 , unsigned int ... Values2 , typename ... Packs >
-	struct _Concatenation< UIntPack< Values1 ... > , UIntPack< Values2 ... > , Packs ... >
-	{
-		typedef typename _Concatenation< typename UIntPack< Values1 ... >::template Append< Values2 ... > , Packs ... >::type type;
-	};
+	///////////////
+	// Partition //
+	///////////////
 	template< unsigned int ... Values >
-	struct _Concatenation< UIntPack< Values ... > >
+	struct Partition< 0 , Pack< Values ... > >
 	{
-		typedef UIntPack< Values ... > type;
-	};
-
-	template< typename ... Packs > using Concatenation = typename _Concatenation< Packs ... >::type;
-
-	///////////
-	// Power //
-	///////////
-	template< typename Pack , unsigned int P > struct _Power;
-	template< unsigned int ... Values , unsigned int P >
-	struct _Power< UIntPack< Values ... > , P >
-	{
-		typedef Concatenation< UIntPack< Values ... > , typename _Power< UIntPack< Values ... > , P-1 >::type > type;
-	};
-	template< unsigned int ... Values >
-	struct _Power< UIntPack< Values ... > , 0 >
-	{
-		typedef UIntPack<> type;
-	};
-
-	template< typename Pack , unsigned int P > using Power = typename _Power< Pack , P >::type;
-
-	///////////
-	// Split //
-	///////////
-	template< unsigned int I , typename Pack > struct Split;
-
-	template< unsigned int ... Values >
-	struct Split< 0 , UIntPack< Values ... > >
-	{
-		typedef UIntPack<> First;
-		typedef UIntPack< Values ... > Second;
+		typedef Pack<> First;
+		typedef Pack< Values ... > Second;
 	};
 
 	template< unsigned int I , unsigned int ... Values >
-	struct Split< I , UIntPack< Values ... > >
+	struct Partition< I , Pack< Values ... > >
 	{
-		typedef UIntPack< Values ... > Pack;
-		typedef Concatenation< UIntPack< Pack::First > , typename Split< I-1 , typename Pack::Rest >::First > First;
-		typedef typename Split< I-1 , typename Pack::Rest >::Second Second;
+		typedef Concatenation< Pack< Pack< Values ... >::First > , typename Partition< I-1 , typename Pack< Values ... >::Rest >::First > First;
+		typedef typename Partition< I-1 , typename Pack< Values ... >::Rest >::Second Second;
 	};
 
-	///////////////
-	// Insertion //
-	///////////////
-	template< unsigned int I , typename Pack1 , typename Pack2 > struct _Insertion;
-	template< unsigned int I , unsigned int ... Values1 , unsigned int ... Values2 >
-	struct _Insertion< I , UIntPack< Values1 ... > , UIntPack< Values2 ... > >
-	{
-		typedef UIntPack< Values1 ... > Pack1;
-		typedef UIntPack< Values2 ... > Pack2;
-		typedef Concatenation< Concatenation< typename Split< I , Pack1 >::First , Pack2 > , typename Split< I , Pack2 >::Second > type;
-	};
-	template< unsigned int I , typename Pack1 , typename Pack2 >
-	using Insertion = typename _Insertion< I , Pack1 , Pack2 >::type;
-
-	//////////////////////
-	// PermutedUIntPack //
-	//////////////////////
-	// [NOTE] The entry in the i-th position indicates where the i-th position comes from (not goes to)
-	template< typename Pack , typename PermutationPack > struct _Permutation;
-	template< unsigned int ... Values , unsigned int ... PermutationValues >
-	struct _Permutation< UIntPack< Values ... > , UIntPack< PermutationValues ... > >
-	{
-		typedef UIntPack< Values ... > Pack;
-		typedef UIntPack< PermutationValues ... > PPack;
-		typedef Concatenation< UIntPack< Select< PPack::First , Pack >::Value > , typename _Permutation< Pack , typename PPack::Rest >::type > type;
-	};
-	template< unsigned int ... Values >
-	struct _Permutation< UIntPack< Values ... > , UIntPack<> >
-	{
-		typedef UIntPack<> type;
-	};
-
-	template< typename Pack , typename PermutationPack > using PermutedUIntPack = typename _Permutation< Pack , PermutationPack >::type;
-
-	/////////////////////
-	// ReverseUIntPack //
-	/////////////////////
-	template< typename Pack > struct _Reverse;
-
-	template< unsigned int Value >
-	struct _Reverse< UIntPack< Value > >
-	{
-		typedef UIntPack< Value > type;
-	};
-	template< unsigned int ... Values >
-	struct _Reverse< UIntPack< Values ... > >
-	{
-		typedef Concatenation< typename _Reverse< typename UIntPack< Values ... >::Rest >::type , UIntPack< UIntPack< Values ... >::First > > type;
-	};
-	template< typename Pack > using ReverseUIntPack = typename _Reverse< Pack >::type;
-
-
-	template< typename Pack1 , typename Pack2 > struct Compare;
-
+	////////////////
+	// Comparison //
+	////////////////
 	template< unsigned int ... Values1 , unsigned int ... Values2 >
-	struct Compare< UIntPack< Values1 ... > , UIntPack< Values2 ... > >
+	struct Comparison< Pack< Values1 ... > , Pack< Values2 ... > >
 	{
-		typedef UIntPack< Values1 ... > Pack1;
-		typedef UIntPack< Values2 ... > Pack2;
-		static const bool              Equal = Pack1::First==Pack2::First && Compare< typename Pack1::Rest , typename Pack2::Rest >::Equal;
-		static const bool           NotEqual = Pack1::First!=Pack2::First || Compare< typename Pack1::Rest , typename Pack2::Rest >::NotEqual;
-		static const bool    LessThan        = Pack1::First< Pack2::First && Compare< typename Pack1::Rest , typename Pack2::Rest >::LessThan;
-		static const bool    LessThanOrEqual = Pack1::First<=Pack2::First && Compare< typename Pack1::Rest , typename Pack2::Rest >::LessThanOrEqual;
-		static const bool GreaterThan        = Pack1::First> Pack2::First && Compare< typename Pack1::Rest , typename Pack2::Rest >::GreaterThan;
-		static const bool GreaterThanOrEqual = Pack1::First>=Pack2::First && Compare< typename Pack1::Rest , typename Pack2::Rest >::GreaterThanOrEqual;
+		typedef Pack< Values1 ... > Pack1;
+		typedef Pack< Values2 ... > Pack2;
+		static const bool              Equal = Pack1::First==Pack2::First && Comparison< typename Pack1::Rest , typename Pack2::Rest >::Equal;
+		static const bool           NotEqual = Pack1::First!=Pack2::First || Comparison< typename Pack1::Rest , typename Pack2::Rest >::NotEqual;
+		static const bool    LessThan        = Pack1::First< Pack2::First && Comparison< typename Pack1::Rest , typename Pack2::Rest >::LessThan;
+		static const bool    LessThanOrEqual = Pack1::First<=Pack2::First && Comparison< typename Pack1::Rest , typename Pack2::Rest >::LessThanOrEqual;
+		static const bool GreaterThan        = Pack1::First> Pack2::First && Comparison< typename Pack1::Rest , typename Pack2::Rest >::GreaterThan;
+		static const bool GreaterThanOrEqual = Pack1::First>=Pack2::First && Comparison< typename Pack1::Rest , typename Pack2::Rest >::GreaterThanOrEqual;
 	};
+
 	template< unsigned int Value1 , unsigned int Value2 >
-	struct Compare< UIntPack< Value1 > , UIntPack< Value2 > >
+	struct Comparison< Pack< Value1 > , Pack< Value2 > >
 	{
 		static const bool Equal = Value1==Value2;
 		static const bool NotEqual = Value1!=Value2;
@@ -298,8 +223,9 @@ namespace AutoDiff
 		static const bool GreaterThan = Value1>Value2;
 		static const bool GreaterThanOrEqual = Value1>=Value2;
 	};
+
 	template<>
-	struct Compare< UIntPack<> , UIntPack<> >
+	struct Comparison< Pack<> , Pack<> >
 	{
 		static const bool Equal = true;
 		static const bool NotEqual = false;
@@ -309,21 +235,46 @@ namespace AutoDiff
 		static const bool GreaterThanOrEqual = true;
 	};
 
+	////////////////////
+	// _Concatenation //
+	////////////////////
+	template< unsigned int ... Values1 , unsigned int ... Values2 , typename ... Packs >
+	struct _Concatenation< Pack< Values1 ... > , Pack< Values2 ... > , Packs ... >
+	{
+		typedef typename _Concatenation< typename Pack< Values1 ... >::template Append< Values2 ... > , Packs ... >::type type;
+	};
+	template< unsigned int ... Values >
+	struct _Concatenation< Pack< Values ... > >
+	{
+		typedef Pack< Values ... > type;
+	};
 
-	///////////////////////////
-	// The isotropic variant //
-	///////////////////////////
-	template< unsigned int Dim , unsigned int Value > struct _IsotropicUIntPack             { typedef typename _IsotropicUIntPack< Dim-1 , Value >::type::template Append< Value > type; };
-	template<                    unsigned int Value > struct _IsotropicUIntPack< 1 , Value >{ typedef UIntPack< Value > type; };
-	template<                    unsigned int Value > struct _IsotropicUIntPack< 0 , Value >{ typedef UIntPack< > type; };
-	template< unsigned int Dim , unsigned int Value > using IsotropicUIntPack = typename _IsotropicUIntPack< Dim , Value >::type;
-	template< unsigned int Dim > using ZeroUIntPack = IsotropicUIntPack< Dim , 0 >;
+	//////////////////
+	// _Permutation //
+	//////////////////
+	template< unsigned int ... Values , unsigned int ... PermutationValues >
+	struct _Permutation< Pack< Values ... > , Pack< PermutationValues ... > >
+	{
+		typedef Pack< PermutationValues ... > PPack;
+		typedef Concatenation< Pack< Selection< PPack::First , Pack< Values ... > >::Value > , typename _Permutation< Pack< Values ... > , typename PPack::Rest >::type > type;
+	};
+	template< unsigned int ... Values >
+	struct _Permutation< Pack< Values ... > , Pack<> >
+	{
+		typedef Pack<> type;
+	};
 
-	////////////////////////
-	// Sequential variant //
-	////////////////////////
-	template< unsigned int Dim , unsigned int Value >   struct _SequentialUIntPack             { typedef Concatenation< UIntPack< Value > , typename _SequentialUIntPack< Dim-1 , Value+1 >::type > type; };
-	template<                    unsigned int Value >   struct _SequentialUIntPack< 0 , Value >{ typedef UIntPack<> type; };
-	template< unsigned int Dim , unsigned int Value=0 > using SequentialUIntPack = typename _SequentialUIntPack< Dim , Value >::type;
+	////////////////////
+	// _IsotropicPack //
+	////////////////////
+	template< unsigned int Dim , unsigned int Value > struct _IsotropicPack             { typedef typename _IsotropicPack< Dim-1 , Value >::type::template Append< Value > type; };
+	template<                    unsigned int Value > struct _IsotropicPack< 1 , Value >{ typedef Pack< Value > type; };
+	template<                    unsigned int Value > struct _IsotropicPack< 0 , Value >{ typedef Pack< > type; };
+
+	/////////////////////
+	// _SequentialPack //
+	/////////////////////
+	template< unsigned int Dim , unsigned int Value >   struct _SequentialPack             { typedef Concatenation< Pack< Value > , typename _SequentialPack< Dim-1 , Value+1 >::type > type; };
+	template<                    unsigned int Value >   struct _SequentialPack< 0 , Value >{ typedef Pack<> type; };
 }
 #endif // UINT_PACK_INCLUDED

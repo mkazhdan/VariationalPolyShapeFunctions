@@ -80,6 +80,8 @@ namespace AutoDiff
 			return Tensor( distribution( generator ) );
 		}
 
+		static Tensor Identity( void ){ return Tensor( 1. ); }
+
 		friend std::ostream &operator << ( std::ostream &os , const Tensor &t ){ return os << t.data; }
 	};
 
@@ -162,6 +164,19 @@ namespace AutoDiff
 			return t;
 		}
 
+		static Tensor< UIntPack::Pack< Dims ... , Dims ... > > Identity( void )
+		{
+			static const unsigned int Size = sizeof ... ( Dims );
+			Tensor< UIntPack::Pack< Dims ... , Dims ... > > id;
+			unsigned int indices[ Size ];
+			MultiDimensionalArray::Loop< Size >::Run
+			(
+				UIntPack::IsotropicPack< Size >::Values , UIntPack::Pack< Dims ... >::Values ,
+				[&]( int d , int i ){ indices[d] = indices[ d+Size ] = i;} ,
+				[&]( void ){ id( indices ) = 1.; }
+			);
+			return id;
+		}
 
 		template< unsigned int ... PermutationValues >
 		static auto PermutationTensor( UIntPack::Pack< PermutationValues ... > )

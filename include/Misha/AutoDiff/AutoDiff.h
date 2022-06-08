@@ -66,7 +66,7 @@ namespace AutoDiff
 	template< typename OutPack , typename InPack > struct Linear;
 
 	// The identity Function
-	// InOutPack: a UIntPacK< ... > describing the dimensions of the input/output tensor
+	// InOutPack: a UIntPack< ... > describing the dimensions of the input/output tensor
 	template< typename InOutPack > struct Identity;
 
 
@@ -128,13 +128,19 @@ namespace AutoDiff
 	// Output type derives from Function< F2::OutPack , F1::InPack >
 	template< typename F1 , typename F2 > auto Composition( const F1 &f1 , const F2 &f2 );
 
+	// A function extracting a sub-tensor whose first I coefficients are given by indices
+	// Assumes:
+	//		I<=F::OutPack::Size
+	//		indices[i]<F::OutPack[i]
+	// Output type derives from Function< UIntPack::Partition< I , F::OutPack >::Second , F::InPack >
+	template< unsigned int I , typename F > auto Extract( const unsigned int indices[/*I*/] , const F &f );
+
 	// A function extracting a single coefficient of the output
 	// Assumes:
 	//		sizeof...(indices)==F::OutPack::Size
 	//		indices[i]<F::OutPack[i]
-	// Output type derives from Function< UIntPack<> , F1::InPack >
-	template< typename F > auto Coefficient( const unsigned int indices[] , const F &f );
-	template< unsigned int ... CoefficientIndices , typename F > auto Coefficient( UIntPack::Pack< CoefficientIndices ... > , const F &f );
+	// Output type derives from Function< UIntPack<> , F::InPack >
+	template< typename F > auto Coefficient( const unsigned int indices[/*F::OutPack::Size*/] , const F &f ){ return Extract< F::OutPack::Size >( indices , f ); }
 
 	// A function returning the determinant of the output of a Function (assumed to return a square 2-tensor)
 	// Assumes:
@@ -174,7 +180,7 @@ namespace AutoDiff
 	// Assumes:
 	//		F::OutPack::Size>=2
 	// Output type derives from Function< F::OutPack::Remove(I1,I2) , F::InPack >
-	template< unsigned int I1 , unsigned int I2 , typename F > auto Contract( const F &f );
+	template< unsigned int I1 , unsigned int I2 , typename F > auto Contraction( const F &f );
 
 	// A function returning the square norm of the output of a Function
 	// Output type derives from Function< UIntPack<> , F::InPack >
@@ -304,7 +310,7 @@ namespace AutoDiff
 		_Permutation( const F &f ) : _f(f) {}
 		auto value( const Tensor< typename _Function::InPack > &t ) const;
 		auto d( void ) const;
-		template< typename _PermutationPack , typename _F > friend std::ostream &operator << ( std::ostream & , const _Permutation< _PermutationPack , _F > & );
+		template< unsigned int ... _PermutationIndices , typename _F > friend std::ostream &operator << ( std::ostream & , const _Permutation< UIntPack::Pack< _PermutationIndices ... > , _F > & );
 
 	protected:
 		const F _f;
@@ -399,27 +405,35 @@ namespace AutoDiff
 		Identity( void );
 	};
 
-	template< typename InPack > struct _Coefficient;
-
-	template< unsigned int ... InDims >
-	struct _Coefficient< UIntPack::Pack< InDims ... > > : public Linear< UIntPack::Pack<> , UIntPack::Pack< InDims ... > >
+	template< unsigned int I , typename F >
+	struct _Extract : public Function< typename UIntPack::Partition< I , typename F::OutPack >::Second , typename F::InPack , _Extract< I , F > >
 	{
-		typedef UIntPack::Pack< InDims ... > InPack;
-		using Linear< UIntPack::Pack<> , InPack >::_l;
-		_Coefficient( const unsigned int indices[] );
-		template< unsigned int ... CoefficientIndices >
-		_Coefficient( UIntPack::Pack< CoefficientIndices ... > );
+		typedef Function< typename UIntPack::Partition< I , typename F::OutPack >::Second , typename F::InPack , _Extract > _Function;
+
+		_Extract( const unsigned int indices[/*I*/] , const F &f ) : _f(f) { memcpy( _indices , indices , sizeof(unsigned int)*I ); }
+
+		auto value( const Tensor< typename _Function::InPack > &t ) const;
+		auto d( void ) const;
+		template< unsigned int _I , typename _F > friend std::ostream &operator << ( std::ostream &os , const _Extract< _I , _F > &ex );
+
+	protected:
+		const F _f;
+		unsigned int _indices[I];
 	};
 
-	template< unsigned int I1 , unsigned int I2 , typename InPack > struct _Contraction;
-
-	template< unsigned int I1 , unsigned int I2 , unsigned int ... Dims >
-	struct _Contraction< I1 , I2 , UIntPack::Pack< Dims ... > > : public Linear< typename UIntPack::Selection< I1 , typename UIntPack::Selection< I2 , UIntPack::Pack< Dims ... > >::Complement >::Complement , UIntPack::Pack< Dims ... > >
+	template< unsigned int I1 , unsigned int I2 , typename F >
+	struct _Contraction : public Function< typename UIntPack::Selection< I1 , typename UIntPack::Selection< I2 , typename F::OutPack >::Complement >::Complement , typename F::InPack , _Contraction< I1 , I2 , F > >
 	{
-		typedef UIntPack::Pack< Dims ... > InPack;
-		typedef typename UIntPack::Selection< I1 , typename UIntPack::Selection< I2 , InPack >::Complement >::Complement OutPack;
-		using Linear< OutPack , InPack >::_l;
-		_Contraction( void );
+		typedef Function< typename UIntPack::Selection< I1 , typename UIntPack::Selection< I2 , typename F::OutPack >::Complement >::Complement , typename F::InPack , _Contraction > _Function;
+
+		_Contraction( const F &f ) : _f(f) {}
+
+		auto value( const Tensor< typename _Function::InPack > &t ) const;
+		auto d( void ) const;
+		template< unsigned int _I1 , unsigned int _I2 , typename _F > friend std::ostream &operator << ( std::ostream &os , const _Contraction< _I1 , _I2 , _F > &op );
+
+	protected:
+		const F _f;
 	};
 
 	////////////////////////
@@ -753,32 +767,31 @@ namespace AutoDiff
 		);
 	}
 
-	//////////////////
-	// _Coefficient //
-	//////////////////
-	template< unsigned int ... InDims >
-	_Coefficient< UIntPack::Pack< InDims ... > >::_Coefficient( const unsigned int indices[] ){ _l( indices ) = 1; }
+	//////////////
+	// _Extract //
+	//////////////
+	template< unsigned int I , typename F >
+	auto _Extract< I , F >::value( const Tensor< typename _Function::InPack > &t ) const { return _f(t).template extract<I>( _indices ); }
 
-	template< unsigned int ... InDims >
-	template< unsigned int ... CoefficientIndices >
-	_Coefficient< UIntPack::Pack< InDims ... > >::_Coefficient( UIntPack::Pack< CoefficientIndices ... > )
+	template< unsigned int I , typename F >
+	auto _Extract< I , F >::d( void ) const { return Extract< I >( _indices , _f.d() ); }
+
+	template< unsigned int I , typename F >
+	std::ostream &operator << ( std::ostream &os , const _Extract< I , F > &extract )
 	{
-		typedef UIntPack::Pack< CoefficientIndices ... > CoefficientIndexPack;
-		typedef UIntPack::Pack< InDims ... > InPack;
-		static_assert( CoefficientIndexPack::Size==InPack::Size , "[ERROR] Coefficient count must match dimensions" );
-		static_assert( UIntPack::Comparison< CoefficientIndexPack , InPack >::LessThan , "[ERROR] Coefficient index cannot exceed dimension" );
-		const unsigned int indices[] = { CoefficientIndices ... };
-		_l( indices ) = 1;
+		if constexpr( I==F::OutPack::Size ) os << "Coefficient_{";
+		else                                os << "Extract_{";
+		for( unsigned int i=0 ; i<I ; i++ )
+			if( i ) os << "," << extract._indices[i];
+			else    os <<        extract._indices[i];
+		return os << "}( " << extract._f << " )";
 	}
 
-	/////////////////
-	// Coefficient //
-	/////////////////
-	template< typename F >
-	auto Coefficient( const unsigned int indices[] , const F &f ){ return _Coefficient< typename F::OutPack >( indices )( f ); }
-
-	template< unsigned int ... CoefficientIndices , typename F >
-	auto Coefficient( UIntPack::Pack< CoefficientIndices ... > , const F &f ){ return _Coefficient< typename F::OutPack >( UIntPack::Pack< CoefficientIndices ... >() )( f ); }
+	/////////////
+	// Extract //
+	/////////////
+	template< unsigned int I , typename F >
+	auto Extract( const unsigned int indices[] , const F &f ){ return _Extract< I , F >( indices , f ); }
 
 	/////////////////
 	// Determinant //
@@ -814,7 +827,7 @@ namespace AutoDiff
 		static_assert( OutPack::template Get<0>()==OutPack::template Get<1>() , "[ERROR] Output 2-tensor must be square" );
 		static const unsigned int Dim = OutPack::template Get<0>();
 
-		auto _det = Determinant( _SubMatrix<0,C>(f) ) * Coefficient( UIntPack::Pack<0,C>() , f );
+		auto _det = Determinant( _SubMatrix<0,C>(f) ) * Coefficient( UIntPack::Pack<0,C>::Values , f );
 
 		if constexpr( C==0 ) return _det;
 		else
@@ -831,8 +844,8 @@ namespace AutoDiff
 		static_assert( OutPack::Size==2 , "[ERROR] Output must be a 2-tensor" );
 		static_assert( OutPack::template Get<0>()==OutPack::template Get<1>() , "[ERROR] Output 2-tensor must be square" );
 		static const unsigned int Dim = OutPack::template Get<0>();
-		if      constexpr( Dim==1 ) return Coefficient( UIntPack::Pack<0,0>() , f );
-		else if constexpr( Dim==2 ) return Coefficient( UIntPack::Pack<0,0>() , f ) * Coefficient( UIntPack::Pack<1,1>() , f ) - Coefficient( UIntPack::Pack<1,0>() , f ) * Coefficient( UIntPack::Pack<0,1>() , f );
+		if      constexpr( Dim==1 ) return Coefficient( UIntPack::Pack<0,0>::Values , f );
+		else if constexpr( Dim==2 ) return Coefficient( UIntPack::Pack<0,0>::Values , f ) * Coefficient( UIntPack::Pack<1,1>::Values , f ) - Coefficient( UIntPack::Pack<1,0>::Values , f ) * Coefficient( UIntPack::Pack<0,1>::Values , f );
 		else return _Determinant0< Dim-1 >( f );
 	}
 
@@ -943,8 +956,17 @@ namespace AutoDiff
 	//////////////////
 	// _Contraction //
 	//////////////////
-	template< unsigned int I1 , unsigned int I2 , unsigned int ... Dims >
-	_Contraction< I1 , I2 , UIntPack::Pack< Dims ... > >::_Contraction( void ){ _l = Tensor< UIntPack::Pack< Dims ... > >::template ContractionTensor< I1 , I2 >(); }
+	template< unsigned int I1 , unsigned int I2 , typename F >
+	auto _Contraction< I1 , I2 , F >::value( const Tensor< typename _Function::InPack > &t ) const { return _f(t).template contract< I1 , I2 >(); }
+
+	template< unsigned int I1 , unsigned int I2 , typename F >
+	auto _Contraction< I1 , I2 , F >::d( void ) const { return Contraction< I1 , I2 >( _f.d() ); }
+
+	template< unsigned int I1 , unsigned int I2 , typename F >
+	std::ostream &operator << ( std::ostream &os , const _Contraction< I1 , I2 , F > &contraction )
+	{
+		return os << "Contraction_{" << I1 << " , " << I2 << "}( "<< contraction._f << ")";
+	}
 
 	/////////////////
 	// Contraction //
@@ -952,8 +974,8 @@ namespace AutoDiff
 	template< unsigned I1 , unsigned I2 , typename F >
 	auto Contraction( const F &f )
 	{
-		if constexpr( I1<I2 ) return _Contraction< I1 , I2 , typename F::OutPack >()( f );
-		else                  return _Contraction< I2 , I1 , typename F::OutPack >()( f );
+		if constexpr( I1<I2 ) return _Contraction< I1 , I2 , F >( f );
+		else                  return _Contraction< I2 , I1 , F >( f );
 	}
 
 	///////////////

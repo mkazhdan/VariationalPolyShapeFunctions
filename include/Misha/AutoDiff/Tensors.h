@@ -167,6 +167,7 @@ namespace AutoDiff
 		static auto PermutationTensor( UIntPack::Pack< PermutationValues ... > )
 		{
 #pragma message( "[WARNING] Should avoid using PermutationTensor" )
+			WARN_ONCE( "Invoking PermutationTensor" );
 			Tensor< UIntPack::Concatenation< UIntPack::Permutation< Pack , UIntPack::Pack< PermutationValues ... > > , Pack > > t;
 			const unsigned int permutation[] = { PermutationValues ... };
 			unsigned int idx[ 2*Size ];
@@ -202,27 +203,33 @@ namespace AutoDiff
 		}
 
 		// Extract slice
-#if 0
-		template< unsigned int ... Indices >
-		Tensor< typename UIntPack::Partition< sizeof ... ( Indices ) , Pack >::Second > extract( UIntPack::Pack< Indices ... > ) const
+		template< unsigned int I >
+		auto extract( const unsigned int indices[/*I*/] ) const
 		{
-			typedef typename UIntPack::Partition< sizeof ... ( Indices ) , Pack >::Second Remainder;
+			typedef typename UIntPack::Partition< I , Pack >::Second Remainder;
 			Tensor< Remainder> t;
 
-			MultiDimensionalArray::Loop< Remainder::Size >::Run
-			(
-				UIntPack::IsotropicPack< Remainder::Size >::Values , Remainder::Values ,
-				[&]( int d , int i ){; } ,
-				[&]( const double &v , double &v ){ t( idx ) = v; } ,
-				*this , t
-			);
+			if constexpr( Remainder::Size!=0 )
+			{
+				unsigned int _indices[ Pack::Size ];
+				for( unsigned int i=0 ; i<I ; i++ ) _indices[i] = indices[i];
+
+				MultiDimensionalArray::Loop< Remainder::Size >::Run
+				(
+					UIntPack::IsotropicPack< Remainder::Size >::Values , Remainder::Values ,
+					[&]( int d , int i ){ _indices[d+I] = i; } ,
+					[&]( double &_t ){ _t = operator()( _indices ); } ,
+					t
+				);
+			}
+			else static_cast< double & >( t ) = operator()( indices );
 			return t;
 		}
-#endif
 
 		static auto TransposeTensor( void )
 		{
 #pragma message( "[WARNING] Should avoid using TransposeTensor" )
+			WARN_ONCE( "Invoking TransposeTensor" );
 			Tensor< UIntPack::Concatenation< typename Pack::Transpose , Pack > > t;
 			unsigned int idx[ 2*Size ];
 			MultiDimensionalArray::Loop< Size >::Run
@@ -319,15 +326,54 @@ namespace AutoDiff
 		static auto ContractionTensor( void )
 		{
 #pragma message( "[WARNING] Should avoid using ContractionTensor" )
+			WARN_ONCE( "Invoking ContractionTensor" );
 			if constexpr( D1<D2 ) return _ContractionTensor< D1 , D2 >();
 			else                  return _ContractionTensor< D2 , D1 >();
 		}
 
 		// Tensor contraction
-		template< unsigned int D1 , unsigned int D2 >
-		Tensor< typename UIntPack::Selection< (D1<D2?D2:D1) , typename UIntPack::Selection< (D1<D2?D1:D2) , Pack >::Complement >::Complement > contract( void ) const
+		template< unsigned int I1 , unsigned int I2 >
+		auto contract( void ) const
 		{
-			return ContractionTensor< D1 , D2 >().contractedOuterProduct< Pack::Size-2 >( *this );
+			static_assert( I1!=I2 , "[ERROR] Contraction indices must differ" );
+			static_assert( Pack::template Get< I1 >()==Pack::template Get< I2 >() , "[ERROR] Contraction dimensions don't match" );
+			static_assert( I1<Pack::Size && I2<Pack::Size , "[ERROR] Contraction indices out of bounds" );
+			if constexpr( I2<I1 ) return this->template contract< I2 , I1 >();
+			typedef typename UIntPack::Selection< I1 , typename UIntPack::Selection< I2 , Pack >::Complement >::Complement OutPack;
+			Tensor< OutPack > out;
+			if constexpr( Pack::Size>2 )
+			{
+				unsigned int indices[ OutPack::Size ];
+				MultiDimensionalArray::Loop< OutPack::Size >::Run
+				(
+					UIntPack::IsotropicPack< OutPack::Size >::Values , OutPack::Values ,
+					[&]( int d , int i ){ indices[d] = i; } ,
+					[&]( double &_out )
+					{
+						unsigned int _indices[ Pack::Size ];
+						unsigned int idx=0;
+						for( unsigned int i=0 ; i<Pack::Size ; i++ ) if( i!=I1 && i!=I2 ) _indices[i] = indices[idx++];
+						_out = 0;
+						for( unsigned int i=0 ; i<Pack::template Get< I1 >() ; i++ )
+						{
+							_indices[I1] = _indices[I2] = i;
+							_out += operator()( _indices );
+						}
+					} ,
+					out
+						);
+			}
+			else
+			{
+				double &_out = static_cast< double & >( out );
+				unsigned int _indices[2];
+				for( unsigned int i=0 ; i<Pack::template Get<I1>() ; i++ )
+				{
+					_indices[I1] = _indices[I2] = i;
+					_out += operator()( _indices );
+				}
+			}
+			return out;
 		}
 
 		// In1 := [ N{1} , ... , N{I} , N{I+1} , ... , N{K} ]
@@ -378,10 +424,10 @@ namespace AutoDiff
 							);
 						} ,
 						_in1 , in2
-					);
+							);
 				} ,
 				in1 , out
-			);
+					);
 			return out;
 		}
 
